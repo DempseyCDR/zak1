@@ -1,1 +1,14 @@
 .claude/
+.DS_Store
+node_modules/
+.next/
+dist/
+build/
+out/
+coverage/
+*.log
+.env
+.env.*
+!.env.example
+*.tsbuildinfo
+next-env.d.ts

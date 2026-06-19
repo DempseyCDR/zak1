@@ -1,113 +1,114 @@
-# Implementation Plan: [FEATURE]
+# Implementation Plan: Contacts & Membership
 
-**Branch**: `[###-feature-name]` | **Date**: [DATE] | **Spec**: [link]
+**Branch**: `001-contacts-membership` | **Date**: 2026-06-18 | **Spec**: [spec.md](spec.md)
 
-**Input**: Feature specification from `/specs/[###-feature-name]/spec.md`
-
-**Note**: This template is filled in by the `/speckit-plan` command. See `.specify/templates/plan-template.md` for the execution workflow.
+**Input**: Feature specification from `/specs/001-contacts-membership/spec.md`
 
 ## Summary
 
-[Extract from feature spec: primary requirement + technical approach from research]
+Build the foundational people layer of the CDR platform: a Contact directory (~1,300 records) where
+each Contact has one-to-many ContactEmails with independent type/status/consent flags, a materialized
+membership status (current / lapsed / long_lapsed / never) kept accurate on every membership change
+and at least daily, and an admin-confirmed fuzzy deduplication queue. Technical approach: a
+TypeScript Next.js application backed by PostgreSQL, using `pg_trgm` for fuzzy name matching, Zod for
+boundary validation, structured logging, and an append-only audit log for merges and status changes.
+Single-tenant for this build (CDR only); tenant-scoped settings such as `long_lapse_cycles` remain
+configurable.
 
 ## Technical Context
 
-<!--
-  ACTION REQUIRED: Replace the content in this section with the technical details
-  for the project. The structure here is presented in advisory capacity to guide
-  the iteration process.
--->
+**Language/Version**: TypeScript 5.x on Node.js LTS (22.x), strict mode
 
-**Language/Version**: [e.g., Python 3.11, Swift 5.9, Rust 1.75 or NEEDS CLARIFICATION]
+**Primary Dependencies**: Next.js (App Router, React 19), Drizzle ORM, Zod, pino (logging), a job
+runner for the daily refresh (node-cron in-process for build 1)
 
-**Primary Dependencies**: [e.g., FastAPI, UIKit, LLVM or NEEDS CLARIFICATION]
+**Storage**: PostgreSQL 16 with `pg_trgm` and `uuid-ossp`/`pgcrypto` extensions
 
-**Storage**: [if applicable, e.g., PostgreSQL, CoreData, files or N/A]
+**Testing**: Vitest (unit) + integration tests against a real PostgreSQL instance (Testcontainers or
+a disposable Docker Postgres); no mocking of the database, per constitution
 
-**Testing**: [e.g., pytest, XCTest, cargo test or NEEDS CLARIFICATION]
+**Target Platform**: Linux server (Node runtime); admin UI in a modern browser
 
-**Target Platform**: [e.g., Linux server, iOS 15+, WASM or NEEDS CLARIFICATION]
+**Project Type**: Web application (single Next.js project: server + React UI)
 
-**Project Type**: [e.g., library/cli/web-service/mobile-app/compiler/desktop-app or NEEDS CLARIFICATION]
+**Performance Goals**: Fuzzy name search returns a ranked pick list within 300 ms p95; everyday admin
+list/detail operations under 1 s for the full directory
 
-**Performance Goals**: [domain-specific, e.g., 1000 req/s, 10k lines/sec, 60 fps or NEEDS CLARIFICATION]
+**Constraints**: Email uniqueness across active+transition records enforced at the database; merges
+must be auditable; membership status freshness ≤ 1 business day
 
-**Constraints**: [domain-specific, e.g., <200ms p95, <100MB memory, offline-capable or NEEDS CLARIFICATION]
-
-**Scale/Scope**: [domain-specific, e.g., 10k users, 1M LOC, 50 screens or NEEDS CLARIFICATION]
+**Scale/Scope**: ~1,300 contacts, ~152 active members, single tenant (CDR); designed so multi-tenant
+scoping can be added later without data-model rework
 
 ## Constitution Check
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+- **I. Test-First (NON-NEGOTIABLE)**: PASS — Vitest with Red-Green-Refactor; integration tests run
+  against real PostgreSQL (no DB mocking). Email-uniqueness, status classification, and merge
+  re-linking each get failing tests before implementation.
+- **II. Simplicity / YAGNI**: PASS — single-tenant, single Next.js project, no premature multi-tenant
+  infrastructure; in-process cron for the daily job rather than external queue. No abstractions added
+  before a third use site.
+- **III. Type Safety**: PASS — `strict: true` and `noUncheckedIndexedAccess: true`; Zod schemas
+  validate all external boundaries (API request bodies, CSV/iContact metadata, env) and convert to
+  typed domain objects. No `any`/unchecked `as` except documented escape hatches.
+- **IV. Observability**: PASS — pino structured JSON logs on all request/response cycles; append-only
+  audit log for contact merges and membership-status changes (who/what/when); no `console.log` in
+  production paths.
+
+**Initial gate: PASS. No violations — Complexity Tracking left empty.**
 
 ## Project Structure
 
 ### Documentation (this feature)
 
 ```text
-specs/[###-feature]/
-├── plan.md              # This file (/speckit-plan command output)
-├── research.md          # Phase 0 output (/speckit-plan command)
-├── data-model.md        # Phase 1 output (/speckit-plan command)
-├── quickstart.md        # Phase 1 output (/speckit-plan command)
-├── contracts/           # Phase 1 output (/speckit-plan command)
-└── tasks.md             # Phase 2 output (/speckit-tasks command - NOT created by /speckit-plan)
+specs/001-contacts-membership/
+├── plan.md              # This file
+├── research.md          # Phase 0 output
+├── data-model.md        # Phase 1 output
+├── quickstart.md        # Phase 1 output
+├── contracts/           # Phase 1 output (API + DB contracts)
+└── tasks.md             # Phase 2 output (/speckit-tasks - NOT created here)
 ```
 
 ### Source Code (repository root)
-<!--
-  ACTION REQUIRED: Replace the placeholder tree below with the concrete layout
-  for this feature. Delete unused options and expand the chosen structure with
-  real paths (e.g., apps/admin, packages/something). The delivered plan must
-  not include Option labels.
--->
 
 ```text
-# [REMOVE IF UNUSED] Option 1: Single project (DEFAULT)
 src/
-├── models/
-├── services/
-├── cli/
-└── lib/
+├── app/
+│   ├── (admin)/contacts/        # Admin UI: list, detail, email management
+│   ├── (admin)/dedup/           # Merge review queue UI
+│   └── api/
+│       ├── contacts/            # CRUD + email subresource route handlers
+│       ├── memberships/         # membership create + status read
+│       └── dedup/               # suggestions + confirm-merge
+├── server/
+│   ├── db/
+│   │   ├── schema/              # Drizzle table definitions
+│   │   └── migrations/
+│   ├── domain/
+│   │   ├── contacts/            # contact + email services
+│   │   ├── membership/          # status classification + daily refresh job
+│   │   └── dedup/               # fuzzy suggestions + merge re-linking
+│   ├── lib/
+│   │   ├── logger.ts            # pino structured logger
+│   │   └── audit.ts             # append-only audit writer
+│   └── validation/              # Zod schemas (boundary contracts)
+└── jobs/
+    └── membership-refresh.ts    # nightly status recompute
 
 tests/
-├── contract/
-├── integration/
+├── integration/                 # against real Postgres
 └── unit/
-
-# [REMOVE IF UNUSED] Option 2: Web application (when "frontend" + "backend" detected)
-backend/
-├── src/
-│   ├── models/
-│   ├── services/
-│   └── api/
-└── tests/
-
-frontend/
-├── src/
-│   ├── components/
-│   ├── pages/
-│   └── services/
-└── tests/
-
-# [REMOVE IF UNUSED] Option 3: Mobile + API (when "iOS/Android" detected)
-api/
-└── [same as backend above]
-
-ios/ or android/
-└── [platform-specific structure: feature modules, UI flows, platform tests]
 ```
 
-**Structure Decision**: [Document the selected structure and reference the real
-directories captured above]
+**Structure Decision**: Single Next.js (App Router) project — the spec describes admin-facing UI plus
+server logic with shared types, so one TypeScript project with `src/app` (UI + route handlers) and
+`src/server` (domain/db) keeps front/back type contracts unified without a separate backend service.
+Deferred features (002–007) will add sibling route groups and domain modules in the same project.
 
 ## Complexity Tracking
 
-> **Fill ONLY if Constitution Check has violations that must be justified**
-
-| Violation | Why Needed | Simpler Alternative Rejected Because |
-|-----------|------------|-------------------------------------|
-| [e.g., 4th project] | [current need] | [why 3 projects insufficient] |
-| [e.g., Repository pattern] | [specific problem] | [why direct DB access insufficient] |
+> No constitution violations — section intentionally empty.

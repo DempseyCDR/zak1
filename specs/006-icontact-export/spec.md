@@ -42,7 +42,7 @@ The system computes certain fields only at export time (not stored), such as a c
 
 ### Edge Cases
 
-- A contact with multiple consented emails of differing types must export according to per-email consent, not a single contact-level flag.
+- A contact with multiple emails carrying differing consent topics must export per-email, not via a single contact-level flag.
 - The delivery provider does not accept a list ID in the upload; the filename conveys the target list, so filenames must match exactly.
 - Inactive or transition emails must be excluded from active mailings.
 
@@ -51,7 +51,9 @@ The system computes certain fields only at export time (not stored), such as a c
 ### Functional Requirements
 
 - **FR-001**: System MUST export one CSV per mailing list for the seven lists, with exact filenames matching the list IDs (contra, english, openband, specialevents, janeaustenball, performer, member) + ".csv".
-- **FR-002**: System MUST include only emails with marketing consent for that list/contact.
+- **FR-001a**: System MUST treat the five content lists (contra, english, openband, specialevents, janeaustenball) as **opt-in topics** — an email is included only if it carries the matching consent topic (per feature 001's `email_consent_topic`). The "member" and "performer" lists are **derived audiences** computed from membership status (feature 001) and performer role (feature 003), not opt-in topics.
+- **FR-002**: System MUST include only emails whose consent permits that list: the matching opt-in topic for content lists, and membership/performer-role qualification for the derived lists.
+- **FR-002a**: System MUST exclude any email carrying the "Do Not Contact" consent topic from every list, including the derived member and performer lists.
 - **FR-003**: System MUST exclude inactive and transition emails from active mailing exports.
 - **FR-004**: System MUST include a membership_status column in member.csv for segmentation.
 - **FR-005**: System MUST scope the Jane Austen Ball list to the year of the most recent JAB.
@@ -62,7 +64,7 @@ The system computes certain fields only at export time (not stored), such as a c
 
 ### Key Entities *(include if feature involves data)*
 
-- **Mailing List**: One of seven configured lists with an ID that determines its CSV filename and membership rules.
+- **Mailing List**: One of seven configured lists with an ID that determines its CSV filename and membership rules. Two kinds: **opt-in topic lists** (contra, english, openband, specialevents, janeaustenball) driven by per-email consent topics, and **derived-audience lists** (member, performer) computed from membership status / performer role. All lists are suppressed by "Do Not Contact".
 - **Export Run**: A generated set of CSVs at a point in time, with computed-only fields applied.
 
 ## Success Criteria *(mandatory)*
