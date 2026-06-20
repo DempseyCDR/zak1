@@ -9,6 +9,7 @@ export default tseslint.config(
       "build/",
       "coverage/",
       "*.min.js",
+      "next-env.d.ts",
     ],
   },
   ...tseslint.configs.recommended,
@@ -19,8 +20,8 @@ export default tseslint.config(
     },
   },
   {
-    // Tooling/scripts may log.
-    files: ["src/server/db/migrate.ts", "src/server/db/seed.ts", "tests/**"],
+    // Tooling/scripts/jobs may log to the console (CLI entrypoints).
+    files: ["src/server/db/migrate.ts", "src/server/db/seed.ts", "src/jobs/**", "tests/**"],
     rules: { "no-console": "off" },
   },
 );

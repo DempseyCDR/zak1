@@ -86,20 +86,20 @@ happen via service recompute + idempotent daily job; `never` when no membership.
 
 ### Tests first (MUST fail before implementation)
 
-- [ ] T031 [P] [US2] Unit test: status classification pure function across boundaries (current/lapsed/long_lapsed/never, respecting `long_lapse_cycles`) in `tests/unit/membership.classify.test.ts` (FR-007/008)
-- [ ] T032 [P] [US2] Integration test: `POST /api/memberships` sets `current` synchronously + writes `StatusChangeAudit` in `tests/integration/membership.create.test.ts` (FR-009/013)
-- [ ] T033 [P] [US2] Integration test: daily refresh job transitions expired memberships and is idempotent (second run = no new audit rows) in `tests/integration/membership.refresh.test.ts` (FR-009, SC-002)
-- [ ] T034 [P] [US2] Integration test: `GET /api/contacts/:id/membership-status` returns status/listMember/recomputedAt in `tests/integration/membership.status.test.ts`
+- [X] T031 [P] [US2] Unit test: status classification pure function across boundaries (current/lapsed/long_lapsed/never, respecting `long_lapse_cycles`) in `tests/unit/membership.classify.test.ts` (FR-007/008)
+- [X] T032 [P] [US2] Integration test: `POST /api/memberships` sets `current` synchronously + writes `StatusChangeAudit` in `tests/integration/membership.create.test.ts` (FR-009/013)
+- [X] T033 [P] [US2] Integration test: daily refresh job transitions expired memberships and is idempotent (second run = no new audit rows) in `tests/integration/membership.refresh.test.ts` (FR-009, SC-002)
+- [X] T034 [P] [US2] Integration test: `GET /api/contacts/:id/membership-status` returns status/listMember/recomputedAt in `tests/integration/membership.status.test.ts`
 
 ### Implementation
 
-- [ ] T035 [US2] Define `payers` and `memberships` table schemas in `src/server/db/schema/memberships.ts` and migrate
-- [ ] T036 [US2] Define `status_change_audit` table schema in `src/server/db/schema/audit.ts` and migrate
-- [ ] T037 [P] [US2] Pure status classification function (most-recent expiry vs. today + cycles) in `src/server/domain/membership/classify.ts`
-- [ ] T038 [US2] Membership service: create membership, synchronous status recompute, audit on change in `src/server/domain/membership/membershipService.ts`
-- [ ] T039 [US2] Zod schema for membership create in `src/server/validation/memberships.ts`
-- [ ] T040 [P] [US2] Route handlers `POST /api/memberships` and `GET /api/contacts/:id/membership-status` in `src/app/api/memberships/` and contact route
-- [ ] T041 [US2] Daily refresh job (idempotent, recompute time-based transitions, system-actor audit) in `src/jobs/membership-refresh.ts` + `node-cron` registration + `pnpm job:membership-refresh` entrypoint
+- [X] T035 [US2] Define `payers` and `memberships` table schemas in `src/server/db/schema/memberships.ts` and migrate
+- [X] T036 [US2] Define `status_change_audit` table schema in `src/server/db/schema/audit.ts` and migrate
+- [X] T037 [P] [US2] Pure status classification function (most-recent expiry vs. today + cycles) in `src/server/domain/membership/classify.ts`
+- [X] T038 [US2] Membership service: create membership, synchronous status recompute, audit on change in `src/server/domain/membership/membershipService.ts`
+- [X] T039 [US2] Zod schema for membership create in `src/server/validation/memberships.ts`
+- [X] T040 [P] [US2] Route handlers `POST /api/memberships` and `GET /api/contacts/:id/membership-status` in `src/app/api/memberships/` and contact route
+- [X] T041 [US2] Daily refresh job (idempotent, recompute time-based transitions, system-actor audit) in `src/jobs/membership-refresh.ts` + `node-cron` registration + `pnpm job:membership-refresh` entrypoint
 
 **Checkpoint**: US2 independently testable — status accurate on write and over time, fully audited.
 
