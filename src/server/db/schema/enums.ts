@@ -28,6 +28,29 @@ export const emailConsentTopicEnum = pgEnum("email_consent_topic", [
   "do_not_contact",
 ]);
 
+export const gateCategoryEnum = pgEnum("gate_category", [
+  "today_admission",
+  "merchandise",
+  "donation",
+  "future_event",
+  "membership",
+  "gift_card",
+  "misc_sales",
+]);
+
+export const paymentMethodEnum = pgEnum("payment_method", ["cash", "card"]);
+
+export const eventGroupKindEnum = pgEnum("event_group_kind", [
+  "double_dance",
+  "weekend",
+  "jane_austen_ball",
+  "other",
+]);
+
+export type GateCategory = (typeof gateCategoryEnum.enumValues)[number];
+export type PaymentMethod = (typeof paymentMethodEnum.enumValues)[number];
+export type EventGroupKind = (typeof eventGroupKindEnum.enumValues)[number];
+
 export type EmailPurpose = (typeof emailPurposeEnum.enumValues)[number];
 export type EmailStatus = (typeof emailStatusEnum.enumValues)[number];
 export type MembershipStatus = (typeof membershipStatusEnum.enumValues)[number];

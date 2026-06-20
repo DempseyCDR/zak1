@@ -6,7 +6,14 @@ import { logger } from "@/server/lib/logger";
  * the structured log; dedicated audit tables are introduced with those stories.
  */
 export type AuditEvent = {
-  kind: "contact.merge" | "membership.status_change" | "contact.created" | "email.created";
+  kind:
+    | "contact.merge"
+    | "membership.status_change"
+    | "contact.created"
+    | "email.created"
+    | "door_record.created"
+    | "door_record.updated"
+    | "attendance.purge";
   actor: string | null;
   details: Record<string, unknown>;
 };

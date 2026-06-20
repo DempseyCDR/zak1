@@ -60,7 +60,7 @@ The system retains identifiable attendance for a limited window for contact-trac
 ### Edge Cases
 
 - A Community Dance held the same evening as TNC has its own separate door record and financials.
-- Instructor-led and other free events have no door record and no financials.
+- Free events (e.g., instructor-led) still track attendance and MAY record donations, but collect no paid admission.
 - Gift cards redeemed for admission are counted but are not a cash/card gate sale.
 - Seed float defaults to $15 but is overridable per door record.
 
@@ -77,15 +77,19 @@ The system retains identifiable attendance for a limited window for contact-trac
 - **FR-007**: System MUST compute the POS fee from transaction count and gross total and MUST NOT display it to the door volunteer.
 - **FR-008**: System MUST compute deposit amount as gross cash − seed float − cash paid out.
 - **FR-009**: System MUST treat each event as having its own door record, including a same-evening Community Dance separate from TNC.
-- **FR-010**: System MUST not require a door record for free, non-financial events.
+- **FR-010**: System MUST track attendance per event, independently of any door record, so every event (free or paid) can have attendance. A free event collects no paid admission; the system MUST allow it to record donations, in which case a door record is created. A door record is created only when money is collected (always for paid events; for free events only if donations).
 - **FR-011**: System MUST purge identifiable attendee links 90 days after the event while persisting quarterly aggregate counts permanently.
 - **FR-012**: System MUST log auditable creation and edits of door financial records (who/what/when).
+- **FR-013**: System MUST support grouping related events into an event group (e.g., Double Dance, multi-day weekend festival, Jane Austen Ball prep + ball); an event MAY belong to at most one group.
 
 ### Key Entities *(include if feature involves data)*
 
-- **Door Record**: The financial and attendance record for one event instance; parent of gate sales and attendance.
+- **Series**: A recurring dance program (e.g., TNC, ECD, Community Dance) that events belong to; informs reporting and some rules (e.g., Community Dance has no Sound Tech).
+- **Event**: A dated instance of a series; the unit attendance and a door record attach to. May charge admission or be free, and may belong to an event group.
+- **Event Group**: A named grouping of related events (Double Dance, weekend festival, JAB prep + ball). Added now so events can be grouped; a single ticket spanning a group is deferred (see Assumptions).
+- **Door Record**: The financial record for one event instance (gate sales, cash, fee, deposit); 0-or-1 per event, created only when money is collected.
 - **Gate Sale**: A sale line keyed by category × payment method (cash/card) under a door record.
-- **Attendance**: A link between a door record and a contact (or an unmatched placeholder), subject to retention rules.
+- **Attendance**: A link between an event and a contact (or an unmatched placeholder), independent of the door record, subject to retention rules.
 
 ## Success Criteria *(mandatory)*
 
@@ -102,3 +106,4 @@ The system retains identifiable attendance for a limited window for contact-trac
 - Gift cards (not punch cards) are the only stored-value instrument.
 - The choice of fuzzy-matching technique is an implementation detail; the requirement is ranked results within 300 ms.
 - POS card data is reconciled against the payment processor downstream (see Treasurer Report feature).
+- **Group tickets are deferred**: this phase adds the Event Group entity (grouping of events) only. A single ticket purchased once and redeemable as admission across all events in a group is out of scope here and belongs to feature 007 (online sales) + door redemption, with revenue attribution handled in features 004/005.

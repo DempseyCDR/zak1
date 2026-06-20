@@ -4,3 +4,6 @@ export * from "./contactEmails";
 export * from "./clubSettings";
 export * from "./memberships";
 export * from "./audit";
+export * from "./events";
+export * from "./door";
+export * from "./attendance";

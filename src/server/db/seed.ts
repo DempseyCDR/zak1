@@ -1,5 +1,14 @@
+import { eq } from "drizzle-orm";
 import { db, sql } from "@/server/db/client";
-import { contactEmails, contacts, memberships, payers } from "@/server/db/schema";
+import {
+  contactEmails,
+  contacts,
+  doorRecords,
+  events,
+  memberships,
+  payers,
+  series,
+} from "@/server/db/schema";
 import { normalizeName } from "@/server/domain/contacts/normalize";
 import { recomputeContactStatus } from "@/server/domain/membership/membershipService";
 
@@ -12,7 +21,17 @@ const FIRST = ["Ada", "Grace", "Alan", "Katherine", "Dorothy", "Edsger", "Donald
 const LAST = ["Lovelace", "Hopper", "Turing", "Johnson", "Vaughan", "Dijkstra", "Knuth", "Liskov", "Berners-Lee", "Hamilton"];
 
 async function main() {
-  await sql`TRUNCATE merge_audit, status_change_audit, memberships, payers, contact_emails, contacts RESTART IDENTITY CASCADE`;
+  await sql`TRUNCATE door_record_audit, gate_sales, door_records, attendance, quarterly_attendance_counts, events, event_groups, merge_audit, status_change_audit, memberships, payers, contact_emails, contacts RESTART IDENTITY CASCADE`;
+
+  // Series (config) — idempotent.
+  await db
+    .insert(series)
+    .values([
+      { key: "tnc", name: "Thursday Night Contra", hasSoundTech: true },
+      { key: "ecd", name: "Sunday English Country Dance", hasSoundTech: true },
+      { key: "community_dance", name: "Community Dance", hasSoundTech: false },
+    ])
+    .onConflictDoNothing({ target: series.key });
 
   const total = 1300;
   const ids: string[] = [];
@@ -45,7 +64,17 @@ async function main() {
     await recomputeContactStatus(db, id, "membership_change", "seed");
   }
 
-  console.log(`seeded ${ids.length} contacts, ${memberIds.length} members`);
+  // A sample event + door record for manual validation.
+  const tnc = await db.query.series.findFirst({ where: eq(series.key, "tnc") });
+  if (tnc) {
+    const [evt] = await db
+      .insert(events)
+      .values({ seriesId: tnc.id, eventDate: "2026-06-18", chargesAdmission: true })
+      .returning();
+    if (evt) await db.insert(doorRecords).values({ eventId: evt.id });
+  }
+
+  console.log(`seeded ${ids.length} contacts, ${memberIds.length} members, series + sample event`);
   await sql.end();
 }
 

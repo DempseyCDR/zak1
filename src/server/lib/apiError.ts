@@ -10,6 +10,13 @@ export type ApiErrorCode =
   | "READ_ONLY_FIELD"
   | "ALREADY_MERGED"
   | "SAME_CONTACT"
+  | "SERIES_NOT_FOUND"
+  | "EVENT_GROUP_NOT_FOUND"
+  | "EVENT_NOT_FOUND"
+  | "DOOR_RECORD_EXISTS"
+  | "DOOR_RECORD_NOT_FOUND"
+  | "ALREADY_CHECKED_IN"
+  | "CASH_PAYOUT_REASON_REQUIRED"
   | "VALIDATION_ERROR";
 
 export class ApiError extends Error {
@@ -56,4 +63,14 @@ export const errors = {
   sameContact: () =>
     new ApiError("SAME_CONTACT", 422, "Canonical and merged contacts must differ."),
   validation: (message: string) => new ApiError("VALIDATION_ERROR", 422, message),
+  seriesNotFound: () => new ApiError("SERIES_NOT_FOUND", 404, "Series not found."),
+  eventGroupNotFound: () => new ApiError("EVENT_GROUP_NOT_FOUND", 404, "Event group not found."),
+  eventNotFound: () => new ApiError("EVENT_NOT_FOUND", 404, "Event not found."),
+  doorRecordExists: () =>
+    new ApiError("DOOR_RECORD_EXISTS", 409, "This event already has a door record."),
+  doorRecordNotFound: () => new ApiError("DOOR_RECORD_NOT_FOUND", 404, "Door record not found."),
+  alreadyCheckedIn: () =>
+    new ApiError("ALREADY_CHECKED_IN", 409, "This contact is already recorded for this event."),
+  cashPayoutReasonRequired: () =>
+    new ApiError("CASH_PAYOUT_REASON_REQUIRED", 422, "A reason is required for cash paid out."),
 };

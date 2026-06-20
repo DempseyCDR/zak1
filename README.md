@@ -40,6 +40,8 @@ pnpm dev                    # Next.js app at http://localhost:3000
 
 - `/contacts` — directory: search, create, multi-purpose emails, consent topics, volunteer roles
 - `/dedup` — duplicate review queue (admin-confirmed merges)
+- `/checkin` — door check-in: event picker, fuzzy search, new-contact + unmatched (feature 002)
+- `/gate` — gate-money entry: 7 categories × cash/card, cash reconciliation, deposit (POS fee hidden)
 
 ## Tests
 
@@ -56,6 +58,9 @@ pnpm lint
 ```sh
 # daily membership-status refresh (idempotent); also schedulable via node-cron
 node --env-file=.env --import tsx src/jobs/membership-refresh.ts
+
+# daily attendance purge: roll >90-day attendance into quarterly counts, then delete (idempotent)
+node --env-file=.env --import tsx src/jobs/attendance-purge.ts
 ```
 
 ## Layout
