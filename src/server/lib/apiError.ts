@@ -8,6 +8,8 @@ export type ApiErrorCode =
   | "CONSENT_TOPICS_REQUIRED"
   | "ROLES_REQUIRE_VOLUNTEER"
   | "READ_ONLY_FIELD"
+  | "ALREADY_MERGED"
+  | "SAME_CONTACT"
   | "VALIDATION_ERROR";
 
 export class ApiError extends Error {
@@ -49,5 +51,9 @@ export const errors = {
     ),
   readOnlyField: (field: string) =>
     new ApiError("READ_ONLY_FIELD", 422, `Field is read-only: ${field}.`),
+  alreadyMerged: () =>
+    new ApiError("ALREADY_MERGED", 409, "One of the contacts has already been merged."),
+  sameContact: () =>
+    new ApiError("SAME_CONTACT", 422, "Canonical and merged contacts must differ."),
   validation: (message: string) => new ApiError("VALIDATION_ERROR", 422, message),
 };

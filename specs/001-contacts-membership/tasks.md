@@ -116,18 +116,18 @@ related records re-linked, merged contact retired, audit written; re-merge → 4
 
 ### Tests first (MUST fail before implementation)
 
-- [ ] T042 [P] [US3] Integration test: `GET /api/dedup/suggestions` returns similar-name pairs with similarity score in `tests/integration/dedup.suggestions.test.ts` (FR-010)
-- [ ] T043 [P] [US3] Integration test: `POST /api/dedup/merge` re-links emails + memberships, soft-retires merged, writes `MergeAudit`; second merge → 409 `ALREADY_MERGED` in `tests/integration/dedup.merge.test.ts` (FR-011/012/013)
-- [ ] T044 [P] [US3] Integration test: no automatic merge occurs from generating suggestions in `tests/integration/dedup.noAutoMerge.test.ts` (FR-011)
+- [X] T042 [P] [US3] Integration test: `GET /api/dedup/suggestions` returns similar-name pairs with similarity score in `tests/integration/dedup.suggestions.test.ts` (FR-010)
+- [X] T043 [P] [US3] Integration test: `POST /api/dedup/merge` re-links emails + memberships, soft-retires merged, writes `MergeAudit`; second merge → 409 `ALREADY_MERGED` in `tests/integration/dedup.merge.test.ts` (FR-011/012/013)
+- [X] T044 [P] [US3] Integration test: no automatic merge occurs from generating suggestions in `tests/integration/dedup.noAutoMerge.test.ts` (FR-011)
 
 ### Implementation
 
-- [ ] T045 [US3] Define `merge_audit` table schema in `src/server/db/schema/audit.ts` and migrate
-- [ ] T046 [US3] Dedup suggestion service (trigram-based candidate pairs above threshold) in `src/server/domain/dedup/suggestionService.ts`
-- [ ] T047 [US3] Transactional merge service (choose canonical, re-link FKs, soft-retire via `merged_into_id`, write audit with relinked counts) in `src/server/domain/dedup/mergeService.ts`
-- [ ] T048 [P] [US3] Zod schema for merge request in `src/server/validation/dedup.ts`
-- [ ] T049 [P] [US3] Route handlers `GET /api/dedup/suggestions` and `POST /api/dedup/merge` in `src/app/api/dedup/`
-- [ ] T050 [US3] Admin UI: merge review queue (pair display, confirm merge) in `src/app/(admin)/dedup/`
+- [X] T045 [US3] Define `merge_audit` table schema in `src/server/db/schema/audit.ts` and migrate
+- [X] T046 [US3] Dedup suggestion service (trigram-based candidate pairs above threshold) in `src/server/domain/dedup/suggestionService.ts`
+- [X] T047 [US3] Transactional merge service (choose canonical, re-link FKs, soft-retire via `merged_into_id`, write audit with relinked counts) in `src/server/domain/dedup/mergeService.ts`
+- [X] T048 [P] [US3] Zod schema for merge request in `src/server/validation/dedup.ts`
+- [X] T049 [P] [US3] Route handlers `GET /api/dedup/suggestions` and `POST /api/dedup/merge` in `src/app/api/dedup/`
+- [X] T050 [US3] Admin UI: merge review queue (pair display, confirm merge) in `src/app/(admin)/dedup/`
 
 **Checkpoint**: US3 independently testable — admin-confirmed, audited merges.
 
@@ -135,11 +135,11 @@ related records re-linked, merged contact retired, audit written; re-merge → 4
 
 ## Phase 6: Polish & Cross-Cutting
 
-- [ ] T051 [P] Seed script scaling to ~1,300 contacts / ~152 members for perf + manual validation in `src/server/db/seed.ts`
-- [ ] T052 [P] Verify all [quickstart.md](quickstart.md) validation scenarios pass end-to-end
-- [ ] T053 [P] Confirm structured logging on all route handlers and zero `console.log` in production paths (lint rule) per Principle IV
-- [ ] T054 [P] Constitution compliance pass: strict-type check clean, no undocumented `any`/`as`, integration tests run against real Postgres
-- [ ] T055 [P] README/run docs for local dev, migrations, and the refresh job
+- [X] T051 [P] Seed script scaling to ~1,300 contacts / ~152 members for perf + manual validation in `src/server/db/seed.ts`
+- [X] T052 [P] Verify all [quickstart.md](quickstart.md) validation scenarios pass end-to-end
+- [X] T053 [P] Confirm structured logging on all route handlers and zero `console.log` in production paths (lint rule) per Principle IV
+- [X] T054 [P] Constitution compliance pass: strict-type check clean, no undocumented `any`/`as`, integration tests run against real Postgres
+- [X] T055 [P] README/run docs for local dev, migrations, and the refresh job
 
 ---
 

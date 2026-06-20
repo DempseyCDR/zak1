@@ -13,7 +13,7 @@ export async function ensureSchema(): Promise<void> {
 
 /** Truncate all feature tables between tests (preserves club_settings seed). */
 export async function resetDb(): Promise<void> {
-  await sql`TRUNCATE status_change_audit, memberships, payers, contact_emails, contacts RESTART IDENTITY CASCADE`;
+  await sql`TRUNCATE merge_audit, status_change_audit, memberships, payers, contact_emails, contacts RESTART IDENTITY CASCADE`;
 }
 
 export async function closeDb(): Promise<void> {
