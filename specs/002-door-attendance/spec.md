@@ -21,9 +21,10 @@ A door volunteer types an arriving dancer's name, sees a ranked list of likely m
 **Acceptance Scenarios**:
 
 1. **Given** an existing contact, **When** the volunteer types part of their name, **Then** a ranked pick list of candidate matches appears within 300 ms.
-2. **Given** multiple similar matches, **When** the volunteer needs to disambiguate, **Then** email is shown to distinguish them.
-3. **Given** no match, **When** the volunteer enters a name and email, **Then** a new contact is created and flagged for admin review.
-4. **Given** a dancer who declines to give details, **When** the volunteer proceeds, **Then** the attendance is recorded as an unmatched attendance contact.
+2. **Given** a candidate in the pick list, **When** the volunteer selects them, **Then** that contact is recorded present for the event, and selecting the same contact again is rejected.
+3. **Given** multiple similar matches, **When** the volunteer needs to disambiguate, **Then** email is shown to distinguish them.
+4. **Given** no match, **When** the volunteer enters a name and email, **Then** a new contact is created and flagged for admin review.
+5. **Given** a dancer who declines to give details, **When** the volunteer proceeds, **Then** the attendance is recorded as an unmatched attendance contact.
 
 ---
 
@@ -69,6 +70,7 @@ The system retains identifiable attendance for a limited window for contact-trac
 ### Functional Requirements
 
 - **FR-001**: System MUST let a volunteer find an existing contact by fuzzy name search returning a ranked pick list within 300 ms.
+- **FR-001a**: System MUST record attendance for an event by linking a volunteer-selected existing contact, and MUST prevent recording the same contact twice for one event.
 - **FR-002**: System MUST show email to disambiguate multiple matches.
 - **FR-003**: System MUST allow creating a new contact (name + email) at the door, flagged for admin review.
 - **FR-004**: System MUST support recording an unmatched attendance when a dancer declines to provide details.
