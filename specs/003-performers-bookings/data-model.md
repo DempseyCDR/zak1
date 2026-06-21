@@ -12,10 +12,10 @@ Storage: PostgreSQL 16. Pay in integer cents. Builds on feature 001 (`contacts`)
 
 | performer_type | paid | requiresCheck | publicDisplay |
 |---|---|---|---|
-| caller | yes | yes (one per event) | full_bio |
-| lead_musician | yes | yes (per musician) | full_bio |
+| caller | yes | yes (per paid caller booking) | full_bio |
+| lead_musician | yes | yes (per paid musician booking) | full_bio |
 | open_band_musician | no | no | open_band_label |
-| sound_tech | yes | yes (one per event) | hidden |
+| sound_tech | yes | yes (per paid sound-tech booking) | hidden |
 | instructor | no (always free) | no | name_note |
 
 `requires_check` on a booking is derived: `rule.requiresCheck AND pay_cents > 0`.

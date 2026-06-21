@@ -67,7 +67,7 @@ An administrator maintains standard pay rates (caller, sound tech) with effectiv
 ### Functional Requirements
 
 - **FR-001**: System MUST support performer types Caller, Lead Musician, Open Band Musician, Sound Tech, and Instructor, each with its paid/check/public-display rules.
-- **FR-002**: System MUST require exactly one check per event for a Caller and per musician for Lead Musicians (when paid > $0).
+- **FR-002**: System MUST require one check per paid Caller booking and one per paid Lead Musician booking (when paid > $0). An event may rarely have more than one Caller; each paid Caller gets its own check.
 - **FR-003**: System MUST display Caller and Lead Musician with full bio and photo, label unpaid musicians as "Open Band", hide Sound Tech from public listings, and show Instructor by name with a short note.
 - **FR-004**: System MUST prevent assigning a Sound Tech to a Community Dance.
 - **FR-005**: System MUST treat Instructors as always free with no check, with no exceptions.
