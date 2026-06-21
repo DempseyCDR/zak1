@@ -37,8 +37,10 @@ describe("PATCH /api/door-records/:id", () => {
     const body = await res.json();
     expect(body.deposit).toBe(160); // 200 - 15 - 25
     expect(body.giftCardRedemptionCount).toBe(3);
-    expect("posFee" in body).toBe(false);
-    expect(JSON.stringify(body).toLowerCase()).not.toContain("fee");
+    // No fee-bearing field is exposed (FR-007). Check keys, not the raw JSON
+    // string, since random UUIDs can contain the hex substring "fee".
+    const feeKeys = Object.keys(body).filter((k) => k.toLowerCase().includes("fee"));
+    expect(feeKeys).toEqual([]);
 
     // fee is stored server-side (319 cents) even though it is never returned
     const row = await db.query.doorRecords.findFirst({ where: eq(doorRecords.id, id) });

@@ -1,6 +1,7 @@
 import { db } from "./db";
 import { createEvent } from "@/server/domain/events/eventService";
-import type { EventRow } from "@/server/db/schema";
+import { createPerformer } from "@/server/domain/performers/performerService";
+import type { EventRow, PerformerRow } from "@/server/db/schema";
 
 export async function makeEvent(opts?: {
   seriesKey?: string;
@@ -14,4 +15,8 @@ export async function makeEvent(opts?: {
     chargesAdmission: opts?.chargesAdmission ?? true,
     ...(opts?.groupId ? { groupId: opts.groupId } : {}),
   });
+}
+
+export async function makePerformer(displayName = "Test Performer"): Promise<PerformerRow> {
+  return createPerformer(db, { displayName });
 }

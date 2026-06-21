@@ -13,7 +13,10 @@ export type AuditEvent = {
     | "email.created"
     | "door_record.created"
     | "door_record.updated"
-    | "attendance.purge";
+    | "attendance.purge"
+    | "booking.created"
+    | "booking.updated"
+    | "rate_parameter.created";
   actor: string | null;
   details: Record<string, unknown>;
 };

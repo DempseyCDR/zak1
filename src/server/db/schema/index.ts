@@ -7,3 +7,6 @@ export * from "./audit";
 export * from "./events";
 export * from "./door";
 export * from "./attendance";
+export * from "./performers";
+export * from "./rates";
+export * from "./bookings";

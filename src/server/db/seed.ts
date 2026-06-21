@@ -7,6 +7,8 @@ import {
   events,
   memberships,
   payers,
+  performers,
+  rateParameters,
   series,
 } from "@/server/db/schema";
 import { normalizeName } from "@/server/domain/contacts/normalize";
@@ -74,7 +76,19 @@ async function main() {
     if (evt) await db.insert(doorRecords).values({ eventId: evt.id });
   }
 
-  console.log(`seeded ${ids.length} contacts, ${memberIds.length} members, series + sample event`);
+  // Performers + standard rates.
+  await db.insert(performers).values([
+    { displayName: "Sample Caller", bio: "Calls contras." },
+    { displayName: "Sample Sound Tech" },
+  ]);
+  await db.insert(rateParameters).values([
+    { kind: "caller", amountCents: 15000, effectiveDate: "2026-01-01" },
+    { kind: "sound_tech", amountCents: 10000, effectiveDate: "2026-01-01" },
+  ]);
+
+  console.log(
+    `seeded ${ids.length} contacts, ${memberIds.length} members, series + sample event, performers + rates`,
+  );
   await sql.end();
 }
 

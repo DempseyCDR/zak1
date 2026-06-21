@@ -17,6 +17,9 @@ export type ApiErrorCode =
   | "DOOR_RECORD_NOT_FOUND"
   | "ALREADY_CHECKED_IN"
   | "CASH_PAYOUT_REASON_REQUIRED"
+  | "PERFORMER_NOT_FOUND"
+  | "BOOKING_NOT_FOUND"
+  | "SOUND_TECH_NOT_ALLOWED"
   | "VALIDATION_ERROR";
 
 export class ApiError extends Error {
@@ -73,4 +76,8 @@ export const errors = {
     new ApiError("ALREADY_CHECKED_IN", 409, "This contact is already recorded for this event."),
   cashPayoutReasonRequired: () =>
     new ApiError("CASH_PAYOUT_REASON_REQUIRED", 422, "A reason is required for cash paid out."),
+  performerNotFound: () => new ApiError("PERFORMER_NOT_FOUND", 404, "Performer not found."),
+  bookingNotFound: () => new ApiError("BOOKING_NOT_FOUND", 404, "Booking not found."),
+  soundTechNotAllowed: () =>
+    new ApiError("SOUND_TECH_NOT_ALLOWED", 422, "Sound Tech is not allowed for this event's series."),
 };

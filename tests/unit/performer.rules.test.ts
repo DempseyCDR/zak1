@@ -1,0 +1,19 @@
+import { describe, expect, it } from "vitest";
+import { PERFORMER_RULES, bookingRequiresCheck } from "@/server/domain/performers/performerRules";
+
+// FR-001, FR-002, FR-003
+describe("performer rules", () => {
+  it("encodes paid/check/public per type", () => {
+    expect(PERFORMER_RULES.caller).toMatchObject({ paid: true, requiresCheck: true, publicDisplay: "full_bio" });
+    expect(PERFORMER_RULES.open_band_musician).toMatchObject({ paid: false, requiresCheck: false, publicDisplay: "open_band_label" });
+    expect(PERFORMER_RULES.sound_tech).toMatchObject({ paid: true, publicDisplay: "hidden" });
+    expect(PERFORMER_RULES.instructor).toMatchObject({ paid: false, requiresCheck: false, publicDisplay: "name_note" });
+  });
+
+  it("requires a check only when the rule says so AND pay > 0", () => {
+    expect(bookingRequiresCheck("caller", 15000)).toBe(true);
+    expect(bookingRequiresCheck("caller", 0)).toBe(false); // donated / unpaid
+    expect(bookingRequiresCheck("open_band_musician", 0)).toBe(false);
+    expect(bookingRequiresCheck("instructor", 0)).toBe(false);
+  });
+});

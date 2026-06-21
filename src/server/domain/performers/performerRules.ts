@@ -1,0 +1,33 @@
+import type { PerformerType } from "@/server/db/schema";
+
+export type PublicDisplay = "full_bio" | "open_band_label" | "hidden" | "name_note";
+
+export type PerformerRule = {
+  paid: boolean;
+  requiresCheck: boolean; // base rule; actual check also requires pay > 0
+  publicDisplay: PublicDisplay;
+  /** Rate kind used to default pay, if any. */
+  rateKind: "caller" | "sound_tech" | null;
+};
+
+/**
+ * Static performer-type rule matrix (domain invariants, not per-club config).
+ * Consumed by the booking service and (later) the public site + treasurer report.
+ */
+export const PERFORMER_RULES: Record<PerformerType, PerformerRule> = {
+  caller: { paid: true, requiresCheck: true, publicDisplay: "full_bio", rateKind: "caller" },
+  lead_musician: { paid: true, requiresCheck: true, publicDisplay: "full_bio", rateKind: null },
+  open_band_musician: {
+    paid: false,
+    requiresCheck: false,
+    publicDisplay: "open_band_label",
+    rateKind: null,
+  },
+  sound_tech: { paid: true, requiresCheck: true, publicDisplay: "hidden", rateKind: "sound_tech" },
+  instructor: { paid: false, requiresCheck: false, publicDisplay: "name_note", rateKind: null },
+};
+
+/** A booking requires a check only when its type's rule says so AND it is actually paid. */
+export function bookingRequiresCheck(type: PerformerType, payCents: number): boolean {
+  return PERFORMER_RULES[type].requiresCheck && payCents > 0;
+}
