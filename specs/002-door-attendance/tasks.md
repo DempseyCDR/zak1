@@ -119,6 +119,11 @@ and the door response omits the fee; payout without a reason is rejected.
 
 ---
 
+## Phase 7: Follow-up UX (post-implementation)
+
+- [X] T046 Events-management UI (create/list events + event groups) at `src/app/(admin)/events/page.tsx`; `GET /api/series`, `GET /api/event-groups` (FR-014)
+- [X] T047 Door-record open (create-or-fetch) endpoint `POST /api/events/[id]/door-record` + buttons on `/checkin` and `/gate` (gate now picks an event instead of pasting an id) (FR-015); test `tests/integration/door.open-record.test.ts`
+
 ## Phase 6: Polish & Cross-Cutting
 
 - [X] T036 [P] Extend `src/server/db/seed.ts` with sample events + a door record for manual validation

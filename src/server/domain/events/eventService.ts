@@ -5,6 +5,14 @@ import type { EventGroupRow, EventRow } from "@/server/db/schema";
 import { errors } from "@/server/lib/apiError";
 import type { EventCreateInput, EventGroupCreateInput } from "@/server/validation/door";
 
+export async function listSeries(db: Db): Promise<{ id: string; key: string; name: string }[]> {
+  return db.select({ id: series.id, key: series.key, name: series.name }).from(series);
+}
+
+export async function listEventGroups(db: Db): Promise<EventGroupRow[]> {
+  return db.select().from(eventGroups);
+}
+
 export async function createEventGroup(
   db: Db,
   input: EventGroupCreateInput,

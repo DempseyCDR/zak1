@@ -40,7 +40,8 @@ pnpm dev                    # Next.js app at http://localhost:3000
 
 - `/contacts` — directory: search, create, multi-purpose emails, consent topics, volunteer roles
 - `/dedup` — duplicate review queue (admin-confirmed merges)
-- `/checkin` — door check-in: event picker, fuzzy search, new-contact + unmatched (feature 002)
+- `/events` — events management: create/list events + event groups (feature 002)
+- `/checkin` — door check-in: event picker, open door record, fuzzy search, new-contact + unmatched (feature 002)
 - `/gate` — gate-money entry: 7 categories × cash/card, cash reconciliation, deposit (POS fee hidden)
 - `/performers` — performer directory + bio/photo (feature 003)
 - `/bookings` — book performers onto an event (type rules, pay/override, per-event total)

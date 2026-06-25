@@ -3,7 +3,15 @@
 import { useCallback, useEffect, useState } from "react";
 
 type EventRow = { id: string; eventDate: string };
+type Series = { id: string; key: string; name: string };
 type Performer = { id: string; displayName: string };
+
+/** ISO date one month before today (FR-013 default recency window). */
+function oneMonthAgoIso(): string {
+  const d = new Date();
+  d.setMonth(d.getMonth() - 1);
+  return d.toISOString().slice(0, 10);
+}
 type Booking = {
   id: string;
   performerId: string;
@@ -23,8 +31,10 @@ const TYPES = [
 
 export default function BookingsPage() {
   const [events, setEvents] = useState<EventRow[]>([]);
+  const [series, setSeries] = useState<Series[]>([]);
   const [performers, setPerformers] = useState<Performer[]>([]);
   const [eventId, setEventId] = useState("");
+  const [includeOlder, setIncludeOlder] = useState(false);
   const [performerId, setPerformerId] = useState("");
   const [performerType, setPerformerType] = useState<string>("caller");
   const [pay, setPay] = useState("");
@@ -32,11 +42,51 @@ export default function BookingsPage() {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [total, setTotal] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  // Inline "new event" (FR-014)
+  const [newSeriesKey, setNewSeriesKey] = useState("");
+  const [newDate, setNewDate] = useState("");
+
+  // FR-012/013: most-recent-first, default to events within the last month unless overridden.
+  const loadEvents = useCallback(async (older: boolean) => {
+    const qs = older ? "" : `?from=${oneMonthAgoIso()}`;
+    const res = await fetch(`/api/events${qs}`);
+    const data = await res.json();
+    const items: EventRow[] = (data.items ?? []).sort((a: EventRow, b: EventRow) =>
+      b.eventDate.localeCompare(a.eventDate),
+    );
+    setEvents(items);
+  }, []);
 
   useEffect(() => {
-    void fetch("/api/events").then((r) => r.json()).then((d) => setEvents(d.items ?? []));
+    void loadEvents(includeOlder);
+  }, [includeOlder, loadEvents]);
+
+  useEffect(() => {
     void fetch("/api/performers").then((r) => r.json()).then((d) => setPerformers(d.items ?? []));
+    void fetch("/api/series").then((r) => r.json()).then((d) => {
+      setSeries(d.items ?? []);
+      if (d.items?.[0]) setNewSeriesKey(d.items[0].key);
+    });
   }, []);
+
+  async function createInlineEvent() {
+    if (!newSeriesKey || !newDate) return;
+    const res = await fetch("/api/events", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ seriesKey: newSeriesKey, eventDate: newDate }),
+    });
+    if (!res.ok) {
+      setError("Failed to create event");
+      return;
+    }
+    const ev = await res.json();
+    setNewDate("");
+    // include older so a back-dated new event is visible, then select it
+    if (ev.eventDate < oneMonthAgoIso()) setIncludeOlder(true);
+    await loadEvents(ev.eventDate < oneMonthAgoIso() ? true : includeOlder);
+    setEventId(ev.id);
+  }
 
   const loadBookings = useCallback(async (id: string) => {
     if (!id) return;
@@ -85,6 +135,25 @@ export default function BookingsPage() {
           ))}
         </select>
       </label>
+      <label style={{ marginLeft: 12 }}>
+        <input
+          type="checkbox"
+          checked={includeOlder}
+          onChange={(e) => setIncludeOlder(e.target.checked)}
+        />{" "}
+        include events &gt; 1 month old
+      </label>
+
+      <fieldset style={{ marginTop: 12, maxWidth: 420 }}>
+        <legend>New event</legend>
+        <select value={newSeriesKey} onChange={(e) => setNewSeriesKey(e.target.value)}>
+          {series.map((s) => (
+            <option key={s.id} value={s.key}>{s.name}</option>
+          ))}
+        </select>{" "}
+        <input type="date" value={newDate} onChange={(e) => setNewDate(e.target.value)} />{" "}
+        <button onClick={createInlineEvent} disabled={!newSeriesKey || !newDate}>Create + select</button>
+      </fieldset>
 
       <ul>
         {bookings.map((b) => (

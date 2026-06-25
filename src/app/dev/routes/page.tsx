@@ -21,6 +21,7 @@ const uiRoutes: { path: string; label: string; feature: string }[] = [
   { path: "/performers", label: "Performer directory", feature: "003" },
   { path: "/bookings", label: "Bookings", feature: "003" },
   { path: "/rate-parameters", label: "Standard pay rates", feature: "003" },
+  { path: "/events", label: "Events management", feature: "002" },
   { path: "/treasurer/<eventId>", label: "Treasurer report (printable)", feature: "004" },
   { path: "/qbo-mapping", label: "QBO account/class mapping", feature: "004" },
   { path: "/dev/routes", label: "Dev route index (this page)", feature: "dev" },
@@ -38,7 +39,8 @@ const apiRoutes: { methods: string; path: string; feature: string }[] = [
   { methods: "POST", path: "/api/dedup/merge", feature: "001" },
   // Feature 002 — Door Attendance & Gate Capture
   { methods: "GET, POST", path: "/api/events", feature: "002" },
-  { methods: "POST", path: "/api/event-groups", feature: "002" },
+  { methods: "GET", path: "/api/series", feature: "002" },
+  { methods: "GET, POST", path: "/api/event-groups", feature: "002" },
   { methods: "GET, POST", path: "/api/events/[id]/attendance", feature: "002" },
   { methods: "POST", path: "/api/events/[id]/door-record", feature: "002" },
   { methods: "GET", path: "/api/attendance/search", feature: "002" },

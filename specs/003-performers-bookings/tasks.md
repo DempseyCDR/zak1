@@ -112,6 +112,10 @@ event date; supplying pay overrides it; rate creation writes an audit entry.
 
 ---
 
+## Phase 7: Follow-up UX (post-implementation)
+
+- [X] T038 [US1] Bookings event pick list sorted most-recent-first; defaults to the last month with an "include older" override; inline "new event" (create + select) on `src/app/(admin)/bookings/page.tsx` (FR-012/013/014); events-list `from` filter covered by `tests/integration/events.list.test.ts`
+
 ## Phase 6: Polish & Cross-Cutting
 
 - [X] T033 [P] Extend `src/server/db/seed.ts` with sample performers + standard caller/sound-tech rates
