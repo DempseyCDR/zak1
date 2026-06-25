@@ -17,18 +17,20 @@ export const doorRecordCreateSchema = z.object({
 });
 
 // Money fields arrive as dollar numbers; converted to cents in the service.
+// Gross cash (total cash incl. seed float) and PC gross (total card) are entered;
+// admission is derived from them minus the non-admission gate lines.
 export const doorRecordPatchSchema = z.object({
   posTransactionCount: z.number().int().min(0).optional(),
-  posGross: z.number().min(0).optional(),
   grossCash: z.number().min(0).optional(),
+  pcGross: z.number().min(0).optional(),
   seedFloat: z.number().min(0).optional(),
   cashPaidOut: z.number().min(0).optional(),
   cashPaidOutReason: z.string().min(1).optional(),
   giftCardRedemptionCount: z.number().int().min(0).optional(),
 });
 
+// Admission is never an entered gate line — it is derived in the report.
 const gateCategory = z.enum([
-  "today_admission",
   "merchandise",
   "donation",
   "future_event",
@@ -37,14 +39,22 @@ const gateCategory = z.enum([
   "misc_sales",
 ]);
 
+const NAMED_CATEGORIES = new Set(["donation", "future_event", "membership"]);
+
 export const gateSalesPutSchema = z.object({
   sales: z
     .array(
-      z.object({
-        category: gateCategory,
-        paymentMethod: z.enum(["cash", "card"]),
-        amount: z.number().min(0),
-      }),
+      z
+        .object({
+          category: gateCategory,
+          paymentMethod: z.enum(["cash", "card"]),
+          amount: z.number().min(0),
+          contactId: z.string().uuid().optional(),
+        })
+        .refine((s) => !NAMED_CATEGORIES.has(s.category) || !!s.contactId, {
+          message: "donation, future_event, and membership lines require a contactId",
+          path: ["contactId"],
+        }),
     )
     .default([]),
 });

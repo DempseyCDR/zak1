@@ -3,7 +3,8 @@ import { eq } from "drizzle-orm";
 import { ensureSchema, resetDb, closeDb, db } from "./helpers/db";
 import { jsonReq, ctx } from "./helpers/http";
 import { makeEvent } from "./helpers/factories";
-import { doorRecords, gateSales } from "@/server/db/schema";
+import { contacts, doorRecords, gateSales } from "@/server/db/schema";
+import { normalizeName } from "@/server/domain/contacts/normalize";
 import { POST as ATTEND } from "@/app/api/events/[id]/attendance/route";
 import { POST as CREATE_DR } from "@/app/api/door-records/route";
 import { PUT as PUT_GATE } from "@/app/api/door-records/[id]/gate-sales/route";
@@ -29,9 +30,13 @@ describe("free events", () => {
     const evt = await makeEvent({ chargesAdmission: false });
     const drRes = await CREATE_DR(jsonReq("POST", "/api/door-records", { eventId: evt.id }), ctx());
     const drId = (await drRes.json()).id as string;
+    const [donor] = await db
+      .insert(contacts)
+      .values({ displayName: "Donor", nameNormalized: normalizeName("Donor") })
+      .returning();
     const res = await PUT_GATE(
       jsonReq("PUT", `/api/door-records/${drId}/gate-sales`, {
-        sales: [{ category: "donation", paymentMethod: "cash", amount: 40 }],
+        sales: [{ category: "donation", paymentMethod: "cash", amount: 40, contactId: donor!.id }],
       }),
       ctx({ id: drId }),
     );
@@ -39,7 +44,7 @@ describe("free events", () => {
     const sales = await db.select().from(gateSales).where(eq(gateSales.doorRecordId, drId));
     expect(sales).toHaveLength(1);
     expect(sales[0]?.category).toBe("donation");
-    const admission = sales.filter((s) => s.category === "today_admission");
+    const admission = sales.filter((s) => s.category === "admission");
     expect(admission).toHaveLength(0);
   });
 });

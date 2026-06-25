@@ -26,7 +26,12 @@ export async function makePerformer(displayName = "Test Performer"): Promise<Per
 /** Create a door record for an event and optionally set gate sales (dollar amounts). */
 export async function makeDoorRecord(
   eventId: string,
-  sales: { category: GateCategory; paymentMethod: PaymentMethod; amount: number }[] = [],
+  sales: {
+    category: Exclude<GateCategory, "admission">;
+    paymentMethod: PaymentMethod;
+    amount: number;
+    contactId?: string;
+  }[] = [],
 ): Promise<string> {
   const dr = await createDoorRecord(db, eventId, "test");
   if (sales.length) await putGateSales(db, dr.id, { sales });

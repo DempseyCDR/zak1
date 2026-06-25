@@ -2,6 +2,7 @@ import { eq } from "drizzle-orm";
 import type { Db } from "@/server/db/client";
 import {
   bookings,
+  contacts,
   doorRecords,
   events,
   gateSales,
@@ -17,15 +18,10 @@ import { writeAudit } from "@/server/lib/audit";
 import { centsToDollars } from "@/server/lib/money";
 import { loadAccountMap } from "./mappingService";
 
-// Categories shown on the anonymous gate receipt (membership/future_event are named-customer).
-const GATE_SUMMARY_CATEGORIES: GateCategory[] = [
-  "today_admission",
-  "merchandise",
-  "donation",
-  "gift_card",
-  "misc_sales",
-];
-const NAMED_CUSTOMER_CATEGORIES: GateCategory[] = ["membership", "future_event"];
+// Anonymous non-admission categories shown on the gate receipt (admission is derived).
+const ANON_CATEGORIES: GateCategory[] = ["merchandise", "gift_card", "misc_sales"];
+// Named-customer receipts (sold to a contact): donation, future_event, membership.
+const NAMED_CUSTOMER_CATEGORIES: GateCategory[] = ["donation", "future_event", "membership"];
 
 export type TreasurerReport = {
   event: { id: string; date: string; seriesKey: string };
@@ -34,7 +30,14 @@ export type TreasurerReport = {
     posVerification: { gross: number; fee: number };
     lines: { category: string; account: string; class: string; cash: number; card: number; total: number }[];
   };
-  namedCustomerReceipts: { kind: string; account: string; class: string; amount: number }[];
+  namedCustomerReceipts: {
+    kind: string;
+    contact: string;
+    contactId: string | null;
+    account: string;
+    class: string;
+    amount: number;
+  }[];
   performerPayments: {
     payee: string;
     amount: number;
@@ -84,26 +87,79 @@ export async function assembleTreasurerReport(
     return { cash, card };
   }
 
-  const gateLines = GATE_SUMMARY_CATEGORIES.flatMap((cat) => {
-    const { cash, card } = sumCategory(cat);
-    if (cash === 0 && card === 0) return [];
-    return [
-      {
-        category: cat,
-        account: account(cat),
-        class: qboClass,
-        cash: centsToDollars(cash),
-        card: centsToDollars(card),
-        total: centsToDollars(cash + card),
-      },
-    ];
-  });
+  // Admission is derived: cash = gross cash − seed float − non-admission cash;
+  // card = PC gross − non-admission card. (All stored gate lines are non-admission.)
+  let nonAdmCash = 0;
+  let nonAdmCard = 0;
+  for (const row of sales) {
+    if (row.paymentMethod === "cash") nonAdmCash += row.amountCents;
+    else nonAdmCard += row.amountCents;
+  }
+  const admissionCash = door.grossCashCents - door.seedFloatCents - nonAdmCash;
+  const admissionCard = door.pcGrossCents - nonAdmCard;
 
-  const namedCustomerReceipts = NAMED_CUSTOMER_CATEGORIES.flatMap((cat) => {
-    const { cash, card } = sumCategory(cat);
-    if (cash === 0 && card === 0) return [];
-    return [{ kind: cat, account: account(cat), class: qboClass, amount: centsToDollars(cash + card) }];
-  });
+  const gateLines = [
+    {
+      category: "admission",
+      account: account("admission"),
+      class: qboClass,
+      cash: centsToDollars(admissionCash),
+      card: centsToDollars(admissionCard),
+      total: centsToDollars(admissionCash + admissionCard),
+    },
+    ...ANON_CATEGORIES.flatMap((cat) => {
+      const { cash, card } = sumCategory(cat);
+      if (cash === 0 && card === 0) return [];
+      return [
+        {
+          category: cat,
+          account: account(cat),
+          class: qboClass,
+          cash: centsToDollars(cash),
+          card: centsToDollars(card),
+          total: centsToDollars(cash + card),
+        },
+      ];
+    }),
+  ];
+
+  // Named-customer receipts: group named-category lines by (contact, category).
+  const namedRows = await db
+    .select({
+      category: gateSales.category,
+      amountCents: gateSales.amountCents,
+      contactId: gateSales.contactId,
+      contactName: contacts.displayName,
+    })
+    .from(gateSales)
+    .leftJoin(contacts, eq(contacts.id, gateSales.contactId))
+    .where(eq(gateSales.doorRecordId, door.id));
+
+  const namedMap = new Map<
+    string,
+    { kind: GateCategory; contact: string; contactId: string | null; amountCents: number }
+  >();
+  for (const r of namedRows) {
+    if (!NAMED_CUSTOMER_CATEGORIES.includes(r.category)) continue;
+    const key = `${r.category}:${r.contactId ?? "none"}`;
+    const existing = namedMap.get(key);
+    if (existing) existing.amountCents += r.amountCents;
+    else
+      namedMap.set(key, {
+        kind: r.category,
+        contact: r.contactName ?? "(unknown)",
+        contactId: r.contactId,
+        amountCents: r.amountCents,
+      });
+  }
+  const namedCustomerReceipts = [...namedMap.values()].map((n) => ({
+    kind: n.kind,
+    contact: n.contact,
+    contactId: n.contactId,
+    account: account(n.kind),
+    class: qboClass,
+    amount: centsToDollars(n.amountCents),
+  }));
 
   const bookingRows = await db
     .select({
@@ -137,7 +193,7 @@ export async function assembleTreasurerReport(
     gateSalesSummary: {
       customer: gateCustomer,
       posVerification: {
-        gross: centsToDollars(door.posGrossCents),
+        gross: centsToDollars(door.pcGrossCents),
         fee: centsToDollars(door.posFeeCents),
       },
       lines: gateLines,

@@ -29,7 +29,7 @@ export const emailConsentTopicEnum = pgEnum("email_consent_topic", [
 ]);
 
 export const gateCategoryEnum = pgEnum("gate_category", [
-  "today_admission",
+  "admission",
   "merchandise",
   "donation",
   "future_event",

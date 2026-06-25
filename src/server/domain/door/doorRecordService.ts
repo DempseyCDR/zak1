@@ -13,8 +13,8 @@ export type DoorRecordView = {
   id: string;
   eventId: string;
   posTransactionCount: number;
-  posGross: number;
-  grossCash: number;
+  pcGross: number; // derived sum of card lines (was "POS gross")
+  grossCash: number; // derived sum of cash lines
   seedFloat: number;
   cashPaidOut: number;
   cashPaidOutReason: string | null;
@@ -27,7 +27,7 @@ function toView(row: DoorRecordRow): DoorRecordView {
     id: row.id,
     eventId: row.eventId,
     posTransactionCount: row.posTransactionCount,
-    posGross: centsToDollars(row.posGrossCents),
+    pcGross: centsToDollars(row.pcGrossCents),
     grossCash: centsToDollars(row.grossCashCents),
     seedFloat: centsToDollars(row.seedFloatCents),
     cashPaidOut: centsToDollars(row.cashPaidOutCents),
@@ -75,6 +75,7 @@ export async function ensureDoorRecord(
   return row;
 }
 
+/** Update the manually-entered fields, then recompute derived totals (fee/deposit). */
 export async function updateDoorRecord(
   db: Db,
   id: string,
@@ -84,26 +85,38 @@ export async function updateDoorRecord(
   const current = await db.query.doorRecords.findFirst({ where: eq(doorRecords.id, id) });
   if (!current) throw errors.doorRecordNotFound();
 
-  const next = {
-    posTransactionCount: input.posTransactionCount ?? current.posTransactionCount,
-    posGrossCents: input.posGross !== undefined ? dollarsToCents(input.posGross) : current.posGrossCents,
-    grossCashCents: input.grossCash !== undefined ? dollarsToCents(input.grossCash) : current.grossCashCents,
-    seedFloatCents: input.seedFloat !== undefined ? dollarsToCents(input.seedFloat) : current.seedFloatCents,
-    cashPaidOutCents:
-      input.cashPaidOut !== undefined ? dollarsToCents(input.cashPaidOut) : current.cashPaidOutCents,
-    cashPaidOutReason:
-      input.cashPaidOutReason !== undefined ? input.cashPaidOutReason : current.cashPaidOutReason,
-    giftCardRedemptionCount: input.giftCardRedemptionCount ?? current.giftCardRedemptionCount,
-  };
+  const cashPaidOutCents =
+    input.cashPaidOut !== undefined ? dollarsToCents(input.cashPaidOut) : current.cashPaidOutCents;
+  const cashPaidOutReason =
+    input.cashPaidOutReason !== undefined ? input.cashPaidOutReason : current.cashPaidOutReason;
+  if (cashPaidOutCents > 0 && !cashPaidOutReason) throw errors.cashPayoutReasonRequired();
 
-  if (next.cashPaidOutCents > 0 && !next.cashPaidOutReason) throw errors.cashPayoutReasonRequired();
+  const grossCashCents =
+    input.grossCash !== undefined ? dollarsToCents(input.grossCash) : current.grossCashCents;
+  const pcGrossCents =
+    input.pcGross !== undefined ? dollarsToCents(input.pcGross) : current.pcGrossCents;
+  const seedFloatCents =
+    input.seedFloat !== undefined ? dollarsToCents(input.seedFloat) : current.seedFloatCents;
+  const posTransactionCount = input.posTransactionCount ?? current.posTransactionCount;
 
-  const fee = posFeeCents(next.posTransactionCount, next.posGrossCents);
-  const deposit = depositCents(next.grossCashCents, next.seedFloatCents, next.cashPaidOutCents);
+  // Fee from card txns + PC gross; deposit = gross cash − seed float − cash paid out.
+  const fee = posFeeCents(posTransactionCount, pcGrossCents);
+  const deposit = depositCents(grossCashCents, seedFloatCents, cashPaidOutCents);
 
   const [row] = await db
     .update(doorRecords)
-    .set({ ...next, posFeeCents: fee, depositCents: deposit, updatedAt: new Date() })
+    .set({
+      posTransactionCount,
+      grossCashCents,
+      pcGrossCents,
+      seedFloatCents,
+      cashPaidOutCents,
+      cashPaidOutReason,
+      posFeeCents: fee,
+      depositCents: deposit,
+      giftCardRedemptionCount: input.giftCardRedemptionCount ?? current.giftCardRedemptionCount,
+      updatedAt: new Date(),
+    })
     .where(eq(doorRecords.id, id))
     .returning();
   if (!row) throw errors.doorRecordNotFound();
@@ -111,11 +124,10 @@ export async function updateDoorRecord(
   await db
     .insert(doorRecordAudit)
     .values({ doorRecordId: id, action: "updated", actor, details: { fields: Object.keys(input) } });
-  // Fee is logged server-side for reconciliation but never returned to the door UI.
   writeAudit({
     kind: "door_record.updated",
     actor,
-    details: { doorRecordId: id, posFeeCents: fee, depositCents: deposit },
+    details: { doorRecordId: id, posFeeCents: row.posFeeCents, depositCents: row.depositCents },
   });
   return toView(row);
 }
@@ -131,7 +143,7 @@ export async function putGateSales(
   return db.transaction(async (tx) => {
     await tx.delete(gateSales).where(eq(gateSales.doorRecordId, doorRecordId));
     if (input.sales.length === 0) return [];
-    const rows = await tx
+    return tx
       .insert(gateSales)
       .values(
         input.sales.map((s) => ({
@@ -139,10 +151,10 @@ export async function putGateSales(
           category: s.category,
           paymentMethod: s.paymentMethod,
           amountCents: dollarsToCents(s.amount),
+          contactId: s.contactId ?? null,
         })),
       )
       .returning();
-    return rows;
   });
 }
 

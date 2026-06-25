@@ -94,10 +94,10 @@ appears in the events list and is selectable by the door, bookings, and report f
 - **FR-002**: System MUST show email to disambiguate multiple matches.
 - **FR-003**: System MUST allow creating a new contact (name + email) at the door, flagged for admin review.
 - **FR-004**: System MUST support recording an unmatched attendance when a dancer declines to provide details.
-- **FR-005**: System MUST capture gate sales in seven categories (today_admission, merchandise, donation, future_event, membership, gift_card, misc_sales), each separated by cash and card.
-- **FR-006**: System MUST record per door record: POS transaction count, POS gross total, gross cash collected (incl. seed float), cash paid out with reason, seed float, and gift-card redemption count.
+- **FR-005**: System MUST capture itemized gate sales for the non-admission categories (merchandise, donation, future_event, membership, gift_card, misc_sales), each by cash and card. The named categories — donation, future_event, membership — MUST each be recorded against a specific buyer contact (named customer); the rest are anonymous. **Admission is NOT entered** — it is derived (see FR-006).
+- **FR-006**: System MUST record per door record: Gross cash (total cash counted, incl. seed float), PC gross (total card via the processor, formerly "POS gross"), card-transaction count, cash paid out with reason, seed float, and gift-card redemption count. Admission is derived: cash admissions = Gross cash − seed float − Σ non-admission cash items; card admissions = PC gross − Σ non-admission card items.
 - **FR-007**: System MUST compute the POS fee from transaction count and gross total and MUST NOT display it to the door volunteer.
-- **FR-008**: System MUST compute deposit amount as gross cash − seed float − cash paid out.
+- **FR-008**: System MUST compute deposit amount as Gross cash − seed float − cash paid out (Gross cash being the derived sum of cash lines).
 - **FR-009**: System MUST treat each event as having its own door record, including a same-evening Community Dance separate from TNC.
 - **FR-010**: System MUST track attendance per event, independently of any door record, so every event (free or paid) can have attendance. A free event collects no paid admission; the system MUST allow it to record donations, in which case a door record is created. A door record is created only when money is collected (always for paid events; for free events only if donations).
 - **FR-011**: System MUST purge identifiable attendee links 90 days after the event while persisting quarterly aggregate counts permanently.
@@ -111,8 +111,8 @@ appears in the events list and is selectable by the door, bookings, and report f
 - **Series**: A recurring dance program (e.g., TNC, ECD, Community Dance) that events belong to; informs reporting and some rules (e.g., Community Dance has no Sound Tech).
 - **Event**: A dated instance of a series; the unit attendance and a door record attach to. May charge admission or be free, and may belong to an event group.
 - **Event Group**: A named grouping of related events (Double Dance, weekend festival, JAB prep + ball). Added now so events can be grouped; a single ticket spanning a group is deferred (see Assumptions).
-- **Door Record**: The financial record for one event instance (gate sales, cash, fee, deposit); 0-or-1 per event, created only when money is collected.
-- **Gate Sale**: A sale line keyed by category × payment method (cash/card) under a door record.
+- **Door Record**: The financial record for one event instance (entered Gross cash + PC gross, fee, deposit); 0-or-1 per event, created only when money is collected. Admission income is derived from Gross cash / PC gross minus the non-admission gate lines.
+- **Gate Sale**: A non-admission sale line under a door record, with category, payment method (cash/card), and amount; named categories (donation, future_event, membership) also carry a buyer contact. Admission is never a gate-sale line.
 - **Attendance**: A link between an event and a contact (or an unmatched placeholder), independent of the door record, subject to retention rules.
 
 ## Success Criteria *(mandatory)*

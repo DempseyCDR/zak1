@@ -19,7 +19,7 @@ describe("door-record audit", () => {
     const id = (await drRes.json()).id as string;
 
     await PATCH_DR(
-      jsonReq("PATCH", `/api/door-records/${id}`, { grossCash: 100 }),
+      jsonReq("PATCH", `/api/door-records/${id}`, { posTransactionCount: 5 }),
       ctx({ id }),
     );
 

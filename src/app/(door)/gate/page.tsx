@@ -3,76 +3,100 @@
 import { useEffect, useState } from "react";
 
 type EventRow = { id: string; eventDate: string };
+type Candidate = { id: string; displayName: string };
 
-const CATEGORIES = [
-  "today_admission",
-  "merchandise",
-  "donation",
-  "future_event",
-  "membership",
-  "gift_card",
-  "misc_sales",
-] as const;
+const ANON_CATEGORIES = ["merchandise", "gift_card", "misc_sales"] as const;
+const NAMED_CATEGORIES = ["donation", "future_event", "membership"] as const;
+type PaymentMethod = "cash" | "card";
 
-type Amounts = Record<string, { cash: string; card: string }>;
+type AnonAmounts = Record<string, { cash: string; card: string }>;
+const emptyAnon: AnonAmounts = Object.fromEntries(ANON_CATEGORIES.map((c) => [c, { cash: "", card: "" }]));
 
-const emptyAmounts: Amounts = Object.fromEntries(
-  CATEGORIES.map((c) => [c, { cash: "", card: "" }]),
-);
+type NamedLine = {
+  category: (typeof NAMED_CATEGORIES)[number];
+  contactId: string;
+  contactName: string;
+  amount: string;
+  paymentMethod: PaymentMethod;
+};
 
 export default function GatePage() {
   const [events, setEvents] = useState<EventRow[]>([]);
   const [eventId, setEventId] = useState("");
   const [doorRecordId, setDoorRecordId] = useState("");
-  const [amounts, setAmounts] = useState<Amounts>(emptyAmounts);
+  const [anon, setAnon] = useState<AnonAmounts>(emptyAnon);
+  const [named, setNamed] = useState<NamedLine[]>([]);
   const [posTxns, setPosTxns] = useState("");
-  const [posGross, setPosGross] = useState("");
   const [grossCash, setGrossCash] = useState("");
+  const [pcGross, setPcGross] = useState("");
   const [seedFloat, setSeedFloat] = useState("15");
   const [cashPaidOut, setCashPaidOut] = useState("");
   const [cashPaidOutReason, setCashPaidOutReason] = useState("");
   const [deposit, setDeposit] = useState<number | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  // contact search for adding a named line
+  const [search, setSearch] = useState("");
+  const [candidates, setCandidates] = useState<Candidate[]>([]);
+  const [newCategory, setNewCategory] = useState<(typeof NAMED_CATEGORIES)[number]>("membership");
 
   useEffect(() => {
-    void fetch("/api/events")
-      .then((r) => r.json())
-      .then((d) => setEvents(d.items ?? []));
+    void fetch("/api/events").then((r) => r.json()).then((d) => setEvents(d.items ?? []));
   }, []);
 
-  function setAmt(cat: string, method: "cash" | "card", v: string) {
-    setAmounts((a) => ({ ...a, [cat]: { ...a[cat]!, [method]: v } }));
-  }
+  useEffect(() => {
+    if (!search.trim()) return setCandidates([]);
+    void fetch(`/api/attendance/search?q=${encodeURIComponent(search)}`)
+      .then((r) => r.json())
+      .then((d) => setCandidates(d.items ?? []));
+  }, [search]);
 
-  // Open (create-or-fetch) the door record for the selected event, then load its gate sales.
   async function openDoorRecord(selectedEventId: string) {
     setEventId(selectedEventId);
     setDoorRecordId("");
     setDeposit(null);
     setMessage(null);
+    setAnon(JSON.parse(JSON.stringify(emptyAnon)));
+    setNamed([]);
     if (!selectedEventId) return;
     const res = await fetch(`/api/events/${selectedEventId}/door-record`, { method: "POST" });
-    if (!res.ok) {
-      setMessage("Could not open door record");
-      return;
-    }
+    if (!res.ok) return setMessage("Could not open door record");
     const data = await res.json();
     setDoorRecordId(data.doorRecord.id);
-    const next: Amounts = JSON.parse(JSON.stringify(emptyAmounts));
-    for (const s of data.gateSales as { category: string; paymentMethod: "cash" | "card"; amountCents: number }[]) {
-      if (next[s.category]) next[s.category]![s.paymentMethod] = String(s.amountCents / 100);
-    }
-    setAmounts(next);
+  }
+
+  function setAnonAmt(cat: string, method: PaymentMethod, v: string) {
+    setAnon((a) => ({ ...a, [cat]: { ...a[cat]!, [method]: v } }));
+  }
+
+  function addNamedLine(c: Candidate) {
+    setNamed((lines) => [
+      ...lines,
+      { category: newCategory, contactId: c.id, contactName: c.displayName, amount: "", paymentMethod: "card" },
+    ]);
+    setSearch("");
+    setCandidates([]);
+  }
+
+  function setNamedField(i: number, patch: Partial<NamedLine>) {
+    setNamed((lines) => lines.map((l, idx) => (idx === i ? { ...l, ...patch } : l)));
   }
 
   async function save() {
     setMessage(null);
-    const sales = CATEGORIES.flatMap((c) =>
-      (["cash", "card"] as const).flatMap((m) => {
-        const v = Number(amounts[c]![m]);
-        return v > 0 ? [{ category: c, paymentMethod: m, amount: v }] : [];
+    const sales = [
+      ...ANON_CATEGORIES.flatMap((c) =>
+        (["cash", "card"] as const).flatMap((m) => {
+          const v = Number(anon[c]![m]);
+          return v > 0 ? [{ category: c, paymentMethod: m, amount: v }] : [];
+        }),
+      ),
+      ...named.flatMap((l) => {
+        const v = Number(l.amount);
+        return v > 0
+          ? [{ category: l.category, paymentMethod: l.paymentMethod, amount: v, contactId: l.contactId }]
+          : [];
       }),
-    );
+    ];
     const gsRes = await fetch(`/api/door-records/${doorRecordId}/gate-sales`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
@@ -85,8 +109,8 @@ export default function GatePage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         posTransactionCount: Number(posTxns) || 0,
-        posGross: Number(posGross) || 0,
         grossCash: Number(grossCash) || 0,
+        pcGross: Number(pcGross) || 0,
         seedFloat: Number(seedFloat) || 0,
         cashPaidOut: Number(cashPaidOut) || 0,
         ...(cashPaidOutReason ? { cashPaidOutReason } : {}),
@@ -97,12 +121,12 @@ export default function GatePage() {
       return setMessage(b?.error?.message ?? "Update failed");
     }
     const body = await res.json();
-    setDeposit(body.deposit); // note: fee is intentionally not returned
+    setDeposit(body.deposit); // fee intentionally not returned
     setMessage("Saved");
   }
 
   return (
-    <main style={{ padding: 24, maxWidth: 640 }}>
+    <main style={{ padding: 24, maxWidth: 680 }}>
       <h1>Gate money</h1>
       <label>
         Event:{" "}
@@ -115,27 +139,66 @@ export default function GatePage() {
       </label>
       {doorRecordId && <p style={{ color: "#666" }}>Door record open ({doorRecordId.slice(0, 8)}…)</p>}
 
-      <h2>Gate sales</h2>
+      <h2>Anonymous gate sales</h2>
       <table>
-        <thead>
-          <tr><th>Category</th><th>Cash</th><th>Card</th></tr>
-        </thead>
+        <thead><tr><th>Category</th><th>Cash</th><th>Card</th></tr></thead>
         <tbody>
-          {CATEGORIES.map((c) => (
+          {ANON_CATEGORIES.map((c) => (
             <tr key={c}>
               <td>{c}</td>
-              <td><input value={amounts[c]!.cash} onChange={(e) => setAmt(c, "cash", e.target.value)} /></td>
-              <td><input value={amounts[c]!.card} onChange={(e) => setAmt(c, "card", e.target.value)} /></td>
+              <td><input value={anon[c]!.cash} onChange={(e) => setAnonAmt(c, "cash", e.target.value)} /></td>
+              <td><input value={anon[c]!.card} onChange={(e) => setAnonAmt(c, "card", e.target.value)} /></td>
             </tr>
           ))}
         </tbody>
       </table>
 
-      <h2>Cash &amp; POS</h2>
+      <h2>Named-customer sales (donation / future event / membership)</h2>
+      <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+        <select value={newCategory} onChange={(e) => setNewCategory(e.target.value as typeof newCategory)}>
+          {NAMED_CATEGORIES.map((c) => (
+            <option key={c} value={c}>{c}</option>
+          ))}
+        </select>
+        <input placeholder="Find contact…" value={search} onChange={(e) => setSearch(e.target.value)} />
+      </div>
+      {candidates.length > 0 && (
+        <ul>
+          {candidates.map((c) => (
+            <li key={c.id}>
+              {c.displayName} <button onClick={() => addNamedLine(c)}>add</button>
+            </li>
+          ))}
+        </ul>
+      )}
+      <ul style={{ listStyle: "none", padding: 0 }}>
+        {named.map((l, i) => (
+          <li key={i} style={{ marginBottom: 4 }}>
+            {l.category} — {l.contactName}{" "}
+            <input
+              placeholder="amount"
+              value={l.amount}
+              onChange={(e) => setNamedField(i, { amount: e.target.value })}
+              style={{ width: 80 }}
+            />{" "}
+            <select
+              value={l.paymentMethod}
+              onChange={(e) => setNamedField(i, { paymentMethod: e.target.value as PaymentMethod })}
+            >
+              <option value="cash">cash</option>
+              <option value="card">card</option>
+            </select>{" "}
+            <button onClick={() => setNamed((lines) => lines.filter((_, idx) => idx !== i))}>remove</button>
+          </li>
+        ))}
+      </ul>
+
+      <h2>Cash &amp; card reconciliation</h2>
+      <p style={{ color: "#666" }}>Admission is derived: gross cash − seed float − non-admission cash, and PC gross − non-admission card.</p>
       <div style={{ display: "grid", gap: 6, maxWidth: 360 }}>
-        <label>POS txns <input value={posTxns} onChange={(e) => setPosTxns(e.target.value)} /></label>
-        <label>POS gross <input value={posGross} onChange={(e) => setPosGross(e.target.value)} /></label>
-        <label>Gross cash <input value={grossCash} onChange={(e) => setGrossCash(e.target.value)} /></label>
+        <label>Gross cash (total counted) <input value={grossCash} onChange={(e) => setGrossCash(e.target.value)} /></label>
+        <label>PC gross (total card) <input value={pcGross} onChange={(e) => setPcGross(e.target.value)} /></label>
+        <label>Card (PC) transactions <input value={posTxns} onChange={(e) => setPosTxns(e.target.value)} /></label>
         <label>Seed float <input value={seedFloat} onChange={(e) => setSeedFloat(e.target.value)} /></label>
         <label>Cash paid out <input value={cashPaidOut} onChange={(e) => setCashPaidOut(e.target.value)} /></label>
         <label>Payout reason <input value={cashPaidOutReason} onChange={(e) => setCashPaidOutReason(e.target.value)} /></label>

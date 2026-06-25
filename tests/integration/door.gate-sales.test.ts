@@ -22,9 +22,9 @@ describe("PUT /api/door-records/:id/gate-sales", () => {
     const res = await PUT_GATE(
       jsonReq("PUT", `/api/door-records/${id}/gate-sales`, {
         sales: [
-          { category: "today_admission", paymentMethod: "cash", amount: 120 },
-          { category: "today_admission", paymentMethod: "card", amount: 80 },
-          { category: "merchandise", paymentMethod: "cash", amount: 25 },
+          { category: "merchandise", paymentMethod: "cash", amount: 120 },
+          { category: "merchandise", paymentMethod: "card", amount: 80 },
+          { category: "misc_sales", paymentMethod: "cash", amount: 25 },
         ],
       }),
       ctx({ id }),
@@ -32,11 +32,22 @@ describe("PUT /api/door-records/:id/gate-sales", () => {
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.sales).toHaveLength(3);
-    const admissionCash = body.sales.find(
+    const merchCash = body.sales.find(
       (s: { category: string; paymentMethod: string }) =>
-        s.category === "today_admission" && s.paymentMethod === "cash",
+        s.category === "merchandise" && s.paymentMethod === "cash",
     );
-    expect(admissionCash.amountCents).toBe(12000);
+    expect(merchCash.amountCents).toBe(12000);
+  });
+
+  it("rejects a named-category line (donation/future_event/membership) without a contact (422)", async () => {
+    const id = await makeDoorRecord();
+    const res = await PUT_GATE(
+      jsonReq("PUT", `/api/door-records/${id}/gate-sales`, {
+        sales: [{ category: "donation", paymentMethod: "cash", amount: 10 }],
+      }),
+      ctx({ id }),
+    );
+    expect(res.status).toBe(422);
   });
 
   it("rejects an unknown category (422)", async () => {

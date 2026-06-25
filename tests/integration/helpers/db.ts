@@ -21,7 +21,7 @@ export async function resetDb(): Promise<void> {
     ('community_dance','Community Dance',false)
     ON CONFLICT (key) DO NOTHING`;
   await sql`INSERT INTO account_mapping (line_key, account_code, account_name) VALUES
-    ('today_admission','4210','Program Service Revenue:Dance Gate'),
+    ('admission','4210','Program Service Revenue:Dance Gate'),
     ('merchandise','4700','Sales of Inventory'),
     ('donation','4100','Voluntary Contributions'),
     ('future_event','4200','Program Service Revenue'),

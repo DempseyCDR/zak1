@@ -52,10 +52,10 @@ feature 001 (`contacts`).
 |---|---|---|
 | id | uuid PK | |
 | event_id | uuid FK→Event NOT NULL UNIQUE | 0-or-1 door record per event; created only when money is collected (always for paid events; for free events only if donations) |
-| pos_transaction_count | integer NOT NULL default 0 | read from POS app by volunteer |
-| pos_gross_cents | integer NOT NULL default 0 | door PayPal/Venmo gross |
-| pos_fee_cents | integer NOT NULL | computed; NEVER returned to door UI (FR-007) |
-| gross_cash_cents | integer NOT NULL default 0 | incl. seed float |
+| pos_transaction_count | integer NOT NULL default 0 | card-transaction count read from POS app by volunteer |
+| pc_gross_cents | integer NOT NULL default 0 | **entered** total card via processor (was `pos_gross_cents`) |
+| pos_fee_cents | integer NOT NULL | computed from card-txn count + pc_gross; NEVER returned to door UI (FR-007) |
+| gross_cash_cents | integer NOT NULL default 0 | **entered** total cash counted (incl. seed float) |
 | seed_float_cents | integer NOT NULL default 1500 | default $15, overridable |
 | cash_paid_out_cents | integer NOT NULL default 0 | |
 | cash_paid_out_reason | text | required when cash_paid_out_cents > 0 |
@@ -75,11 +75,14 @@ feature 001 (`contacts`).
 | category | gate_category NOT NULL | enum (7 values) |
 | payment_method | payment_method NOT NULL | cash \| card |
 | amount_cents | integer NOT NULL default 0 | |
+| contact_id | uuid FK→contacts NULL | required for named categories (donation/future_event/membership); null for anonymous |
 
-- **Enum `gate_category`**: today_admission, merchandise, donation, future_event, membership,
-  gift_card, misc_sales.
+- **Enum `gate_category`**: admission, merchandise, donation, future_event, membership,
+  gift_card, misc_sales. (`admission` is the account-mapping/report key only; it is never stored as a
+  gate-sale line — admission income is derived in the report.)
 - **Enum `payment_method`**: cash, card.
-- **Unique**: (door_record_id, category, payment_method).
+- No uniqueness constraint (named categories may have several lines per category, one per contact);
+  `putGateSales` uses replace-set semantics.
 
 ## Entity: Attendance
 

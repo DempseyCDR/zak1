@@ -82,7 +82,7 @@ async function main() {
   await db
     .insert(accountMapping)
     .values([
-      { lineKey: "today_admission", accountCode: "4210", accountName: "Program Service Revenue:Dance Gate" },
+      { lineKey: "admission", accountCode: "4210", accountName: "Program Service Revenue:Dance Gate" },
       { lineKey: "merchandise", accountCode: "4700", accountName: "Sales of Inventory" },
       { lineKey: "donation", accountCode: "4100", accountName: "Voluntary Contributions" },
       { lineKey: "future_event", accountCode: "4200", accountName: "Program Service Revenue" },

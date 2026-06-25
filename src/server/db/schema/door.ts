@@ -1,4 +1,5 @@
-import { integer, jsonb, pgTable, text, timestamp, uuid, unique } from "drizzle-orm/pg-core";
+import { integer, jsonb, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { contacts } from "./contacts";
 import { events } from "./events";
 import { gateCategoryEnum, paymentMethodEnum } from "./enums";
 
@@ -9,7 +10,7 @@ export const doorRecords = pgTable("door_records", {
     .unique()
     .references(() => events.id, { onDelete: "cascade" }),
   posTransactionCount: integer("pos_transaction_count").notNull().default(0),
-  posGrossCents: integer("pos_gross_cents").notNull().default(0),
+  pcGrossCents: integer("pc_gross_cents").notNull().default(0),
   posFeeCents: integer("pos_fee_cents").notNull().default(0),
   grossCashCents: integer("gross_cash_cents").notNull().default(0),
   seedFloatCents: integer("seed_float_cents").notNull().default(1500),
@@ -21,21 +22,17 @@ export const doorRecords = pgTable("door_records", {
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
-export const gateSales = pgTable(
-  "gate_sales",
-  {
-    id: uuid("id").primaryKey().defaultRandom(),
-    doorRecordId: uuid("door_record_id")
-      .notNull()
-      .references(() => doorRecords.id, { onDelete: "cascade" }),
-    category: gateCategoryEnum("category").notNull(),
-    paymentMethod: paymentMethodEnum("payment_method").notNull(),
-    amountCents: integer("amount_cents").notNull().default(0),
-  },
-  (t) => ({
-    uniqCombo: unique().on(t.doorRecordId, t.category, t.paymentMethod),
-  }),
-);
+export const gateSales = pgTable("gate_sales", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  doorRecordId: uuid("door_record_id")
+    .notNull()
+    .references(() => doorRecords.id, { onDelete: "cascade" }),
+  category: gateCategoryEnum("category").notNull(),
+  paymentMethod: paymentMethodEnum("payment_method").notNull(),
+  amountCents: integer("amount_cents").notNull().default(0),
+  // Required for named categories (donation/future_event/membership); null = anonymous.
+  contactId: uuid("contact_id").references(() => contacts.id, { onDelete: "set null" }),
+});
 
 export const doorRecordAudit = pgTable("door_record_audit", {
   id: uuid("id").primaryKey().defaultRandom(),
