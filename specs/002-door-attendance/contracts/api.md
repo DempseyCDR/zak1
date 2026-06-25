@@ -58,7 +58,10 @@ Attendance attaches to the event (no door record required). Body is one of:
 - 201 → `Attendance`. 409 `ALREADY_CHECKED_IN` if the contact is already recorded for this event.
 
 ### GET /api/events/:id/attendance
-- 200 → `{ count: number }` (and, within retention, the attendee list for contact-tracing use).
+- 200 → `{ count: number, attendees: { id, contactId, displayName | null, createdAt }[] }`.
+  `attendees` is the contact-tracing list within the retention window (matched contacts have a
+  `displayName`; unmatched placeholders have `contactId: null, displayName: null`). After the 90-day
+  purge `attendees` is empty and only the count (rolled into quarterly aggregates) remains. (FR-001b)
 
 ## Enums
 

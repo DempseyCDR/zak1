@@ -71,6 +71,7 @@ The system retains identifiable attendance for a limited window for contact-trac
 
 - **FR-001**: System MUST let a volunteer find an existing contact by fuzzy name search returning a ranked pick list within 300 ms.
 - **FR-001a**: System MUST record attendance for an event by linking a volunteer-selected existing contact, and MUST prevent recording the same contact twice for one event.
+- **FR-001b**: System MUST return the list of attendees recorded present for an event (matched contacts and unmatched placeholders) for use within the contact-tracing retention window; after the 90-day purge only the aggregate count remains.
 - **FR-002**: System MUST show email to disambiguate multiple matches.
 - **FR-003**: System MUST allow creating a new contact (name + email) at the door, flagged for admin review.
 - **FR-004**: System MUST support recording an unmatched attendance when a dancer declines to provide details.

@@ -56,6 +56,7 @@ create a new contact at the door (flagged `needs_review`); record an unmatched a
 - [X] T016 [P] [US1] Integration test: `POST /api/events/:id/attendance { contactId }` records attendance against the event (no door record needed); duplicate → 409 `ALREADY_CHECKED_IN`, in `tests/integration/door.attendance-match.test.ts` (FR-001a/010)
 - [X] T017 [P] [US1] Integration test: `{ newContact }` creates a contact flagged `needs_review` and records it, in `tests/integration/door.attendance-new.test.ts` (FR-003)
 - [X] T018 [P] [US1] Integration test: `{ unmatched: true }` records attendance with null contact, in `tests/integration/door.attendance-unmatched.test.ts` (FR-004)
+- [X] T018a [P] [US1] Integration test: `GET /api/events/:id/attendance` returns the attendee list (matched names + unmatched placeholders) + count, in `tests/integration/attendance.list.test.ts` (FR-001b)
 
 ### Implementation
 

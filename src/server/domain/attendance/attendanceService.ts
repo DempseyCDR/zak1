@@ -59,7 +59,43 @@ export async function recordAttendance(
   return row;
 }
 
-export async function countAttendance(db: Db, eventId: string): Promise<number> {
-  const rows = await db.select().from(attendance).where(eq(attendance.eventId, eventId));
-  return rows.length;
+export type AttendeeView = {
+  id: string;
+  contactId: string | null;
+  displayName: string | null; // null for unmatched placeholders
+  createdAt: string;
+};
+
+export type EventAttendanceView = {
+  count: number;
+  attendees: AttendeeView[];
+};
+
+/**
+ * The contact-tracing attendee list for an event (FR-001b): matched contacts
+ * with their display name plus unmatched placeholders. After the 90-day purge
+ * (FR-011) there are no attendance rows, so this returns count 0 / empty list.
+ */
+export async function listEventAttendance(
+  db: Db,
+  eventId: string,
+): Promise<EventAttendanceView> {
+  const rows = await db
+    .select({
+      id: attendance.id,
+      contactId: attendance.contactId,
+      displayName: contacts.displayName,
+      createdAt: attendance.createdAt,
+    })
+    .from(attendance)
+    .leftJoin(contacts, eq(contacts.id, attendance.contactId))
+    .where(eq(attendance.eventId, eventId));
+
+  const attendees: AttendeeView[] = rows.map((r) => ({
+    id: r.id,
+    contactId: r.contactId,
+    displayName: r.displayName ?? null,
+    createdAt: r.createdAt.toISOString(),
+  }));
+  return { count: attendees.length, attendees };
 }
