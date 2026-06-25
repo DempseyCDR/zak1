@@ -35,16 +35,20 @@ No NEEDS CLARIFICATION remain.
 - **Rationale**: FR-004/005, SC-004 — these must never appear on the anonymous gate receipt.
 - **Alternatives considered**: One receipt with mixed customers (violates the spec).
 
-## Decision 4 — Fees: door fee reused, online fee calculator added
+## Decision 4 — Fees: fixed formulas, door fee reused
 
-- **Decision**: The door POS fee is read from the door record's stored `pos_fee_cents` (computed in
-  feature 002). An `onlineFeeCents(transactions, grossCents) = round(0.49×100×txns) +
-  round(grossCents×0.0199)` calculator is added now (FR-008) but applied only to online orders, which
-  arrive with feature 007; in Phase 1 the Fees section shows the door fee (online portion is 0 until
-  007). Revenue is reported at gross; fees are informational only (FR-009).
-- **Rationale**: Avoids recomputing the door fee (single source of truth) while still implementing the
-  online formula the spec requires.
-- **Alternatives considered**: Recompute door fee here (drift risk).
+- **Decision**: Fees are fixed-formula payment-processor (card/Venmo/PayPal) charges — cash takes no
+  fee. The **door** fee is read from the door record's stored `pos_fee_cents` (computed in feature 002).
+  An `onlineFeeCents(transactions, grossCents) = round(0.49×100×txns) + round(grossCents×0.0199)`
+  calculator (FR-008) is applied only to online orders, which arrive with feature 007; in Phase 1 the
+  Fees section shows the door fee and the online portion is 0. Revenue is reported at gross; fees are
+  informational only (FR-009).
+- **Rationale**: The fee formulas are stable constants, not per-club configuration, and they apply only
+  to card/Venmo transactions — an effective-dated/configurable fee table is unnecessary (YAGNI). Reusing
+  the stored door fee keeps a single source of truth for what was actually charged.
+- **Alternatives considered**: An effective-dated `fee_parameters` table (rejected — fees are fixed
+  constants on card/Venmo only; over-engineering); recompute the door fee here (drift from what was
+  charged).
 
 ## Decision 5 — Check numbers on performer payments
 

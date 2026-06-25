@@ -91,7 +91,9 @@ Assembled per event from source rows + mapping. Shape:
 - **performerPayments**: each paid booking → { payee (performer name), amountCents, accountCode (by
   performer type), qboClass (by series), checkNumber }. Excludes $0/donated and unpaid roles.
 - **deposit**: door record `deposit_cents` → account 1021 (checking).
-- **fees** (informational): door fee (`pos_fee_cents`) + online fee (0 until feature 007); account 5810.
+- **fees** (informational): door fee = the door record's actually-charged `pos_fee_cents`; online fee =
+  computed by the fixed online-fee formula (0 until online orders exist, feature 007); account 5810.
+  Fees apply to card/Venmo/PayPal transactions only — cash takes no fee.
 - **nonDanceIncome**: the event's `non_dance_income` entries → account 4910; a separate section,
   excluded from gate totals and Dance Net (FR-010).
 
