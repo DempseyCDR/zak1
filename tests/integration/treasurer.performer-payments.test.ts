@@ -14,7 +14,7 @@ describe("performer payments with check numbers", () => {
 
   it("shows the check number set via PATCH /api/bookings/:id/check", async () => {
     const evt = await makeEvent();
-    await makeDoorRecord(evt.id, [{ category: "today_admission", paymentMethod: "cash", amount: 100 }]);
+    await makeDoorRecord(evt.id);
     const p = await makePerformer("Check Caller");
     const booking = await createBooking(db, evt.id, { performerId: p.id, performerType: "caller", pay: 150 });
 

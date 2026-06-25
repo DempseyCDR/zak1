@@ -82,12 +82,13 @@ persisted; only mapping config + a booking `check_number` are new persistence.
 
 Assembled per event from source rows + mapping. Shape:
 
-- **gateSalesSummary**: per gate category (excluding `membership`, `future_event` which are
-  named-customer; excluding non-dance income), cash+card totals, mapped account + class, under the
-  anonymous gate customer; plus a **POS verification line** (door record `pos_gross_cents` and, for
-  reconciliation only, `pos_fee_cents`).
-- **namedCustomerReceipts**: separate receipts for `membership` (acct 4300) and `future_event`
-  advance tickets (acct 4200).
+- **gateSalesSummary**: the anonymous receipt — a **derived** `admission` line (the only Dance Income,
+  4210: cash = gross cash − seed float − Σ non-admission cash; card = PC gross − Σ non-admission card)
+  plus the entered anonymous categories `merchandise` (4700), `gift_card` (2201), `misc_sales` (4900);
+  cash+card totals, mapped account + class, under the anonymous gate customer; plus a **PC verification
+  line** (door record `pc_gross_cents` and, for reconciliation only, `pos_fee_cents`).
+- **namedCustomerReceipts**: the **named** categories — `donation` (4100), `future_event` advance
+  tickets (4200), `membership` (4300) — grouped by buyer **contact**, each line with its account.
 - **performerPayments**: each paid booking → { payee (performer name), amountCents, accountCode (by
   performer type), qboClass (by series), checkNumber }. Excludes $0/donated and unpaid roles.
 - **deposit**: door record `deposit_cents` → account 1021 (checking).

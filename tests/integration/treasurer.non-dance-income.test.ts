@@ -1,7 +1,8 @@
 import { beforeAll, beforeEach, afterAll, describe, expect, it } from "vitest";
-import { ensureSchema, resetDb, closeDb } from "./helpers/db";
+import { ensureSchema, resetDb, closeDb, db } from "./helpers/db";
 import { jsonReq, ctx } from "./helpers/http";
 import { makeEvent, makeDoorRecord } from "./helpers/factories";
+import { updateDoorRecord } from "@/server/domain/door/doorRecordService";
 import { POST as ADD_NDI } from "@/app/api/events/[id]/non-dance-income/route";
 import { GET as REPORT } from "@/app/api/events/[id]/treasurer-report/route";
 
@@ -13,7 +14,8 @@ describe("non-dance income section", () => {
 
   it("appears as a separate section (acct 4910), excluded from gate totals", async () => {
     const evt = await makeEvent();
-    await makeDoorRecord(evt.id, [{ category: "today_admission", paymentMethod: "cash", amount: 100 }]);
+    const drId = await makeDoorRecord(evt.id);
+    await updateDoorRecord(db, drId, { grossCash: 100, seedFloat: 0 }); // admission derived = 100
     await ADD_NDI(
       jsonReq("POST", `/api/events/${evt.id}/non-dance-income`, {
         description: "ESL bank interest",

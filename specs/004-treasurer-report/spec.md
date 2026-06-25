@@ -71,8 +71,8 @@ The system calculates door and online payment fees per the fee formulas, reports
 - **FR-001**: System MUST generate a per-event Treasurer Report with five sections: Gate Sales Summary, Named-Customer Receipts, Performer Payments, Deposit, and Fees (informational).
 - **FR-002**: System MUST format the report screen-first for laptop dimensions and support printing.
 - **FR-003**: System MUST include a payment-processor POS verification line in the gate sales summary.
-- **FR-004**: System MUST produce one anonymous gate sales receipt per event with customer "Contra Gate" (TNC, Community Dance, Double Dance) or "English Gate" (ECD).
-- **FR-005**: System MUST place memberships and advance tickets collected at the door on separate named-customer receipts, not the gate receipt.
+- **FR-004**: System MUST produce one anonymous gate sales receipt per event (customer "Contra Gate" for TNC/Community Dance/Double Dance, "English Gate" for ECD) comprising the anonymous categories: admission (the only Dance Income), merchandise, gift_card, and misc_sales.
+- **FR-005**: System MUST place the named categories — donation, future_event (advance tickets), and membership — on named-customer receipts grouped by buyer contact, never on the anonymous gate receipt.
 - **FR-006**: System MUST assign an accounting account and class to each line item based on category and event type, using a per-club configurable mapping.
 - **FR-007**: System MUST book gift-card sales to the gift-card liability account.
 - **FR-008**: System MUST compute the door fee as $0.09 × transactions + 2.29% × gross and the online fee as $0.49 × transactions + 1.99% × amount. These are payment-processor (card/Venmo/PayPal) fees only — cash takes no fee. The formulas are fixed constants in Phase 1.

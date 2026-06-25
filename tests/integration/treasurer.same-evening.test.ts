@@ -18,8 +18,8 @@ describe("same-evening events", () => {
   it("produces two gate receipts, both Contra Gate", async () => {
     const tnc = await makeEvent({ seriesKey: "tnc", eventDate: "2026-06-18" });
     const cd = await makeEvent({ seriesKey: "community_dance", eventDate: "2026-06-18" });
-    await makeDoorRecord(tnc.id, [{ category: "today_admission", paymentMethod: "cash", amount: 50 }]);
-    await makeDoorRecord(cd.id, [{ category: "today_admission", paymentMethod: "cash", amount: 30 }]);
+    await makeDoorRecord(tnc.id);
+    await makeDoorRecord(cd.id);
 
     expect(await reportCustomer(tnc.id)).toBe("Contra Gate");
     expect(await reportCustomer(cd.id)).toBe("Contra Gate");

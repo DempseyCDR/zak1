@@ -15,7 +15,7 @@ describe("QBO mapping config", () => {
   it("returns the seeded mapping", async () => {
     const res = await GET_MAPPING(jsonReq("GET", "/api/qbo-mapping"), ctx());
     const body = await res.json();
-    const adm = body.accounts.find((a: { lineKey: string }) => a.lineKey === "today_admission");
+    const adm = body.accounts.find((a: { lineKey: string }) => a.lineKey === "admission");
     expect(adm.accountCode).toBe("4210");
   });
 
