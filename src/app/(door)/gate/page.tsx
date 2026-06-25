@@ -1,6 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+
+type EventRow = { id: string; eventDate: string };
 
 const CATEGORIES = [
   "today_admission",
@@ -19,6 +21,8 @@ const emptyAmounts: Amounts = Object.fromEntries(
 );
 
 export default function GatePage() {
+  const [events, setEvents] = useState<EventRow[]>([]);
+  const [eventId, setEventId] = useState("");
   const [doorRecordId, setDoorRecordId] = useState("");
   const [amounts, setAmounts] = useState<Amounts>(emptyAmounts);
   const [posTxns, setPosTxns] = useState("");
@@ -30,8 +34,35 @@ export default function GatePage() {
   const [deposit, setDeposit] = useState<number | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
+  useEffect(() => {
+    void fetch("/api/events")
+      .then((r) => r.json())
+      .then((d) => setEvents(d.items ?? []));
+  }, []);
+
   function setAmt(cat: string, method: "cash" | "card", v: string) {
     setAmounts((a) => ({ ...a, [cat]: { ...a[cat]!, [method]: v } }));
+  }
+
+  // Open (create-or-fetch) the door record for the selected event, then load its gate sales.
+  async function openDoorRecord(selectedEventId: string) {
+    setEventId(selectedEventId);
+    setDoorRecordId("");
+    setDeposit(null);
+    setMessage(null);
+    if (!selectedEventId) return;
+    const res = await fetch(`/api/events/${selectedEventId}/door-record`, { method: "POST" });
+    if (!res.ok) {
+      setMessage("Could not open door record");
+      return;
+    }
+    const data = await res.json();
+    setDoorRecordId(data.doorRecord.id);
+    const next: Amounts = JSON.parse(JSON.stringify(emptyAmounts));
+    for (const s of data.gateSales as { category: string; paymentMethod: "cash" | "card"; amountCents: number }[]) {
+      if (next[s.category]) next[s.category]![s.paymentMethod] = String(s.amountCents / 100);
+    }
+    setAmounts(next);
   }
 
   async function save() {
@@ -73,12 +104,16 @@ export default function GatePage() {
   return (
     <main style={{ padding: 24, maxWidth: 640 }}>
       <h1>Gate money</h1>
-      <input
-        placeholder="Door record id"
-        value={doorRecordId}
-        onChange={(e) => setDoorRecordId(e.target.value)}
-        style={{ padding: 8, width: "100%" }}
-      />
+      <label>
+        Event:{" "}
+        <select value={eventId} onChange={(e) => void openDoorRecord(e.target.value)}>
+          <option value="">— select —</option>
+          {events.map((e) => (
+            <option key={e.id} value={e.id}>{e.eventDate}</option>
+          ))}
+        </select>
+      </label>
+      {doorRecordId && <p style={{ color: "#666" }}>Door record open ({doorRecordId.slice(0, 8)}…)</p>}
 
       <h2>Gate sales</h2>
       <table>
@@ -104,7 +139,7 @@ export default function GatePage() {
         <label>Seed float <input value={seedFloat} onChange={(e) => setSeedFloat(e.target.value)} /></label>
         <label>Cash paid out <input value={cashPaidOut} onChange={(e) => setCashPaidOut(e.target.value)} /></label>
         <label>Payout reason <input value={cashPaidOutReason} onChange={(e) => setCashPaidOutReason(e.target.value)} /></label>
-        <button onClick={save}>Save</button>
+        <button onClick={save} disabled={!doorRecordId}>Save</button>
       </div>
 
       {deposit !== null && <p><strong>Deposit:</strong> ${deposit.toFixed(2)}</p>}

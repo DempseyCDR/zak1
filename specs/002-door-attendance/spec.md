@@ -104,6 +104,7 @@ appears in the events list and is selectable by the door, bookings, and report f
 - **FR-012**: System MUST log auditable creation and edits of door financial records (who/what/when).
 - **FR-013**: System MUST support grouping related events into an event group (e.g., Double Dance, multi-day weekend festival, Jane Austen Ball prep + ball); an event MAY belong to at most one group.
 - **FR-014**: System MUST let an administrator create an event (series + date; optional event group; charges-admission flag) and list existing events, via an admin UI. The same create capability MUST be reusable inline by feature 003's bookings workflow.
+- **FR-015**: System MUST let a door volunteer open the door record for a selected event from the door workflow (check-in and gate pages) — creating it if absent and returning the existing one if present (idempotent create-or-fetch), so gate-money entry never requires knowing a door-record identifier in advance.
 
 ### Key Entities *(include if feature involves data)*
 

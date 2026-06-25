@@ -16,6 +16,7 @@ export const bookings = pgTable("bookings", {
   isDonated: boolean("is_donated").notNull().default(false),
   isOverridden: boolean("is_overridden").notNull().default(false),
   requiresCheck: boolean("requires_check").notNull().default(false),
+  checkNumber: text("check_number"),
   note: text("note"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),

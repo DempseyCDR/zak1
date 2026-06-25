@@ -1,0 +1,14 @@
+import { NextResponse } from "next/server";
+import { db } from "@/server/db/client";
+import { withLogging } from "@/server/lib/withLogging";
+import { parseBody } from "@/server/lib/parseBody";
+import { seriesQboPutSchema } from "@/server/validation/treasurer";
+import { updateSeriesQbo } from "@/server/domain/treasurer/mappingService";
+
+export const PUT = withLogging<{ seriesId: string }>(async (req, ctx) => {
+  const { seriesId } = await ctx.params;
+  const input = await parseBody(req, seriesQboPutSchema);
+  const actor = req.headers.get("x-actor") ?? "admin";
+  const row = await updateSeriesQbo(db, seriesId, input, actor);
+  return NextResponse.json(row);
+});

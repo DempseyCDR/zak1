@@ -45,6 +45,8 @@ pnpm dev                    # Next.js app at http://localhost:3000
 - `/performers` — performer directory + bio/photo (feature 003)
 - `/bookings` — book performers onto an event (type rules, pay/override, per-event total)
 - `/rate-parameters` — effective-dated standard caller/sound-tech pay rates
+- `/treasurer/<eventId>` — printable per-event treasurer report (feature 004)
+- `/qbo-mapping` — edit account/class mapping for the treasurer report
 
 ## Tests
 

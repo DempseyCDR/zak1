@@ -1,6 +1,7 @@
 import { eq } from "drizzle-orm";
 import { db, sql } from "@/server/db/client";
 import {
+  accountMapping,
   contactEmails,
   contacts,
   doorRecords,
@@ -10,6 +11,7 @@ import {
   performers,
   rateParameters,
   series,
+  seriesQboMap,
 } from "@/server/db/schema";
 import { normalizeName } from "@/server/domain/contacts/normalize";
 import { recomputeContactStatus } from "@/server/domain/membership/membershipService";
@@ -74,6 +76,39 @@ async function main() {
       .values({ seriesId: tnc.id, eventDate: "2026-06-18", chargesAdmission: true })
       .returning();
     if (evt) await db.insert(doorRecords).values({ eventId: evt.id });
+  }
+
+  // QBO account/class mapping (chart of accounts) + gate customers per series.
+  await db
+    .insert(accountMapping)
+    .values([
+      { lineKey: "today_admission", accountCode: "4210", accountName: "Program Service Revenue:Dance Gate" },
+      { lineKey: "merchandise", accountCode: "4700", accountName: "Sales of Inventory" },
+      { lineKey: "donation", accountCode: "4100", accountName: "Voluntary Contributions" },
+      { lineKey: "future_event", accountCode: "4200", accountName: "Program Service Revenue" },
+      { lineKey: "membership", accountCode: "4300", accountName: "Membership Dues" },
+      { lineKey: "gift_card", accountCode: "2201", accountName: "Prepaid Services:Pre-paid Gift Card" },
+      { lineKey: "misc_sales", accountCode: "4900", accountName: "Uncategorized Income" },
+      { lineKey: "caller", accountCode: "5320", accountName: "Program Staff:Callers" },
+      { lineKey: "lead_musician", accountCode: "5310", accountName: "Program Staff:Bands" },
+      { lineKey: "sound_tech", accountCode: "5330", accountName: "Program Staff:Sound Tech" },
+      { lineKey: "rent", accountCode: "5420", accountName: "Facilities:Rent" },
+      { lineKey: "fees", accountCode: "5810", accountName: "Bank Charges & Fees:PayPal Fees" },
+      { lineKey: "deposit", accountCode: "1021", accountName: "ESL Checking" },
+      { lineKey: "non_dance_income", accountCode: "4910", accountName: "Other Miscellaneous Revenue" },
+    ])
+    .onConflictDoNothing({ target: accountMapping.lineKey });
+
+  const allSeries = await db.select().from(series);
+  for (const srow of allSeries) {
+    await db
+      .insert(seriesQboMap)
+      .values({
+        seriesId: srow.id,
+        gateCustomer: srow.key === "ecd" ? "English Gate" : "Contra Gate",
+        qboClass: srow.key === "tnc" ? "TNC" : srow.key === "ecd" ? "ECD" : "Community Dance",
+      })
+      .onConflictDoNothing({ target: seriesQboMap.seriesId });
   }
 
   // Performers + standard rates.

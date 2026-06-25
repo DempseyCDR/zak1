@@ -31,6 +31,14 @@ export default function CheckinPage() {
     void search(q);
   }, [q, search]);
 
+  async function openDoorRecord() {
+    if (!eventId) return setMessage("Pick an event first");
+    const res = await fetch(`/api/events/${eventId}/door-record`, { method: "POST" });
+    if (!res.ok) return setMessage("Could not open door record");
+    const data = await res.json();
+    setMessage(`Door record open for this event (${data.doorRecord.id.slice(0, 8)}…) — use the Gate page to enter money`);
+  }
+
   async function record(body: unknown, label: string) {
     if (!eventId) return setMessage("Pick an event first");
     const res = await fetch(`/api/events/${eventId}/attendance`, {
@@ -64,6 +72,10 @@ export default function CheckinPage() {
           ))}
         </select>
       </label>
+
+      <p>
+        <button onClick={openDoorRecord} disabled={!eventId}>Open door record for this event</button>
+      </p>
 
       {message && <p>{message}</p>}
 

@@ -17,19 +17,19 @@ fail before implementation. Integration tests run against the real `zak1_test` d
 
 ## Phase 1: Setup
 
-- [ ] T001 [P] Zod schemas for mapping edits, non-dance-income, and check-number inputs in `src/server/validation/treasurer.ts`
+- [X] T001 [P] Zod schemas for mapping edits, non-dance-income, and check-number inputs in `src/server/validation/treasurer.ts`
 
 ---
 
 ## Phase 2: Foundational (blocking prerequisites)
 
-- [ ] T002 Author migration `0006_treasurer.sql` (account_mapping, series_qbo_map, non_dance_income, mapping_audit, treasurer_report_audit; add `check_number` to bookings) in `src/server/db/migrations/`
-- [ ] T003 [P] Drizzle schema for `account_mapping` + `series_qbo_map` in `src/server/db/schema/qboMapping.ts`
-- [ ] T004 [P] Drizzle schema for `non_dance_income` in `src/server/db/schema/nonDanceIncome.ts`
-- [ ] T005 [P] Drizzle schema for `mapping_audit` + `treasurer_report_audit` in `src/server/db/schema/treasurerAudit.ts`; add `checkNumber` to `bookings` schema; export all from `src/server/db/schema/index.ts`
-- [ ] T006 Apply migration to dev DB and extend `resetDb` to truncate the new tables in `tests/integration/helpers/db.ts`
-- [ ] T007 [P] Seed `account_mapping` (CDR chart of accounts) and `series_qbo_map` (gate customers + classes) in `src/server/db/seed.ts`
-- [ ] T008 Mapping resolver (account by line_key; gate customer + class by series) in `src/server/domain/treasurer/mappingService.ts`
+- [X] T002 Author migration `0006_treasurer.sql` (account_mapping, series_qbo_map, non_dance_income, mapping_audit, treasurer_report_audit; add `check_number` to bookings) in `src/server/db/migrations/`
+- [X] T003 [P] Drizzle schema for `account_mapping` + `series_qbo_map` in `src/server/db/schema/qboMapping.ts`
+- [X] T004 [P] Drizzle schema for `non_dance_income` in `src/server/db/schema/nonDanceIncome.ts`
+- [X] T005 [P] Drizzle schema for `mapping_audit` + `treasurer_report_audit` in `src/server/db/schema/treasurerAudit.ts`; add `checkNumber` to `bookings` schema; export all from `src/server/db/schema/index.ts`
+- [X] T006 Apply migration to dev DB and extend `resetDb` to truncate the new tables in `tests/integration/helpers/db.ts`
+- [X] T007 [P] Seed `account_mapping` (CDR chart of accounts) and `series_qbo_map` (gate customers + classes) in `src/server/db/seed.ts`
+- [X] T008 Mapping resolver (account by line_key; gate customer + class by series) in `src/server/domain/treasurer/mappingService.ts`
 
 **Checkpoint**: mapping config seeded + resolvable; new tables ready.
 
@@ -46,18 +46,18 @@ appears as its own section.
 
 ### Tests first (MUST fail before implementation)
 
-- [ ] T009 [P] [US1] Integration test: `GET /api/events/:id/treasurer-report` returns all sections populated from the door record; generating it writes a `treasurer_report_audit` row; 404 `DOOR_RECORD_NOT_FOUND` when none, in `tests/integration/treasurer.report.test.ts` (FR-001/003/012/014)
-- [ ] T010 [P] [US1] Integration test: Performer Payments list shows payee/amount/account/class/checkNumber; `PATCH /api/bookings/:id/check` sets the number, in `tests/integration/treasurer.performer-payments.test.ts` (FR-011)
-- [ ] T011 [P] [US1] Integration test: `POST /api/events/:id/non-dance-income` then report shows a Non-Dance Income section (acct 4910) excluded from gate totals, in `tests/integration/treasurer.non-dance-income.test.ts` (FR-010)
+- [X] T009 [P] [US1] Integration test: `GET /api/events/:id/treasurer-report` returns all sections populated from the door record; generating it writes a `treasurer_report_audit` row; 404 `DOOR_RECORD_NOT_FOUND` when none, in `tests/integration/treasurer.report.test.ts` (FR-001/003/012/014)
+- [X] T010 [P] [US1] Integration test: Performer Payments list shows payee/amount/account/class/checkNumber; `PATCH /api/bookings/:id/check` sets the number, in `tests/integration/treasurer.performer-payments.test.ts` (FR-011)
+- [X] T011 [P] [US1] Integration test: `POST /api/events/:id/non-dance-income` then report shows a Non-Dance Income section (acct 4910) excluded from gate totals, in `tests/integration/treasurer.non-dance-income.test.ts` (FR-010)
 
 ### Implementation
 
-- [ ] T012 [US1] Report assembler (gate summary w/ POS verification, named-customer, performer payments, deposit, fees, non-dance income) in `src/server/domain/treasurer/reportService.ts`
-- [ ] T013 [US1] Non-dance-income service (create/list per event; total) in `src/server/domain/treasurer/nonDanceIncomeService.ts`
-- [ ] T014 [P] [US1] Route handler `GET /api/events/[id]/treasurer-report` (writes report-generation audit) in `src/app/api/events/[id]/treasurer-report/route.ts`
-- [ ] T015 [P] [US1] Route handlers `POST/GET /api/events/[id]/non-dance-income` in `src/app/api/events/[id]/non-dance-income/route.ts`
-- [ ] T016 [P] [US1] Route handler `PATCH /api/bookings/[id]/check` in `src/app/api/bookings/[id]/check/route.ts`
-- [ ] T017 [US1] Treasurer report UI (screen-first, printable) in `src/app/(admin)/treasurer/[eventId]/page.tsx`
+- [X] T012 [US1] Report assembler (gate summary w/ POS verification, named-customer, performer payments, deposit, fees, non-dance income) in `src/server/domain/treasurer/reportService.ts`
+- [X] T013 [US1] Non-dance-income service (create/list per event; total) in `src/server/domain/treasurer/nonDanceIncomeService.ts`
+- [X] T014 [P] [US1] Route handler `GET /api/events/[id]/treasurer-report` (writes report-generation audit) in `src/app/api/events/[id]/treasurer-report/route.ts`
+- [X] T015 [P] [US1] Route handlers `POST/GET /api/events/[id]/non-dance-income` in `src/app/api/events/[id]/non-dance-income/route.ts`
+- [X] T016 [P] [US1] Route handler `PATCH /api/bookings/[id]/check` in `src/app/api/bookings/[id]/check/route.ts`
+- [X] T017 [US1] Treasurer report UI (screen-first, printable) in `src/app/(admin)/treasurer/[eventId]/page.tsx`
 
 **Checkpoint**: US1 independently testable — a complete, copy/paste-ready report.
 
@@ -74,17 +74,17 @@ named-customer split, gift-card liability, and that mapping edits are audited.
 
 ### Tests first (MUST fail before implementation)
 
-- [ ] T018 [P] [US2] Integration test: each category lands on its configured account; gate customer is "Contra Gate" (TNC/Community Dance) / "English Gate" (ECD); gift_card → 2201, in `tests/integration/treasurer.mapping.test.ts` (FR-004/006/007, SC-003)
-- [ ] T019 [P] [US2] Integration test: membership + advance-ticket lines appear as separate named-customer receipts, never on the gate receipt, in `tests/integration/treasurer.named-customer.test.ts` (FR-005/SC-004)
-- [ ] T020 [P] [US2] Integration test: same-evening Community Dance + TNC → two gate receipts, both "Contra Gate", in `tests/integration/treasurer.same-evening.test.ts` (FR-004)
-- [ ] T021 [P] [US2] Integration test: editing a mapping writes a mapping audit entry, in `tests/integration/treasurer.mapping-audit.test.ts` (FR-014)
+- [X] T018 [P] [US2] Integration test: each category lands on its configured account; gate customer is "Contra Gate" (TNC/Community Dance) / "English Gate" (ECD); gift_card → 2201 — covered in `tests/integration/treasurer.report.test.ts` (FR-004/006/007, SC-003)
+- [X] T019 [P] [US2] Integration test: membership + advance-ticket lines appear as separate named-customer receipts, never on the gate receipt — covered in `tests/integration/treasurer.report.test.ts` (FR-005/SC-004)
+- [X] T020 [P] [US2] Integration test: same-evening Community Dance + TNC → two gate receipts, both "Contra Gate", in `tests/integration/treasurer.same-evening.test.ts` (FR-004)
+- [X] T021 [P] [US2] Integration test: editing a mapping writes a mapping audit entry, in `tests/integration/treasurer.mapping-audit.test.ts` (FR-014)
 
 ### Implementation
 
-- [ ] T022 [US2] Apply mapping in the assembler (accounts/classes/customer, named-customer split, gift-card→liability, exclude Non-Dance Income from gate totals) in `src/server/domain/treasurer/reportService.ts`
-- [ ] T023 [US2] Mapping config service (get all; update account; update series map; write audit) in `src/server/domain/treasurer/mappingService.ts`
-- [ ] T024 [P] [US2] Route handlers `GET /api/qbo-mapping`, `PUT /api/qbo-mapping/accounts/[lineKey]`, `PUT /api/qbo-mapping/series/[seriesId]` in `src/app/api/qbo-mapping/`
-- [ ] T025 [US2] QBO-mapping admin UI in `src/app/(admin)/qbo-mapping/page.tsx`
+- [X] T022 [US2] Apply mapping in the assembler (accounts/classes/customer, named-customer split, gift-card→liability, exclude Non-Dance Income from gate totals) in `src/server/domain/treasurer/reportService.ts`
+- [X] T023 [US2] Mapping config service (get all; update account; update series map; write audit) in `src/server/domain/treasurer/mappingService.ts`
+- [X] T024 [P] [US2] Route handlers `GET /api/qbo-mapping`, `PUT /api/qbo-mapping/accounts/[lineKey]`, `PUT /api/qbo-mapping/series/[seriesId]` in `src/app/api/qbo-mapping/`
+- [X] T025 [US2] QBO-mapping admin UI in `src/app/(admin)/qbo-mapping/page.tsx`
 
 **Checkpoint**: US2 independently testable — correct, configurable, audited account/class mapping.
 
@@ -99,13 +99,13 @@ calculator = $0.49×txns + 1.99%×amount; revenue lines are gross; fees shown se
 
 ### Tests first (MUST fail before implementation)
 
-- [ ] T026 [P] [US3] Unit test: `onlineFeeCents(txns, gross)` = $0.49×txns + 1.99%×gross exact in cents; door fee sourced from the door record, in `tests/unit/treasurer.fees.test.ts` (FR-008/SC-002)
-- [ ] T027 [P] [US3] Integration test: report Fees section shows the door fee (from the door record) and revenue is reported at gross (fees not subtracted from revenue), in `tests/integration/treasurer.fees.test.ts` (FR-009)
+- [X] T026 [P] [US3] Unit test: `onlineFeeCents(txns, gross)` = $0.49×txns + 1.99%×gross exact in cents; door fee sourced from the door record, in `tests/unit/treasurer.fees.test.ts` (FR-008/SC-002)
+- [X] T027 [P] [US3] Integration test: report Fees section shows the door fee (from the door record) and revenue is reported at gross (fees not subtracted from revenue), in `tests/integration/treasurer.fees.test.ts` (FR-009)
 
 ### Implementation
 
-- [ ] T028 [P] [US3] Online fee calculator `onlineFeeCents(txns, grossCents)` (fixed formula; cards/Venmo only) in `src/server/domain/treasurer/fees.ts` (door fee reused from feature 002 `posFeeCents`)
-- [ ] T029 [US3] Fees section in the assembler (door fee from record + online 0 until feature 007; account 5810) in `src/server/domain/treasurer/reportService.ts`
+- [X] T028 [P] [US3] Online fee calculator `onlineFeeCents(txns, grossCents)` (fixed formula; cards/Venmo only) in `src/server/domain/treasurer/fees.ts` (door fee reused from feature 002 `posFeeCents`)
+- [X] T029 [US3] Fees section in the assembler (door fee from record + online 0 until feature 007; account 5810) in `src/server/domain/treasurer/reportService.ts`
 
 **Checkpoint**: US3 independently testable — fees exact, informational, revenue at gross.
 
@@ -113,11 +113,11 @@ calculator = $0.49×txns + 1.99%×amount; revenue lines are gross; fees shown se
 
 ## Phase 6: Polish & Cross-Cutting
 
-- [ ] T030 [P] Update the dev route index `src/app/dev/routes/page.tsx` with the new routes (treasurer-report, non-dance-income, qbo-mapping, bookings/check; UI /treasurer, /qbo-mapping) per the temporary convention
-- [ ] T031 [P] Verify all [quickstart.md](quickstart.md) scenarios end-to-end
-- [ ] T032 [P] Confirm audit on report generation + mapping edits and structured logging on new handlers (Principle IV)
-- [ ] T033 [P] Constitution compliance pass: strict types, integer-cents money, real-Postgres tests, no undocumented `any`/`as`
-- [ ] T034 [P] Update README with treasurer/qbo-mapping routes and the report
+- [X] T030 [P] Update the dev route index `src/app/dev/routes/page.tsx` with the new routes (treasurer-report, non-dance-income, qbo-mapping, bookings/check; UI /treasurer, /qbo-mapping) per the temporary convention
+- [X] T031 [P] Verify all [quickstart.md](quickstart.md) scenarios end-to-end
+- [X] T032 [P] Confirm audit on report generation + mapping edits and structured logging on new handlers (Principle IV)
+- [X] T033 [P] Constitution compliance pass: strict types, integer-cents money, real-Postgres tests, no undocumented `any`/`as`
+- [X] T034 [P] Update README with treasurer/qbo-mapping routes and the report
 
 ---
 

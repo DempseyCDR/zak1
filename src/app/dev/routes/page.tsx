@@ -21,6 +21,8 @@ const uiRoutes: { path: string; label: string; feature: string }[] = [
   { path: "/performers", label: "Performer directory", feature: "003" },
   { path: "/bookings", label: "Bookings", feature: "003" },
   { path: "/rate-parameters", label: "Standard pay rates", feature: "003" },
+  { path: "/treasurer/<eventId>", label: "Treasurer report (printable)", feature: "004" },
+  { path: "/qbo-mapping", label: "QBO account/class mapping", feature: "004" },
   { path: "/dev/routes", label: "Dev route index (this page)", feature: "dev" },
 ];
 
@@ -38,6 +40,7 @@ const apiRoutes: { methods: string; path: string; feature: string }[] = [
   { methods: "GET, POST", path: "/api/events", feature: "002" },
   { methods: "POST", path: "/api/event-groups", feature: "002" },
   { methods: "GET, POST", path: "/api/events/[id]/attendance", feature: "002" },
+  { methods: "POST", path: "/api/events/[id]/door-record", feature: "002" },
   { methods: "GET", path: "/api/attendance/search", feature: "002" },
   { methods: "POST", path: "/api/door-records", feature: "002" },
   { methods: "GET, PATCH", path: "/api/door-records/[id]", feature: "002" },
@@ -48,6 +51,13 @@ const apiRoutes: { methods: string; path: string; feature: string }[] = [
   { methods: "GET, POST", path: "/api/rate-parameters", feature: "003" },
   { methods: "GET, POST", path: "/api/events/[id]/bookings", feature: "003" },
   { methods: "PATCH", path: "/api/bookings/[id]", feature: "003" },
+  // Feature 004 — Treasurer Report & QBO Hand-off
+  { methods: "GET", path: "/api/events/[id]/treasurer-report", feature: "004" },
+  { methods: "GET, POST", path: "/api/events/[id]/non-dance-income", feature: "004" },
+  { methods: "PATCH", path: "/api/bookings/[id]/check", feature: "004" },
+  { methods: "GET", path: "/api/qbo-mapping", feature: "004" },
+  { methods: "PUT", path: "/api/qbo-mapping/accounts/[lineKey]", feature: "004" },
+  { methods: "PUT", path: "/api/qbo-mapping/series/[seriesId]", feature: "004" },
 ];
 
 export default function DevRoutesPage() {

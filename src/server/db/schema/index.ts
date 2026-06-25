@@ -10,3 +10,6 @@ export * from "./attendance";
 export * from "./performers";
 export * from "./rates";
 export * from "./bookings";
+export * from "./qboMapping";
+export * from "./nonDanceIncome";
+export * from "./treasurerAudit";
