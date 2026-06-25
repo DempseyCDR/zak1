@@ -24,6 +24,8 @@ An organizer books the performers for an event — caller, lead musician(s), sou
 2. **Given** an event, **When** the organizer books an Open Band Musician, **Then** they are unpaid, require no check, and are shown publicly only as "Open Band".
 3. **Given** an event, **When** the organizer books a Sound Tech, **Then** they are paid and require a check but are not listed publicly, and Sound Tech is unavailable for Community Dance.
 4. **Given** an event, **When** the organizer books an Instructor, **Then** they are always free, never require a check, and are shown by name with a short note.
+5. **Given** the booking event pick list, **When** it is shown, **Then** events are ordered most-recent-date first and events more than one month in the past are hidden until the organizer overrides to include older ones.
+6. **Given** the booking pick list, **When** the organizer chooses "new event," **Then** an event can be created inline and immediately selected for booking.
 
 ---
 
@@ -77,6 +79,9 @@ An administrator maintains standard pay rates (caller, sound tech) with effectiv
 - **FR-009**: System MUST provide a combined performer total per event with a drill-down breakdown by performer.
 - **FR-010**: System MUST maintain per-performer appearance history and year-to-date earnings (excluding $0 donations from earnings).
 - **FR-011**: System MUST log auditable changes to rate parameters (who/what/when, effective date).
+- **FR-012**: The Bookings page event pick list MUST be sorted by event date, most recent first (descending).
+- **FR-013**: The Bookings page event pick list MUST default to excluding events more than one month in the past, and MUST provide a user-controllable override to include older events.
+- **FR-014**: The Bookings page MUST offer creating a new event inline (reusing feature 002's event-creation capability); the newly created event becomes selectable for booking without leaving the page.
 
 ### Key Entities *(include if feature involves data)*
 

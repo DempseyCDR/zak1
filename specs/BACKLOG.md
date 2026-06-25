@@ -16,6 +16,7 @@ notes where it surfaced and where it will likely land. Not a commitment to a pha
 | B9 | **Native iOS/Android apps** | 007 | Future | Web only for now. |
 | B10 | **Automated email from the platform** | 006 / source doc | Future | Platform produces lists; sending stays in iContact. |
 | B11 | **Multi-tenant data model** | build 1 chosen single-tenant | Future build/refactor | Build 1 is single-tenant (CDR); club-level settings already configurable. |
+| B12 | **Additional event attributes (venue, etc.)** | 002/003 (event creation added) | 002 events + 007 public site | Event currently has series/date/group/charges-admission. Add venue (with maps in 007) and other attributes in a future phase. |
 
 ## How to use this file
 

@@ -44,6 +44,15 @@ Body: `{ performerId: string, performerType: PerformerType, pay?: number, isDona
 Body: subset of `{ pay, isDonated, note }`. Re-derives `requires_check`; honors the same invariants.
 - 200 → `Booking`.
 
+## Event pick list (Bookings page)
+
+The Bookings page sources events from feature 002's `GET /api/events`:
+- Default request uses `from = (today − 1 month)` and orders results by event date **descending**
+  (FR-012/013); the page shows an "include older events" toggle that re-requests without `from`.
+- "New event" posts to `POST /api/events` (002) and selects the returned event (FR-014).
+- This implies `GET /api/events` supports a `from`/`to` window (already) and descending-date ordering;
+  ordering MAY be applied server-side or by the page.
+
 ## Enums
 
 - `PerformerType`: `caller | lead_musician | open_band_musician | sound_tech | instructor`

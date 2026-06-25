@@ -58,6 +58,25 @@ The system retains identifiable attendance for a limited window for contact-trac
 1. **Given** attendee contacts on a door record, **When** 90 days have passed, **Then** the identifiable attendance links are purged.
 2. **Given** purged attendance, **When** quarterly counts are queried, **Then** the aggregate counts persist permanently.
 
+---
+
+### User Story 4 - Create and manage events (Priority: P1)
+
+An administrator creates the events that everything else attaches to — choosing the series and date,
+optionally assigning an event group and marking it free (no admission) — and can list existing events.
+
+**Why this priority**: Events are the anchor for attendance, door records, bookings (003), and reports
+(004/005); without a way to create them, none of those workflows can start.
+
+**Independent Test**: Create an event for a series and date, optionally in a group, and confirm it
+appears in the events list and is selectable by the door, bookings, and report features.
+
+**Acceptance Scenarios**:
+
+1. **Given** the events admin, **When** the administrator creates an event with a series and date, **Then** the event is stored and listed.
+2. **Given** an event group, **When** an event is created in it, **Then** the event is associated with that group.
+3. **Given** the bookings workflow (003), **When** the organizer chooses "new event," **Then** the same event-creation capability is reused inline.
+
 ### Edge Cases
 
 - A Community Dance held the same evening as TNC has its own separate door record and financials.
@@ -84,6 +103,7 @@ The system retains identifiable attendance for a limited window for contact-trac
 - **FR-011**: System MUST purge identifiable attendee links 90 days after the event while persisting quarterly aggregate counts permanently.
 - **FR-012**: System MUST log auditable creation and edits of door financial records (who/what/when).
 - **FR-013**: System MUST support grouping related events into an event group (e.g., Double Dance, multi-day weekend festival, Jane Austen Ball prep + ball); an event MAY belong to at most one group.
+- **FR-014**: System MUST let an administrator create an event (series + date; optional event group; charges-admission flag) and list existing events, via an admin UI. The same create capability MUST be reusable inline by feature 003's bookings workflow.
 
 ### Key Entities *(include if feature involves data)*
 
@@ -110,3 +130,4 @@ The system retains identifiable attendance for a limited window for contact-trac
 - The choice of fuzzy-matching technique is an implementation detail; the requirement is ranked results within 300 ms.
 - POS card data is reconciled against the payment processor downstream (see Treasurer Report feature).
 - **Group tickets are deferred**: this phase adds the Event Group entity (grouping of events) only. A single ticket purchased once and redeemable as admission across all events in a group is out of scope here and belongs to feature 007 (online sales) + door redemption, with revenue attribution handled in features 004/005.
+- **Additional event attributes are deferred**: an event currently carries series, date, group, and charges-admission. Future phases will add attributes such as **venue** (and others); see [BACKLOG.md](../BACKLOG.md).

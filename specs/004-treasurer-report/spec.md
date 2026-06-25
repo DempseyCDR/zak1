@@ -60,7 +60,7 @@ The system calculates door and online payment fees per the fee formulas, reports
 
 ### Edge Cases
 
-- Non-Dance Income (grants, bank interest) is excluded from the report entirely.
+- Non-Dance Income (grants, bank interest) appears as its own section booked to account 4910; it never flows into gate totals or Dance Net.
 - Gift cards booked to liability are moved to revenue by a manual journal entry on redemption.
 - The accounting system is the system of record for fees; the app's figures support verification only.
 
@@ -77,7 +77,7 @@ The system calculates door and online payment fees per the fee formulas, reports
 - **FR-007**: System MUST book gift-card sales to the gift-card liability account.
 - **FR-008**: System MUST compute the door fee as $0.09 × transactions + 2.29% × gross and the online fee as $0.49 × transactions + 1.99% × amount.
 - **FR-009**: System MUST report all revenue at gross and present fees only informationally (rolled into misc expenses for the organizer view).
-- **FR-010**: System MUST exclude Non-Dance Income from the report.
+- **FR-010**: System MUST include Non-Dance Income (e.g., grants, bank interest; account 4910) as a **separate section** of the Treasurer Report, distinct from dance income — it MUST NOT flow into the gate receipt, gate totals, or Dance Net. (The Organizer Report, feature 005, still excludes Non-Dance Income entirely.)
 - **FR-011**: System MUST present performer payments with check number, payee, amount, accounting account, and class.
 - **FR-012**: System MUST compute the deposit amount destined for the checking account.
 - **FR-013**: System MUST NOT import to or call the accounting system's API in Phase 1; output is for manual copy/paste.
