@@ -4,6 +4,14 @@ import { useEffect, useState } from "react";
 
 type EventRow = { id: string; eventDate: string };
 type Candidate = { id: string; displayName: string };
+type CheckBooking = {
+  id: string;
+  performerId: string;
+  performerType: string;
+  payCents: number;
+  requiresCheck: boolean;
+  checkNumber: string | null;
+};
 
 const ANON_CATEGORIES = ["merchandise", "gift_card", "misc_sales"] as const;
 const NAMED_CATEGORIES = ["donation", "future_event", "membership"] as const;
@@ -38,9 +46,20 @@ export default function GatePage() {
   const [search, setSearch] = useState("");
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [newCategory, setNewCategory] = useState<(typeof NAMED_CATEGORIES)[number]>("membership");
+  // performer checks (numbers known only after the event)
+  const [checkBookings, setCheckBookings] = useState<CheckBooking[]>([]);
+  const [performerNames, setPerformerNames] = useState<Record<string, string>>({});
+  const [checkInputs, setCheckInputs] = useState<Record<string, string>>({});
 
   useEffect(() => {
     void fetch("/api/events").then((r) => r.json()).then((d) => setEvents(d.items ?? []));
+    void fetch("/api/performers")
+      .then((r) => r.json())
+      .then((d) => {
+        const m: Record<string, string> = {};
+        for (const p of (d.items ?? []) as { id: string; displayName: string }[]) m[p.id] = p.displayName;
+        setPerformerNames(m);
+      });
   }, []);
 
   useEffect(() => {
@@ -57,11 +76,32 @@ export default function GatePage() {
     setMessage(null);
     setAnon(JSON.parse(JSON.stringify(emptyAnon)));
     setNamed([]);
+    setCheckBookings([]);
+    setCheckInputs({});
     if (!selectedEventId) return;
     const res = await fetch(`/api/events/${selectedEventId}/door-record`, { method: "POST" });
     if (!res.ok) return setMessage("Could not open door record");
     const data = await res.json();
     setDoorRecordId(data.doorRecord.id);
+
+    // Load this event's bookings that need a check, for check-number entry.
+    const bRes = await fetch(`/api/events/${selectedEventId}/bookings`);
+    if (bRes.ok) {
+      const bd = await bRes.json();
+      const needChecks = ((bd.bookings ?? []) as CheckBooking[]).filter((b) => b.requiresCheck);
+      setCheckBookings(needChecks);
+      setCheckInputs(Object.fromEntries(needChecks.map((b) => [b.id, b.checkNumber ?? ""])));
+    }
+  }
+
+  async function saveCheck(bookingId: string) {
+    const value = checkInputs[bookingId]?.trim() ?? "";
+    const res = await fetch(`/api/bookings/${bookingId}/check`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ checkNumber: value || null }),
+    });
+    setMessage(res.ok ? "Check number saved" : "Failed to save check number");
   }
 
   function setAnonAmt(cat: string, method: PaymentMethod, v: string) {
@@ -192,6 +232,26 @@ export default function GatePage() {
           </li>
         ))}
       </ul>
+
+      <h2>Performer checks</h2>
+      {checkBookings.length === 0 ? (
+        <p style={{ color: "#888" }}>No performer payments require a check for this event.</p>
+      ) : (
+        <ul style={{ listStyle: "none", padding: 0 }}>
+          {checkBookings.map((b) => (
+            <li key={b.id} style={{ marginBottom: 4 }}>
+              {performerNames[b.performerId] ?? b.performerType} ({b.performerType}) — $
+              {(b.payCents / 100).toFixed(2)} — check #{" "}
+              <input
+                value={checkInputs[b.id] ?? ""}
+                onChange={(e) => setCheckInputs((s) => ({ ...s, [b.id]: e.target.value }))}
+                style={{ width: 100 }}
+              />{" "}
+              <button onClick={() => saveCheck(b.id)}>Save</button>
+            </li>
+          ))}
+        </ul>
+      )}
 
       <h2>Cash &amp; card reconciliation</h2>
       <p style={{ color: "#666" }}>Admission is derived: gross cash − seed float − non-admission cash, and PC gross − non-admission card.</p>
