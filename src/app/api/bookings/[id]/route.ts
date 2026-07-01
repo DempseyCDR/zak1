@@ -3,7 +3,7 @@ import { db } from "@/server/db/client";
 import { withLogging } from "@/server/lib/withLogging";
 import { parseBody } from "@/server/lib/parseBody";
 import { bookingPatchSchema } from "@/server/validation/performers";
-import { patchBooking } from "@/server/domain/bookings/bookingService";
+import { deleteBooking, patchBooking } from "@/server/domain/bookings/bookingService";
 
 export const PATCH = withLogging<{ id: string }>(async (req, ctx) => {
   const { id } = await ctx.params;
@@ -11,4 +11,11 @@ export const PATCH = withLogging<{ id: string }>(async (req, ctx) => {
   const actor = req.headers.get("x-actor") ?? "admin";
   const booking = await patchBooking(db, id, input, actor);
   return NextResponse.json(booking);
+});
+
+export const DELETE = withLogging<{ id: string }>(async (req, ctx) => {
+  const { id } = await ctx.params;
+  const actor = req.headers.get("x-actor") ?? "admin";
+  await deleteBooking(db, id, actor);
+  return NextResponse.json({ ok: true });
 });

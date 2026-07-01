@@ -15,6 +15,7 @@ function oneMonthAgoIso(): string {
 type Booking = {
   id: string;
   performerId: string;
+  performerName: string;
   performerType: string;
   payCents: number;
   requiresCheck: boolean;
@@ -124,6 +125,15 @@ export default function BookingsPage() {
     void loadBookings(eventId);
   }
 
+  async function removeBooking(bookingId: string) {
+    const res = await fetch(`/api/bookings/${bookingId}`, { method: "DELETE" });
+    if (!res.ok) {
+      setError("Failed to remove booking");
+      return;
+    }
+    void loadBookings(eventId);
+  }
+
   return (
     <main style={{ padding: 24, maxWidth: 760 }}>
       <h1>Bookings</h1>
@@ -159,8 +169,9 @@ export default function BookingsPage() {
       <ul>
         {bookings.map((b) => (
           <li key={b.id}>
-            {b.performerType} — ${(b.payCents / 100).toFixed(2)}
-            {b.isDonated ? " (donated)" : ""} {b.requiresCheck ? "• check" : ""}
+            {b.performerName} — {b.performerType} — ${(b.payCents / 100).toFixed(2)}
+            {b.isDonated ? " (donated)" : ""} {b.requiresCheck ? "• check" : ""}{" "}
+            <button onClick={() => removeBooking(b.id)}>Remove</button>
           </li>
         ))}
       </ul>

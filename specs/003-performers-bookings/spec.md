@@ -82,6 +82,9 @@ An administrator maintains standard pay rates (caller, sound tech) with effectiv
 - **FR-012**: The Bookings page event pick list MUST be sorted by event date, most recent first (descending).
 - **FR-013**: The Bookings page event pick list MUST default to excluding events more than one month in the past, and MUST provide a user-controllable override to include older events.
 - **FR-014**: The Bookings page MUST offer creating a new event inline (reusing feature 002's event-creation capability); the newly created event becomes selectable for booking without leaving the page.
+- **FR-015**: System MUST ensure every performer has an associated contact record — created from the performer's name at performer creation when none is linked — so the door attendant can check the performer in (feeds the paying-dancers derivation in feature 005).
+- **FR-016**: When performers are booked for an event, the system MUST expose each booking's performer name alongside type and amount (used by the Bookings list and the organizer report's performer drill-down).
+- **FR-017**: The Bookings page MUST allow removing a booking (e.g., when a performer cancels), so the organizer can book a replacement.
 
 ### Key Entities *(include if feature involves data)*
 

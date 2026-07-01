@@ -52,7 +52,7 @@ const apiRoutes: { methods: string; path: string; feature: string }[] = [
   { methods: "GET, PATCH", path: "/api/performers/[id]", feature: "003" },
   { methods: "GET, POST", path: "/api/rate-parameters", feature: "003" },
   { methods: "GET, POST", path: "/api/events/[id]/bookings", feature: "003" },
-  { methods: "PATCH", path: "/api/bookings/[id]", feature: "003" },
+  { methods: "PATCH, DELETE", path: "/api/bookings/[id]", feature: "003" },
   // Feature 004 — Treasurer Report & QBO Hand-off
   { methods: "GET", path: "/api/events/[id]/treasurer-report", feature: "004" },
   { methods: "GET, POST", path: "/api/events/[id]/non-dance-income", feature: "004" },

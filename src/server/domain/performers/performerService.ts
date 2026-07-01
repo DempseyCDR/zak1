@@ -1,26 +1,46 @@
 import { and, eq, gte, lte, sql } from "drizzle-orm";
 import type { Db } from "@/server/db/client";
-import { bookings, events, performers } from "@/server/db/schema";
+import { bookings, contacts, events, performers } from "@/server/db/schema";
 import type { PerformerRow } from "@/server/db/schema";
 import { errors } from "@/server/lib/apiError";
 import { centsToDollars } from "@/server/lib/money";
+import { normalizeName } from "@/server/domain/contacts/normalize";
 import type { PerformerCreateInput, PerformerPatchInput } from "@/server/validation/performers";
 
+/**
+ * Every performer MUST have a contact so the door can check them in (FR-015).
+ * If no contact is linked, create one from the performer's name.
+ */
 export async function createPerformer(
   db: Db,
   input: PerformerCreateInput,
 ): Promise<PerformerRow> {
-  const [row] = await db
-    .insert(performers)
-    .values({
-      displayName: input.displayName,
-      contactId: input.contactId ?? null,
-      bio: input.bio ?? null,
-      photoUrl: input.photoUrl ?? null,
-    })
-    .returning();
-  if (!row) throw new Error("performer insert failed");
-  return row;
+  return db.transaction(async (tx) => {
+    let contactId = input.contactId ?? null;
+    if (!contactId) {
+      const [contact] = await tx
+        .insert(contacts)
+        .values({
+          displayName: input.displayName,
+          nameNormalized: normalizeName(input.displayName),
+          source: "performer",
+        })
+        .returning();
+      if (!contact) throw new Error("contact insert failed");
+      contactId = contact.id;
+    }
+    const [row] = await tx
+      .insert(performers)
+      .values({
+        displayName: input.displayName,
+        contactId,
+        bio: input.bio ?? null,
+        photoUrl: input.photoUrl ?? null,
+      })
+      .returning();
+    if (!row) throw new Error("performer insert failed");
+    return row;
+  });
 }
 
 export async function listPerformers(db: Db): Promise<PerformerRow[]> {

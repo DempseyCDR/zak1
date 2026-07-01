@@ -16,6 +16,7 @@ export type AuditEvent = {
     | "attendance.purge"
     | "booking.created"
     | "booking.updated"
+    | "booking.deleted"
     | "rate_parameter.created"
     | "treasurer_report.generated"
     | "qbo_mapping.updated";

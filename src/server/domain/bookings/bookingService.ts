@@ -71,15 +71,32 @@ export async function createBooking(
   return row;
 }
 
+export type BookingView = BookingRow & { performerName: string };
 export type BookingsView = {
-  bookings: BookingRow[];
+  bookings: BookingView[];
   performerTotal: number; // dollars
 };
 
 export async function getBookingsForEvent(db: Db, eventId: string): Promise<BookingsView> {
-  const rows = await db.select().from(bookings).where(eq(bookings.eventId, eventId));
-  const totalCents = rows.reduce((acc, b) => acc + b.payCents, 0);
-  return { bookings: rows, performerTotal: centsToDollars(totalCents) };
+  const rows = await db
+    .select()
+    .from(bookings)
+    .innerJoin(performers, eq(performers.id, bookings.performerId))
+    .where(eq(bookings.eventId, eventId));
+  const view = rows.map((r) => ({ ...r.bookings, performerName: r.performers.displayName }));
+  const totalCents = view.reduce((acc, b) => acc + b.payCents, 0);
+  return { bookings: view, performerTotal: centsToDollars(totalCents) };
+}
+
+/** Remove a booking (e.g., a performer cancels). */
+export async function deleteBooking(
+  db: Db,
+  id: string,
+  actor: string | null = null,
+): Promise<void> {
+  const [row] = await db.delete(bookings).where(eq(bookings.id, id)).returning({ id: bookings.id });
+  if (!row) throw errors.bookingNotFound();
+  writeAudit({ kind: "booking.deleted", actor, details: { bookingId: id } });
 }
 
 export async function patchBooking(

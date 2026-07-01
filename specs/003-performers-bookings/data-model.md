@@ -27,7 +27,7 @@ Storage: PostgreSQL 16. Pay in integer cents. Builds on feature 001 (`contacts`)
 |---|---|---|
 | id | uuid PK | |
 | display_name | text NOT NULL | |
-| contact_id | uuid FK→contacts NULL | optional link to a club contact |
+| contact_id | uuid FK→contacts | every performer has a contact (auto-created from the name at performer creation if not linked), so they can be checked in at the door (FR-015) |
 | bio | text NULL | public bio (for full_bio types) |
 | photo_url | text NULL | public photo |
 | created_at / updated_at | timestamptz | |
