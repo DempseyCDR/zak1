@@ -14,6 +14,7 @@ Assembles the per-series report (the `tnc` report also includes its same-evening
       eventId, date, series, caller, band, dancers,
       grossGate, merchandise, rent, performerTotal, ongoingExpense, miscExpenses,
       danceNet, danceNetNegative, avgTicket, breakEvenDancers | null,
+      performers: { name, type, amount }[],   // per-performer drill-down of Performer Total (FR-007)
       fyi: { donations, memberships, futureEvent, giftCards, miscSales }
     }[],
     quarterlySummary: {

@@ -59,9 +59,9 @@ counts that survive the 90-day purge.
 ### Implementation
 
 - [ ] T017 [US1] Dance-result calculators (danceNet, payingDancers, avgTicket, breakEven) in `src/server/domain/organizer/danceResult.ts`
-- [ ] T018 [US1] Report assembler — per-dance rows (reads events/door/gate/bookings/params/misc/count via eventMoney) in `src/server/domain/organizer/reportService.ts`
+- [ ] T018 [US1] Report assembler — per-dance rows (reads events/door/gate/bookings/params/misc/count via eventMoney); include a per-performer breakdown `{ name, type, amount }[]` reusing feature 003's booking view (FR-007) in `src/server/domain/organizer/reportService.ts`
 - [ ] T019 [P] [US1] Route handler `GET /api/organizer/[seriesKey]/report` in `src/app/api/organizer/[seriesKey]/report/route.ts`
-- [ ] T020 [US1] Organizer report UI — per-dance rows table (black/red Dance Net, Break-Even, performer drill-down, FYI columns) in `src/app/(admin)/organizer/[seriesKey]/page.tsx`
+- [ ] T020 [US1] Organizer report UI — per-dance rows table (black/red Dance Net, Break-Even, FYI columns) with a Performer Total drill-down showing each performer's name/type/amount from the row's `performers` array (FR-007) in `src/app/(admin)/organizer/[seriesKey]/page.tsx`
 
 **Checkpoint**: US1 independently testable — accurate per-dance rows.
 
@@ -99,7 +99,7 @@ weeks it is null.
 ### Tests first (MUST fail before implementation)
 
 - [ ] T025 [P] [US3] Unit test: rolling window selection (12..53 cap; null <12), 4-event rolling average, Dance Net point signs, in `tests/unit/organizer.trend.test.ts` (FR-011/012)
-- [ ] T026 [P] [US3] Integration test: report `trend` is null <12 weeks and populated (both panels) at ≥12 weeks, in `tests/integration/organizer.trend.test.ts` (FR-011)
+- [ ] T026 [P] [US3] Integration test: report `trend` is null <12 weeks and populated (both panels) at ≥12 weeks; **perf: assert a full-year (≥53-week) series report builds in <2 s** (SC-003), in `tests/integration/organizer.trend.test.ts` (FR-011/SC-003)
 
 ### Implementation
 

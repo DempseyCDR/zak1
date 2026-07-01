@@ -52,12 +52,13 @@ computed; only new parameters/expenses + a persisted counter are added.
 Assembled per series (TNC report also includes its Community Dance events; ECD separate).
 
 - **perDanceRows**: one row per event (ordered by date), each with:
-  - date, series, caller, band (from bookings: caller name; band = lead musicians / "Open Band"),
+  - date, series, caller, band (from bookings: caller name; band = lead musician + musicians, or "Open Band" for unpaid open-band slots),
   - **dancers** = `attendance_count − distinct booked performers − 1`, floored at 0 (FR-013),
   - grossGate (admission), merchandise, rent, performerTotal, ongoingExpense, miscExpenses,
   - **danceNet** = admission + merchandise − rent − performerTotal − ongoingExpense − miscExpenses (FR-003),
   - **avgTicket** = admission ÷ dancers (FR-006; no fee subtraction),
   - **breakEvenDancers** = shown only when danceNet < 0 (FR-005),
+  - **performers** = per-performer drill-down `{ name, type, amount }[]` of Performer Total (FR-007; reuses feature 003's booking view name/type/amount),
   - FYI columns: donations, memberships, future_event, gift_cards, misc_sales (excluded from Dance Net, FR-009),
   - danceNetSign (for black/red coloring, FR-004).
 - **quarterlySummary**: per series, Q1–Q4 + YTD + Last Year — count + averages (dancers, gross,

@@ -87,7 +87,7 @@ An organizer views rolling trend charts for Dance Net and attendance, with smoot
 - **FR-004**: System MUST display Dance Net in black when positive and red when negative.
 - **FR-005**: System MUST show Break-Even Dancers only when Dance Net is negative.
 - **FR-006**: System MUST compute Avg Ticket as Gross Gate (admission) ÷ paying dancers. Door card fees are NOT subtracted (no "Net Gate").
-- **FR-007**: System MUST provide a drill-down breakdown of the combined Performer Total.
+- **FR-007**: System MUST provide a per-performer drill-down of the combined Performer Total, showing each performer's name, type, and amount (reuses feature 003's booking name/type/amount).
 - **FR-008**: System MUST treat Ongoing Expense as a per-series parameter with effective-date history (e.g., TNC "Equipment Depreciation" $10; ECD none).
 - **FR-015**: System MUST treat Rent as a per-series effective-dated rate parameter auto-selected by event date (a venue stand-in until the deferred venue model lands); it parallels the Ongoing Expense parameter mechanism.
 - **FR-016**: System MUST compute Misc Expenses per event as the sum of itemized ad-hoc misc-expense entries (description + amount) plus the door card fee (`pos_fee_cents`), which is folded in automatically.
