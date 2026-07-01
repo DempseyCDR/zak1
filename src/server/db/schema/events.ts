@@ -1,4 +1,4 @@
-import { boolean, date, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { boolean, date, integer, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 import { eventGroupKindEnum } from "./enums";
 
 export const series = pgTable("series", {
@@ -24,6 +24,8 @@ export const events = pgTable("events", {
   groupId: uuid("group_id").references(() => eventGroups.id),
   eventDate: date("event_date").notNull(),
   chargesAdmission: boolean("charges_admission").notNull().default(true),
+  // Persisted per-event attendance count (survives the 90-day purge); source for paying dancers.
+  attendanceCount: integer("attendance_count").notNull().default(0),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

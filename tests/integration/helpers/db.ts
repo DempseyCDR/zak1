@@ -13,7 +13,7 @@ export async function ensureSchema(): Promise<void> {
 
 /** Truncate all feature tables between tests (preserves club_settings seed). */
 export async function resetDb(): Promise<void> {
-  await sql`TRUNCATE account_mapping, series_qbo_map, treasurer_report_audit, mapping_audit, non_dance_income, bookings, rate_parameter_audit, rate_parameters, performers, door_record_audit, gate_sales, door_records, attendance, quarterly_attendance_counts, events, event_groups, merge_audit, status_change_audit, memberships, payers, contact_emails, contacts RESTART IDENTITY CASCADE`;
+  await sql`TRUNCATE series_expense_parameters, misc_expenses, account_mapping, series_qbo_map, treasurer_report_audit, mapping_audit, non_dance_income, bookings, rate_parameter_audit, rate_parameters, performers, door_record_audit, gate_sales, door_records, attendance, quarterly_attendance_counts, events, event_groups, merge_audit, status_change_audit, memberships, payers, contact_emails, contacts RESTART IDENTITY CASCADE`;
   // series + QBO mapping are config (seeded once); ensure they exist for tests
   await sql`INSERT INTO series (key, name, has_sound_tech) VALUES
     ('tnc','Thursday Night Contra',true),

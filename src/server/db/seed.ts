@@ -11,6 +11,7 @@ import {
   performers,
   rateParameters,
   series,
+  seriesExpenseParameters,
   seriesQboMap,
 } from "@/server/db/schema";
 import { normalizeName } from "@/server/domain/contacts/normalize";
@@ -25,7 +26,7 @@ const FIRST = ["Ada", "Grace", "Alan", "Katherine", "Dorothy", "Edsger", "Donald
 const LAST = ["Lovelace", "Hopper", "Turing", "Johnson", "Vaughan", "Dijkstra", "Knuth", "Liskov", "Berners-Lee", "Hamilton"];
 
 async function main() {
-  await sql`TRUNCATE door_record_audit, gate_sales, door_records, attendance, quarterly_attendance_counts, events, event_groups, merge_audit, status_change_audit, memberships, payers, contact_emails, contacts RESTART IDENTITY CASCADE`;
+  await sql`TRUNCATE misc_expenses, series_expense_parameters, door_record_audit, gate_sales, door_records, attendance, quarterly_attendance_counts, events, event_groups, merge_audit, status_change_audit, memberships, payers, contact_emails, contacts RESTART IDENTITY CASCADE`;
 
   // Series (config) — idempotent.
   await db
@@ -122,8 +123,16 @@ async function main() {
     { kind: "sound_tech", amountCents: 10000, effectiveDate: "2026-01-01" },
   ]);
 
+  // Sample series expense parameters (rent + ongoing) for the Organizer Report.
+  for (const srow of allSeries) {
+    await db.insert(seriesExpenseParameters).values([
+      { seriesId: srow.id, kind: "rent", amountCents: 8000, label: "Hall rent", effectiveDate: "2026-01-01" },
+      { seriesId: srow.id, kind: "ongoing", amountCents: 1500, label: "Supplies/insurance", effectiveDate: "2026-01-01" },
+    ]);
+  }
+
   console.log(
-    `seeded ${ids.length} contacts, ${memberIds.length} members, series + sample event, performers + rates`,
+    `seeded ${ids.length} contacts, ${memberIds.length} members, series + sample event, performers + rates + expense params`,
   );
   await sql.end();
 }

@@ -48,6 +48,8 @@ pnpm dev                    # Next.js app at http://localhost:3000
 - `/rate-parameters` — effective-dated standard caller/sound-tech pay rates
 - `/treasurer/<eventId>` — printable per-event treasurer report (feature 004)
 - `/qbo-mapping` — edit account/class mapping for the treasurer report
+- `/organizer/<seriesKey>` — organizer report & analytics: per-dance Dance Net rows with performer drill-down, quarterly summary (YTD + last year), rolling trend charts (feature 005)
+- `/expense-parameters` — effective-dated per-series rent & ongoing expenses used by the organizer report (feature 005)
 
 ## Tests
 

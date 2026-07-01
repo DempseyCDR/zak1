@@ -13,3 +13,5 @@ export * from "./bookings";
 export * from "./qboMapping";
 export * from "./nonDanceIncome";
 export * from "./treasurerAudit";
+export * from "./seriesExpenseParameters";
+export * from "./miscExpenses";

@@ -16,6 +16,7 @@ import type { GateCategory } from "@/server/db/schema";
 import { errors } from "@/server/lib/apiError";
 import { writeAudit } from "@/server/lib/audit";
 import { centsToDollars } from "@/server/lib/money";
+import { computeEventGate } from "@/server/domain/gate/eventMoney";
 import { loadAccountMap } from "./mappingService";
 
 // Anonymous non-admission categories shown on the gate receipt (admission is derived).
@@ -87,16 +88,10 @@ export async function assembleTreasurerReport(
     return { cash, card };
   }
 
-  // Admission is derived: cash = gross cash − seed float − non-admission cash;
-  // card = PC gross − non-admission card. (All stored gate lines are non-admission.)
-  let nonAdmCash = 0;
-  let nonAdmCard = 0;
-  for (const row of sales) {
-    if (row.paymentMethod === "cash") nonAdmCash += row.amountCents;
-    else nonAdmCard += row.amountCents;
-  }
-  const admissionCash = door.grossCashCents - door.seedFloatCents - nonAdmCash;
-  const admissionCard = door.pcGrossCents - nonAdmCard;
+  // Admission is derived (shared with the organizer report via eventMoney).
+  const gate = await computeEventGate(db, eventId);
+  const admissionCash = gate.admissionCashCents;
+  const admissionCard = gate.admissionCardCents;
 
   const gateLines = [
     {

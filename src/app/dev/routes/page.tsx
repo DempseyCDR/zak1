@@ -24,6 +24,8 @@ const uiRoutes: { path: string; label: string; feature: string }[] = [
   { path: "/events", label: "Events management", feature: "002" },
   { path: "/treasurer/<eventId>", label: "Treasurer report (printable)", feature: "004" },
   { path: "/qbo-mapping", label: "QBO account/class mapping", feature: "004" },
+  { path: "/organizer/<seriesKey>", label: "Organizer report & analytics", feature: "005" },
+  { path: "/expense-parameters", label: "Series expense parameters", feature: "005" },
   { path: "/dev/routes", label: "Dev route index (this page)", feature: "dev" },
 ];
 
@@ -60,6 +62,10 @@ const apiRoutes: { methods: string; path: string; feature: string }[] = [
   { methods: "GET", path: "/api/qbo-mapping", feature: "004" },
   { methods: "PUT", path: "/api/qbo-mapping/accounts/[lineKey]", feature: "004" },
   { methods: "PUT", path: "/api/qbo-mapping/series/[seriesId]", feature: "004" },
+  // Feature 005 — Organizer Report & Analytics
+  { methods: "GET", path: "/api/organizer/[seriesKey]/report", feature: "005" },
+  { methods: "GET, POST", path: "/api/expense-parameters", feature: "005" },
+  { methods: "GET, POST", path: "/api/events/[id]/misc-expenses", feature: "005" },
 ];
 
 export default function DevRoutesPage() {

@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import type { Db } from "@/server/db/client";
 import { attendance, contactEmails, contacts, events } from "@/server/db/schema";
 import type { AttendanceRow } from "@/server/db/schema";
@@ -56,6 +56,11 @@ export async function recordAttendance(
 
   const [row] = await db.insert(attendance).values({ eventId, contactId }).returning();
   if (!row) throw new Error("attendance insert failed");
+  // Persisted per-event count for the organizer report; survives the 90-day purge.
+  await db
+    .update(events)
+    .set({ attendanceCount: sql`${events.attendanceCount} + 1` })
+    .where(eq(events.id, eventId));
   return row;
 }
 
