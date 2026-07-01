@@ -21,7 +21,7 @@ The treasurer opens a formatted, per-event report that organizes the night's mon
 **Acceptance Scenarios**:
 
 1. **Given** a completed event, **When** the treasurer opens the report, **Then** it shows Gate Sales Summary, Named-Customer Receipts, Performer Payments, Deposit, and Fees (informational).
-2. **Given** the gate sales summary, **When** displayed, **Then** it includes a payment-processor POS verification line for reconciliation.
+2. **Given** the gate sales summary, **When** displayed, **Then** it includes a payment-processor Card verification line for reconciliation.
 3. **Given** performer payments, **When** displayed, **Then** each shows check number, payee, amount, accounting account, and class.
 4. **Given** the deposit section, **When** displayed, **Then** it shows the cash deposit amount destined for the checking account.
 
@@ -70,7 +70,7 @@ The system calculates door and online payment fees per the fee formulas, reports
 
 - **FR-001**: System MUST generate a per-event Treasurer Report with five sections: Gate Sales Summary, Named-Customer Receipts, Performer Payments, Deposit, and Fees (informational).
 - **FR-002**: System MUST format the report screen-first for laptop dimensions and support printing.
-- **FR-003**: System MUST include a payment-processor POS verification line in the gate sales summary.
+- **FR-003**: System MUST include a payment-processor Card verification line (Card gross total) in the gate sales summary.
 - **FR-004**: System MUST produce one anonymous gate sales receipt per event (customer "Contra Gate" for TNC/Community Dance/Double Dance, "English Gate" for ECD) comprising the anonymous categories: admission (the only Dance Income), merchandise, gift_card, and misc_sales.
 - **FR-005**: System MUST place the named categories — donation, future_event (advance tickets), and membership — on named-customer receipts grouped by buyer contact, never on the anonymous gate receipt.
 - **FR-006**: System MUST assign an accounting account and class to each line item based on category and event type, using a per-club configurable mapping.
@@ -96,7 +96,7 @@ The system calculates door and online payment fees per the fee formulas, reports
 - **SC-002**: Computed door and online fees match the formulas in 100% of test cases.
 - **SC-003**: Every money category lands in its correct account and class per the configured mapping in 100% of test events.
 - **SC-004**: Named-customer items never appear on the anonymous gate receipt.
-- **SC-005**: The app's POS verification line matches the payment processor's reported total for reconciled events.
+- **SC-005**: The app's Card verification line matches the payment processor's reported total for reconciled events.
 
 ## Assumptions
 

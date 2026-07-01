@@ -52,7 +52,7 @@ appears as its own section.
 
 ### Implementation
 
-- [X] T012 [US1] Report assembler (gate summary w/ POS verification, named-customer, performer payments, deposit, fees, non-dance income) in `src/server/domain/treasurer/reportService.ts`
+- [X] T012 [US1] Report assembler (gate summary w/ Card verification, derived admission, named-customer, performer payments, deposit, fees, non-dance income) in `src/server/domain/treasurer/reportService.ts`
 - [X] T013 [US1] Non-dance-income service (create/list per event; total) in `src/server/domain/treasurer/nonDanceIncomeService.ts`
 - [X] T014 [P] [US1] Route handler `GET /api/events/[id]/treasurer-report` (writes report-generation audit) in `src/app/api/events/[id]/treasurer-report/route.ts`
 - [X] T015 [P] [US1] Route handlers `POST/GET /api/events/[id]/non-dance-income` in `src/app/api/events/[id]/non-dance-income/route.ts`
@@ -75,13 +75,13 @@ named-customer split, gift-card liability, and that mapping edits are audited.
 ### Tests first (MUST fail before implementation)
 
 - [X] T018 [P] [US2] Integration test: each category lands on its configured account; gate customer is "Contra Gate" (TNC/Community Dance) / "English Gate" (ECD); gift_card → 2201 — covered in `tests/integration/treasurer.report.test.ts` (FR-004/006/007, SC-003)
-- [X] T019 [P] [US2] Integration test: membership + advance-ticket lines appear as separate named-customer receipts, never on the gate receipt — covered in `tests/integration/treasurer.report.test.ts` (FR-005/SC-004)
+- [X] T019 [P] [US2] Integration test: donation, future_event (advance ticket), and membership lines appear as separate named-customer receipts grouped by contact, never on the gate receipt — covered in `tests/integration/treasurer.report.test.ts` (FR-005/SC-004)
 - [X] T020 [P] [US2] Integration test: same-evening Community Dance + TNC → two gate receipts, both "Contra Gate", in `tests/integration/treasurer.same-evening.test.ts` (FR-004)
 - [X] T021 [P] [US2] Integration test: editing a mapping writes a mapping audit entry, in `tests/integration/treasurer.mapping-audit.test.ts` (FR-014)
 
 ### Implementation
 
-- [X] T022 [US2] Apply mapping in the assembler (accounts/classes/customer, named-customer split, gift-card→liability, exclude Non-Dance Income from gate totals) in `src/server/domain/treasurer/reportService.ts`
+- [X] T022 [US2] Apply mapping in the assembler (accounts/classes/customer, named-customer split by contact, gift-card→liability, Card verification line, exclude Non-Dance Income from gate totals) in `src/server/domain/treasurer/reportService.ts`
 - [X] T023 [US2] Mapping config service (get all; update account; update series map; write audit) in `src/server/domain/treasurer/mappingService.ts`
 - [X] T024 [P] [US2] Route handlers `GET /api/qbo-mapping`, `PUT /api/qbo-mapping/accounts/[lineKey]`, `PUT /api/qbo-mapping/series/[seriesId]` in `src/app/api/qbo-mapping/`
 - [X] T025 [US2] QBO-mapping admin UI in `src/app/(admin)/qbo-mapping/page.tsx`
@@ -118,6 +118,14 @@ calculator = $0.49×txns + 1.99%×amount; revenue lines are gross; fees shown se
 - [X] T032 [P] Confirm audit on report generation + mapping edits and structured logging on new handlers (Principle IV)
 - [X] T033 [P] Constitution compliance pass: strict types, integer-cents money, real-Postgres tests, no undocumented `any`/`as`
 - [X] T034 [P] Update README with treasurer/qbo-mapping routes and the report
+
+---
+
+## Phase 7: Follow-up (post-analysis)
+
+- [X] T035 [US1] Check-number entry on the gate page — after selecting an event, list bookings that require a check (payee, amount) with a per-line check-number input that PATCHes `/api/bookings/:id/check`; numbers are entered at/after the event, in `src/app/(door)/gate/page.tsx` (FR-011)
+- [X] T036 [US2] Editable series → gate-customer/class mapping on `/qbo-mapping` (`PUT /api/qbo-mapping/series/:id`) + test in `tests/integration/treasurer.mapping-audit.test.ts` (FR-006)
+- [X] T037 [P] Terminology: use "Card" (not POS/PC) in report/UI wording (FR-003/SC-005/T012/T022 + treasurer & gate pages)
 
 ---
 

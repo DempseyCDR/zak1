@@ -254,11 +254,11 @@ export default function GatePage() {
       )}
 
       <h2>Cash &amp; card reconciliation</h2>
-      <p style={{ color: "#666" }}>Admission is derived: gross cash − seed float − non-admission cash, and PC gross − non-admission card.</p>
+      <p style={{ color: "#666" }}>Admission is derived: gross cash − seed float − non-admission cash, and Card gross − non-admission card.</p>
       <div style={{ display: "grid", gap: 6, maxWidth: 360 }}>
         <label>Gross cash (total counted) <input value={grossCash} onChange={(e) => setGrossCash(e.target.value)} /></label>
-        <label>PC gross (total card) <input value={pcGross} onChange={(e) => setPcGross(e.target.value)} /></label>
-        <label>Card (PC) transactions <input value={posTxns} onChange={(e) => setPosTxns(e.target.value)} /></label>
+        <label>Card gross (total card) <input value={pcGross} onChange={(e) => setPcGross(e.target.value)} /></label>
+        <label>Card transactions <input value={posTxns} onChange={(e) => setPosTxns(e.target.value)} /></label>
         <label>Seed float <input value={seedFloat} onChange={(e) => setSeedFloat(e.target.value)} /></label>
         <label>Cash paid out <input value={cashPaidOut} onChange={(e) => setCashPaidOut(e.target.value)} /></label>
         <label>Payout reason <input value={cashPaidOutReason} onChange={(e) => setCashPaidOutReason(e.target.value)} /></label>

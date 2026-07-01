@@ -31,6 +31,16 @@ export default function QboMappingPage() {
     void load();
   }
 
+  async function saveSeries(s: SeriesMap) {
+    const res = await fetch(`/api/qbo-mapping/series/${s.seriesId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ gateCustomer: s.gateCustomer, qboClass: s.qboClass }),
+    });
+    setMessage(res.ok ? `Saved ${s.seriesKey}` : "Save failed");
+    void load();
+  }
+
   return (
     <main style={{ padding: 24, maxWidth: 820 }}>
       <h1>QBO Account / Class Mapping</h1>
@@ -71,11 +81,37 @@ export default function QboMappingPage() {
       </table>
 
       <h2>Series → gate customer / class</h2>
-      <ul>
-        {seriesRows.map((s) => (
-          <li key={s.seriesId}>{s.seriesKey}: {s.gateCustomer} / {s.qboClass}</li>
-        ))}
-      </ul>
+      <table>
+        <thead><tr><th>Series</th><th>Gate customer</th><th>Class</th><th /></tr></thead>
+        <tbody>
+          {seriesRows.map((s, i) => (
+            <tr key={s.seriesId}>
+              <td>{s.seriesKey}</td>
+              <td>
+                <input
+                  value={s.gateCustomer}
+                  onChange={(e) => {
+                    const next = [...seriesRows];
+                    next[i] = { ...s, gateCustomer: e.target.value };
+                    setSeriesRows(next);
+                  }}
+                />
+              </td>
+              <td>
+                <input
+                  value={s.qboClass}
+                  onChange={(e) => {
+                    const next = [...seriesRows];
+                    next[i] = { ...s, qboClass: e.target.value };
+                    setSeriesRows(next);
+                  }}
+                />
+              </td>
+              <td><button onClick={() => saveSeries(s)}>Save</button></td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </main>
   );
 }

@@ -5,6 +5,7 @@ import { jsonReq, ctx } from "./helpers/http";
 import { accountMapping, mappingAudit } from "@/server/db/schema";
 import { GET as GET_MAPPING } from "@/app/api/qbo-mapping/route";
 import { PUT as PUT_ACCOUNT } from "@/app/api/qbo-mapping/accounts/[lineKey]/route";
+import { PUT as PUT_SERIES } from "@/app/api/qbo-mapping/series/[seriesId]/route";
 
 // FR-006, FR-014
 describe("QBO mapping config", () => {
@@ -35,6 +36,21 @@ describe("QBO mapping config", () => {
     expect(row?.accountCode).toBe("4901");
 
     const audits = await db.select().from(mappingAudit).where(eq(mappingAudit.key, "misc_sales"));
+    expect(audits.length).toBe(1);
+  });
+
+  it("updates a series gate customer/class and writes an audit entry", async () => {
+    const mapping = await (await GET_MAPPING(jsonReq("GET", "/api/qbo-mapping"), ctx())).json();
+    const seriesId = mapping.series[0].seriesId as string;
+    const res = await PUT_SERIES(
+      jsonReq("PUT", `/api/qbo-mapping/series/${seriesId}`, {
+        gateCustomer: "Contra Gate (revised)",
+        qboClass: "TNC-2026",
+      }),
+      ctx({ seriesId }),
+    );
+    expect(res.status).toBe(200);
+    const audits = await db.select().from(mappingAudit).where(eq(mappingAudit.key, seriesId));
     expect(audits.length).toBe(1);
   });
 

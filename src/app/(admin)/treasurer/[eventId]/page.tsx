@@ -66,7 +66,7 @@ export default function TreasurerReportPage({ params }: { params: Promise<{ even
       <h1>Treasurer Report — {report.event.date} ({report.event.seriesKey})</h1>
 
       <h2>Gate Sales Summary — {report.gateSalesSummary.customer}</h2>
-      <p>POS verification: gross {money(report.gateSalesSummary.posVerification.gross)} · fee {money(report.gateSalesSummary.posVerification.fee)}</p>
+      <p>Card verification: gross {money(report.gateSalesSummary.posVerification.gross)} · fee {money(report.gateSalesSummary.posVerification.fee)}</p>
       <table>
         <thead><tr><th>Category</th><th>Account</th><th>Class</th><th>Cash</th><th>Card</th><th>Total</th></tr></thead>
         <tbody>
