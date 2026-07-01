@@ -17,6 +17,7 @@ notes where it surfaced and where it will likely land. Not a commitment to a pha
 | B10 | **Automated email from the platform** | 006 / source doc | Future | Platform produces lists; sending stays in iContact. |
 | B11 | **Multi-tenant data model** | build 1 chosen single-tenant | Future build/refactor | Build 1 is single-tenant (CDR); club-level settings already configurable. |
 | B12 | **Additional event attributes (venue, etc.)** | 002/003 (event creation added) | 002 events + 007 public site | Event currently has series/date/group/charges-admission. Add venue (with maps in 007) and other attributes in a future phase. |
+| B14 | **Comps (free admissions) at the door** | 005 clarify (paying-dancers derivation) | 002 door/attendance + 005 report | Door attendant records attendees admitted free ("comps"). Then paying_dancers = attendance − performers − door attendant − comps. Until then comps count as paying dancers, slightly understating Avg Ticket. |
 
 ## How to use this file
 
