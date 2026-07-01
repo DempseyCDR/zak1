@@ -91,6 +91,7 @@ async function main() {
       { lineKey: "misc_sales", accountCode: "4900", accountName: "Uncategorized Income" },
       { lineKey: "caller", accountCode: "5320", accountName: "Program Staff:Callers" },
       { lineKey: "lead_musician", accountCode: "5310", accountName: "Program Staff:Bands" },
+      { lineKey: "musician", accountCode: "5310", accountName: "Program Staff:Bands" },
       { lineKey: "sound_tech", accountCode: "5330", accountName: "Program Staff:Sound Tech" },
       { lineKey: "rent", accountCode: "5420", accountName: "Facilities:Rent" },
       { lineKey: "fees", accountCode: "5810", accountName: "Bank Charges & Fees:PayPal Fees" },

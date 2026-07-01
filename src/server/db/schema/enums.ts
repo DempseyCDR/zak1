@@ -50,6 +50,7 @@ export const eventGroupKindEnum = pgEnum("event_group_kind", [
 export const performerTypeEnum = pgEnum("performer_type", [
   "caller",
   "lead_musician",
+  "musician",
   "open_band_musician",
   "sound_tech",
   "instructor",

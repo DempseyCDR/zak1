@@ -18,6 +18,7 @@ notes where it surfaced and where it will likely land. Not a commitment to a pha
 | B11 | **Multi-tenant data model** | build 1 chosen single-tenant | Future build/refactor | Build 1 is single-tenant (CDR); club-level settings already configurable. |
 | B12 | **Additional event attributes (venue, etc.)** | 002/003 (event creation added) | 002 events + 007 public site | Event currently has series/date/group/charges-admission. Add venue (with maps in 007) and other attributes in a future phase. |
 | B14 | **Comps (free admissions) at the door** | 005 clarify (paying-dancers derivation) | 002 door/attendance + 005 report | Door attendant records attendees admitted free ("comps"). Then paying_dancers = attendance − performers − door attendant − comps. Until then comps count as paying dancers, slightly understating Avg Ticket. |
+| B15 | **Reusable Band roster entity** | 003 (musician type added) | 003 performers/bookings | A Band = a lead musician + member musicians, reusable across events, so a band can be booked as a unit. Phase 1 books lead + musicians individually per event (roles are per booking; cross-band roles already work). |
 
 ## How to use this file
 

@@ -3,6 +3,7 @@ import { z } from "zod";
 const performerType = z.enum([
   "caller",
   "lead_musician",
+  "musician",
   "open_band_musician",
   "sound_tech",
   "instructor",

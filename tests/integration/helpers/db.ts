@@ -30,6 +30,7 @@ export async function resetDb(): Promise<void> {
     ('misc_sales','4900','Uncategorized Income'),
     ('caller','5320','Program Staff:Callers'),
     ('lead_musician','5310','Program Staff:Bands'),
+    ('musician','5310','Program Staff:Bands'),
     ('sound_tech','5330','Program Staff:Sound Tech'),
     ('rent','5420','Facilities:Rent'),
     ('fees','5810','Bank Charges & Fees:PayPal Fees'),

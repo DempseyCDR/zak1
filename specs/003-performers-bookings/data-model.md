@@ -5,7 +5,7 @@ Storage: PostgreSQL 16. Pay in integer cents. Builds on feature 001 (`contacts`)
 
 ## Enums
 
-- `performer_type`: `caller | lead_musician | open_band_musician | sound_tech | instructor`
+- `performer_type`: `caller | lead_musician | musician | open_band_musician | sound_tech | instructor`
 - `rate_kind`: `caller | sound_tech`
 
 ## Static rule table (not persisted) — `performerRules.ts`
@@ -14,6 +14,7 @@ Storage: PostgreSQL 16. Pay in integer cents. Builds on feature 001 (`contacts`)
 |---|---|---|---|
 | caller | yes | yes (per paid caller booking) | full_bio |
 | lead_musician | yes | yes (per paid musician booking) | full_bio |
+| musician | yes | yes (per paid musician booking) | full_bio |
 | open_band_musician | no | no | open_band_label |
 | sound_tech | yes | yes (per paid sound-tech booking) | hidden |
 | instructor | no (always free) | no | name_note |

@@ -10,9 +10,15 @@ describe("performer rules", () => {
     expect(PERFORMER_RULES.instructor).toMatchObject({ paid: false, requiresCheck: false, publicDisplay: "name_note" });
   });
 
+  it("treats a plain musician as paid, checked when paid, shown publicly", () => {
+    expect(PERFORMER_RULES.musician).toMatchObject({ paid: true, requiresCheck: true, publicDisplay: "full_bio" });
+  });
+
   it("requires a check only when the rule says so AND pay > 0", () => {
     expect(bookingRequiresCheck("caller", 15000)).toBe(true);
     expect(bookingRequiresCheck("caller", 0)).toBe(false); // donated / unpaid
+    expect(bookingRequiresCheck("musician", 12000)).toBe(true);
+    expect(bookingRequiresCheck("musician", 0)).toBe(false); // donated musician
     expect(bookingRequiresCheck("open_band_musician", 0)).toBe(false);
     expect(bookingRequiresCheck("instructor", 0)).toBe(false);
   });

@@ -17,6 +17,7 @@ export type PerformerRule = {
 export const PERFORMER_RULES: Record<PerformerType, PerformerRule> = {
   caller: { paid: true, requiresCheck: true, publicDisplay: "full_bio", rateKind: "caller" },
   lead_musician: { paid: true, requiresCheck: true, publicDisplay: "full_bio", rateKind: null },
+  musician: { paid: true, requiresCheck: true, publicDisplay: "full_bio", rateKind: null },
   open_band_musician: {
     paid: false,
     requiresCheck: false,
