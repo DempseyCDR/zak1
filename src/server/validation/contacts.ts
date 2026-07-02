@@ -33,13 +33,17 @@ export const emailCreateSchema = z
   .passthrough()
   .superRefine(noProviderFields);
 
+// Email and phone are both optional — a dancer may decline to give either — but
+// callers should warn (not block) when neither is present.
 export const contactCreateSchema = z.object({
   displayName: z.string().trim().min(1),
-  email: emailCreateSchema,
+  email: emailCreateSchema.optional(),
+  phone: z.string().trim().min(1).optional(),
 });
 
 export const contactPatchSchema = z.object({
   displayName: z.string().trim().min(1).optional(),
+  phone: z.string().trim().min(1).nullable().optional(),
   isVolunteer: z.boolean().optional(),
   volunteerRoles: z.array(volunteerRole).optional(),
 });

@@ -17,6 +17,7 @@ export const contacts = pgTable("contacts", {
   mergedIntoId: uuid("merged_into_id"),
   needsReview: boolean("needs_review").notNull().default(false),
   source: text("source"),
+  phone: text("phone"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });

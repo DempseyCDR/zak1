@@ -23,20 +23,27 @@ export async function createContact(
       .values({
         displayName: input.displayName,
         nameNormalized: normalizeName(input.displayName),
+        phone: input.phone ?? null,
+        // No email and no phone: allow the contact but flag it for admin follow-up.
+        needsReview: !input.email && !input.phone,
       })
       .returning();
     if (!contact) throw new Error("contact insert failed");
 
-    const email = await addEmailInTx(tx, contact, {
-      address: input.email.address,
-      purposes: input.email.purposes,
-      consentTopics: input.email.consentTopics,
-      status: input.email.status,
-      isLogin: input.email.isLogin,
-    });
+    const emails = input.email
+      ? [
+          await addEmailInTx(tx, contact, {
+            address: input.email.address,
+            purposes: input.email.purposes,
+            consentTopics: input.email.consentTopics,
+            status: input.email.status,
+            isLogin: input.email.isLogin,
+          }),
+        ]
+      : [];
 
     writeAudit({ kind: "contact.created", actor, details: { contactId: contact.id } });
-    return { ...contact, emails: [email] };
+    return { ...contact, emails };
   });
 }
 
@@ -70,6 +77,7 @@ export async function patchContact(
       ...(input.displayName !== undefined
         ? { displayName: input.displayName, nameNormalized: normalizeName(input.displayName) }
         : {}),
+      ...(input.phone !== undefined ? { phone: input.phone } : {}),
       isVolunteer,
       volunteerRoles: roles,
       updatedAt: new Date(),

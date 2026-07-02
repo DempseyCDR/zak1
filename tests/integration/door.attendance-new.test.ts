@@ -27,4 +27,30 @@ describe("POST /api/events/:id/attendance (new contact)", () => {
     expect(contact?.needsReview).toBe(true);
     expect(contact?.source).toBe("door");
   });
+
+  it("accepts a phone number in place of an email", async () => {
+    const evt = await makeEvent();
+    const res = await ATTEND(
+      jsonReq("POST", `/api/events/${evt.id}/attendance`, {
+        newContact: { displayName: "Phone Walk In", phone: "585-555-0101" },
+      }),
+      ctx({ id: evt.id }),
+    );
+    expect(res.status).toBe(201);
+    const att = await res.json();
+
+    const contact = await db.query.contacts.findFirst({ where: eq(contacts.id, att.contactId) });
+    expect(contact?.phone).toBe("585-555-0101");
+  });
+
+  it("accepts neither email nor phone (declined) without a 422", async () => {
+    const evt = await makeEvent();
+    const res = await ATTEND(
+      jsonReq("POST", `/api/events/${evt.id}/attendance`, {
+        newContact: { displayName: "Declined Contact Info" },
+      }),
+      ctx({ id: evt.id }),
+    );
+    expect(res.status).toBe(201);
+  });
 });

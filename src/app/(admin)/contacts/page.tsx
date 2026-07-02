@@ -25,9 +25,11 @@ export default function ContactsPage() {
   const [items, setItems] = useState<ContactSummary[]>([]);
   const [displayName, setDisplayName] = useState("");
   const [address, setAddress] = useState("");
+  const [phone, setPhone] = useState("");
   const [purposes, setPurposes] = useState<string[]>(["personal"]); // FR-002a default
   const [topics, setTopics] = useState<string[]>(["contact_tracing"]); // consent default
   const [error, setError] = useState<string | null>(null);
+  const [warning, setWarning] = useState<string | null>(null);
 
   const search = useCallback(async (query: string) => {
     const res = await fetch(`/api/contacts?q=${encodeURIComponent(query)}`);
@@ -42,12 +44,15 @@ export default function ContactsPage() {
   async function createContact(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    setWarning(null);
+    const hasContactInfo = address.trim() || phone.trim();
     const res = await fetch("/api/contacts", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         displayName,
-        email: { address, purposes, consentTopics: topics },
+        ...(address.trim() ? { email: { address, purposes, consentTopics: topics } } : {}),
+        ...(phone.trim() ? { phone: phone.trim() } : {}),
       }),
     });
     if (!res.ok) {
@@ -55,8 +60,12 @@ export default function ContactsPage() {
       setError(body?.error?.message ?? "Failed to create contact");
       return;
     }
+    if (!hasContactInfo) {
+      setWarning("Contact created with no email or phone on file — flagged for follow-up.");
+    }
     setDisplayName("");
     setAddress("");
+    setPhone("");
     setPurposes(["personal"]);
     setTopics(["contact_tracing"]);
     void search(q);
@@ -97,9 +106,15 @@ export default function ContactsPage() {
             style={{ padding: 8 }}
           />
           <input
-            placeholder="Email address"
+            placeholder="Email address (optional)"
             value={address}
             onChange={(e) => setAddress(e.target.value)}
+            style={{ padding: 8 }}
+          />
+          <input
+            placeholder="Phone (optional)"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
             style={{ padding: 8 }}
           />
           <fieldset>
@@ -132,6 +147,7 @@ export default function ContactsPage() {
             Create
           </button>
           {error && <p style={{ color: "crimson" }}>{error}</p>}
+          {warning && <p style={{ color: "#a15c00" }}>{warning}</p>}
         </form>
       </section>
     </main>

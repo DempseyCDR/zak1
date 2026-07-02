@@ -13,6 +13,7 @@ export default function CheckinPage() {
   const [message, setMessage] = useState<string | null>(null);
   const [newName, setNewName] = useState("");
   const [newEmail, setNewEmail] = useState("");
+  const [newPhone, setNewPhone] = useState("");
 
   useEffect(() => {
     void fetch("/api/events")
@@ -39,7 +40,7 @@ export default function CheckinPage() {
     setMessage(`Door record open for this event (${data.doorRecord.id.slice(0, 8)}…) — use the Gate page to enter money`);
   }
 
-  async function record(body: unknown, label: string) {
+  async function record(body: unknown, label: string, successNote?: string) {
     if (!eventId) return setMessage("Pick an event first");
     const res = await fetch(`/api/events/${eventId}/attendance`, {
       method: "POST",
@@ -51,11 +52,29 @@ export default function CheckinPage() {
       setMessage(b?.error?.message ?? "Failed");
       return;
     }
-    setMessage(`Recorded: ${label}`);
+    setMessage(successNote ?? `Recorded: ${label}`);
     setQ("");
     setCandidates([]);
     setNewName("");
     setNewEmail("");
+    setNewPhone("");
+  }
+
+  function recordNewContact() {
+    const hasContactInfo = newEmail.trim() || newPhone.trim();
+    void record(
+      {
+        newContact: {
+          displayName: newName,
+          ...(newEmail.trim() ? { email: newEmail.trim() } : {}),
+          ...(newPhone.trim() ? { phone: newPhone.trim() } : {}),
+        },
+      },
+      newName,
+      hasContactInfo
+        ? undefined
+        : `Recorded: ${newName} — no email or phone on file, flagged for follow-up.`,
+    );
   }
 
   return (
@@ -98,12 +117,17 @@ export default function CheckinPage() {
       <h2>No match</h2>
       <div style={{ display: "grid", gap: 6, maxWidth: 360 }}>
         <input placeholder="Name" value={newName} onChange={(e) => setNewName(e.target.value)} />
-        <input placeholder="Email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} />
-        <button
-          onClick={() => record({ newContact: { displayName: newName, email: newEmail } }, newName)}
-        >
-          Create + check in
-        </button>
+        <input
+          placeholder="Email (optional)"
+          value={newEmail}
+          onChange={(e) => setNewEmail(e.target.value)}
+        />
+        <input
+          placeholder="Phone (optional)"
+          value={newPhone}
+          onChange={(e) => setNewPhone(e.target.value)}
+        />
+        <button onClick={recordNewContact}>Create + check in</button>
         <button onClick={() => record({ unmatched: true }, "unmatched")}>Declined / unmatched</button>
       </div>
     </main>

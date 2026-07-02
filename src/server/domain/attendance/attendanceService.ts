@@ -34,6 +34,7 @@ export async function recordAttendance(
       .values({
         displayName: input.newContact.displayName,
         nameNormalized: normalizeName(input.newContact.displayName),
+        phone: input.newContact.phone ?? null,
         needsReview: true,
         source: "door",
       })
@@ -42,13 +43,15 @@ export async function recordAttendance(
     contactId = created.id;
     // Capture the door-entered email best-effort; a duplicate (already in the
     // directory) is left for admin review rather than blocking check-in.
-    try {
-      await db
-        .insert(contactEmails)
-        .values({ contactId: created.id, email: input.newContact.email });
-    } catch (err) {
-      if (!(typeof err === "object" && err && (err as { code?: string }).code === UNIQUE_VIOLATION)) {
-        throw err;
+    if (input.newContact.email) {
+      try {
+        await db
+          .insert(contactEmails)
+          .values({ contactId: created.id, email: input.newContact.email });
+      } catch (err) {
+        if (!(typeof err === "object" && err && (err as { code?: string }).code === UNIQUE_VIOLATION)) {
+          throw err;
+        }
       }
     }
   }

@@ -5,11 +5,14 @@ import type { PerformerRow } from "@/server/db/schema";
 import { errors } from "@/server/lib/apiError";
 import { centsToDollars } from "@/server/lib/money";
 import { normalizeName } from "@/server/domain/contacts/normalize";
+import { addEmailInTx } from "@/server/domain/contacts/emailService";
 import type { PerformerCreateInput, PerformerPatchInput } from "@/server/validation/performers";
 
 /**
  * Every performer MUST have a contact so the door can check them in (FR-015).
- * If no contact is linked, create one from the performer's name.
+ * If no contact is linked, create one from the performer's name, seeded with
+ * the given email/phone. Neither is required — missing both flags the contact
+ * for admin follow-up rather than blocking performer creation.
  */
 export async function createPerformer(
   db: Db,
@@ -23,11 +26,23 @@ export async function createPerformer(
         .values({
           displayName: input.displayName,
           nameNormalized: normalizeName(input.displayName),
+          phone: input.phone ?? null,
+          needsReview: !input.email && !input.phone,
           source: "performer",
         })
         .returning();
       if (!contact) throw new Error("contact insert failed");
       contactId = contact.id;
+
+      if (input.email) {
+        await addEmailInTx(tx, contact, {
+          address: input.email,
+          purposes: ["personal"],
+          consentTopics: ["contact_tracing"],
+          status: "active",
+          isLogin: false,
+        });
+      }
     }
     const [row] = await tx
       .insert(performers)
