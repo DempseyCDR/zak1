@@ -29,10 +29,12 @@ inserts one `MailingListExport` audit row and writes the structured (pino) audit
 
 - 200 → CSV body. `Content-Type: text/csv; charset=utf-8`.
   `Content-Disposition: attachment; filename="<listId>.csv"` (FR-001/SC-002 exact filename match).
-  Columns: `email, first_name, last_name` + `membership_status` (member.csv only, FR-004).
-- 404 `MAILING_LIST_NOT_FOUND` — `:listId` is not one of the 7 configured IDs. (Note: `contact_tracing`
-  is a valid `MailingListId` enum value for audit purposes but is **not** one of the 7 — requests for
-  it here 404 too; use the dedicated endpoint below.)
+  Columns: `email, first_name, last_name` + `membership_status, membership_through_year` (member.csv
+  only, FR-004/FR-007).
+- 404 `MAILING_LIST_NOT_FOUND` — `:listId` is not one of the 7 configured IDs. (`contact_tracing` is a
+  valid `MailingListId` enum value for audit purposes only — it is never passed to this route in
+  practice, since the static `contact-tracing` route below takes Next.js routing precedence over the
+  `[listId]` dynamic segment for that exact path.)
 
 ## Generate a contact-tracing export (separate from the 7 lists)
 

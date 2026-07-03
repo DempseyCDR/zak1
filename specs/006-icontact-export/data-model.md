@@ -24,7 +24,7 @@ Not persisted — a fixed TS constant, one entry per `mailing_list_id`, mirrorin
 | specialevents | topic | `special_events` | — |
 | janeaustenball | topic | `jane_austen_ball` | — (year shown as UI label only, Decision 6) |
 | performer | derived | — | — |
-| member | derived | — | `membership_status` (FR-004) |
+| member | derived | — | `membership_status` (FR-004), `membership_through_year` (FR-007) |
 
 Every row of every one of the 7 lists also gets `email`, `first_name`, `last_name` (FR-011, derived
 from `displayName`). The separate contact-tracing export (below) uses the same three columns plus its
@@ -56,6 +56,7 @@ Assembled per list at request time; never stored.
 | email | `contact_emails.email` |
 | first_name, last_name | split from `contacts.display_name` at the last whitespace boundary (FR-011; heuristic) |
 | membership_status | `contacts.membership_status` — **member.csv only** (FR-004) |
+| membership_through_year | year portion of `max(memberships.expiry_date)` for the contact — **member.csv only** (FR-007); same query shape as `recomputeContactStatus`'s expiry lookup (feature 001, `membershipService.ts`); never stored |
 
 ### Qualification per list kind
 

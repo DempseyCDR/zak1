@@ -10,7 +10,8 @@ An admin-facing, on-demand CSV export for the 7 iContact mailing lists (contra, 
 specialevents, janeaustenball, performer, member). Five are opt-in consent-topic lists; two
 (performer, member) are derived audiences computed from existing feature 001/003 data. Every row
 carries email + first/last name (split from `displayName`); member.csv additionally carries
-`membership_status`. A separate, event-scoped **contact-tracing export** (not one of the 7 lists)
+`membership_status` and `membership_through_year`. A separate, event-scoped **contact-tracing
+export** (not one of the 7 lists)
 lets an admin pick an event — from a dropdown that excludes events whose attendance has already been
 purged — and download a CSV of that event's recorded attendees (feature 002) who have a
 `contact_tracing`-consented email, with a `date` column; a selectable event with zero recorded
@@ -102,11 +103,13 @@ src/
 │   ├── db/
 │   │   ├── schema/                       # mailingListExports.ts (+ mailing_list_id enum, incl. contact_tracing)
 │   │   └── migrations/                   # 0011_icontact_export.sql
+│   ├── validation/                       # exports.ts (listIdSchema, eventIdSchema)
 │   └── domain/
 │       └── exports/
 │           ├── mailingLists.ts           # static registry: 7 lists → kind/consent topic/extra column
 │           ├── csv.ts                    # toCsvField / rowsToCsv (escaping, header row)
-│           ├── exportService.ts          # buildListRows(db, listId), recordExportRun, listExportsWithHistory
+│           ├── exportService.ts          # buildListRows(db, listId)
+│           ├── exportAuditService.ts     # recordExportRun, getLastExports (shared by US1 + US3)
 │           └── contactTracingService.ts  # buildContactTracingRows(db, eventId) — joins feature 002's attendance
 └── (reuses contacts/contactEmails/schema+services from 001, attendance/events from 002, performers from 003)
 ```
