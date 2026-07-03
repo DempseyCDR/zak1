@@ -7,17 +7,19 @@ export type PerformerRule = {
   requiresCheck: boolean; // base rule; actual check also requires pay > 0
   publicDisplay: PublicDisplay;
   /** Rate kind used to default pay, if any. */
-  rateKind: "caller" | "sound_tech" | null;
+  rateKind: "caller" | "sound_tech" | "musician" | null;
 };
 
 /**
  * Static performer-type rule matrix (domain invariants, not per-club config).
  * Consumed by the booking service and (later) the public site + treasurer report.
+ * Lead Musician and Musician share the same rule set — "Lead" designates only the booking
+ * point of contact, not a distinct pay tier (feature 009).
  */
 export const PERFORMER_RULES: Record<PerformerType, PerformerRule> = {
   caller: { paid: true, requiresCheck: true, publicDisplay: "full_bio", rateKind: "caller" },
-  lead_musician: { paid: true, requiresCheck: true, publicDisplay: "full_bio", rateKind: null },
-  musician: { paid: true, requiresCheck: true, publicDisplay: "full_bio", rateKind: null },
+  lead_musician: { paid: true, requiresCheck: true, publicDisplay: "full_bio", rateKind: "musician" },
+  musician: { paid: true, requiresCheck: true, publicDisplay: "full_bio", rateKind: "musician" },
   open_band_musician: {
     paid: false,
     requiresCheck: false,

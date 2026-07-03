@@ -10,9 +10,8 @@ import {
   memberships,
   payers,
   performers,
-  rateParameters,
   series,
-  seriesExpenseParameters,
+  seriesParameters,
   seriesQboMap,
 } from "@/server/db/schema";
 import { normalizeName } from "@/server/domain/contacts/normalize";
@@ -28,7 +27,7 @@ const FIRST = ["Ada", "Grace", "Alan", "Katherine", "Dorothy", "Edsger", "Donald
 const LAST = ["Lovelace", "Hopper", "Turing", "Johnson", "Vaughan", "Dijkstra", "Knuth", "Liskov", "Berners-Lee", "Hamilton"];
 
 async function main() {
-  await sql`TRUNCATE mailing_list_exports, misc_expenses, series_expense_parameters, door_record_audit, gate_sales, door_records, attendance, quarterly_attendance_counts, events, event_groups, merge_audit, status_change_audit, memberships, payers, contact_emails, contacts RESTART IDENTITY CASCADE`;
+  await sql`TRUNCATE mailing_list_exports, misc_expenses, series_parameters, series_parameter_audit, door_record_audit, gate_sales, door_records, attendance, quarterly_attendance_counts, events, event_groups, merge_audit, status_change_audit, memberships, payers, contact_emails, contacts RESTART IDENTITY CASCADE`;
 
   // Series (config) — idempotent.
   await db
@@ -37,6 +36,7 @@ async function main() {
       { key: "tnc", name: "Thursday Night Contra", hasSoundTech: true },
       { key: "ecd", name: "Sunday English Country Dance", hasSoundTech: true },
       { key: "community_dance", name: "Community Dance", hasSoundTech: false },
+      { key: "general", name: "General / Joint Events", hasSoundTech: true },
     ])
     .onConflictDoNothing({ target: series.key });
 
@@ -150,21 +150,20 @@ async function main() {
       .onConflictDoNothing({ target: seriesQboMap.seriesId });
   }
 
-  // Performers + standard rates.
+  // Performers.
   await db.insert(performers).values([
     { displayName: "Sample Caller", bio: "Calls contras." },
     { displayName: "Sample Sound Tech" },
   ]);
-  await db.insert(rateParameters).values([
-    { kind: "caller", amountCents: 15000, effectiveDate: "2026-01-01" },
-    { kind: "sound_tech", amountCents: 10000, effectiveDate: "2026-01-01" },
-  ]);
 
-  // Sample series expense parameters (rent + ongoing) for the Organizer Report.
+  // Sample series-scoped rate + expense parameters for every series (feature 009).
   for (const srow of allSeries) {
-    await db.insert(seriesExpenseParameters).values([
-      { seriesId: srow.id, kind: "rent", amountCents: 8000, label: "Hall rent", effectiveDate: "2026-01-01" },
-      { seriesId: srow.id, kind: "ongoing", amountCents: 1500, label: "Supplies/insurance", effectiveDate: "2026-01-01" },
+    await db.insert(seriesParameters).values([
+      { category: "rate", seriesId: srow.id, kind: "caller", amountCents: 15000, effectiveDate: "2026-01-01" },
+      { category: "rate", seriesId: srow.id, kind: "sound_tech", amountCents: 10000, effectiveDate: "2026-01-01" },
+      { category: "rate", seriesId: srow.id, kind: "musician", amountCents: 7500, effectiveDate: "2026-01-01" },
+      { category: "expense", seriesId: srow.id, kind: "rent", amountCents: 8000, label: "Hall rent", effectiveDate: "2026-01-01" },
+      { category: "expense", seriesId: srow.id, kind: "ongoing", amountCents: 1500, label: "Supplies/insurance", effectiveDate: "2026-01-01" },
     ]);
   }
 

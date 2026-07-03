@@ -56,10 +56,7 @@ export const performerTypeEnum = pgEnum("performer_type", [
   "instructor",
 ]);
 
-export const rateKindEnum = pgEnum("rate_kind", ["caller", "sound_tech"]);
-
 export type PerformerType = (typeof performerTypeEnum.enumValues)[number];
-export type RateKind = (typeof rateKindEnum.enumValues)[number];
 
 export type GateCategory = (typeof gateCategoryEnum.enumValues)[number];
 export type PaymentMethod = (typeof paymentMethodEnum.enumValues)[number];

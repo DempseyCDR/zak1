@@ -6,7 +6,7 @@ import { errors } from "@/server/lib/apiError";
 import { writeAudit } from "@/server/lib/audit";
 import { centsToDollars, dollarsToCents } from "@/server/lib/money";
 import { PERFORMER_RULES, bookingRequiresCheck } from "@/server/domain/performers/performerRules";
-import { resolveRateCents } from "./resolveRate";
+import { resolveParameterCents } from "@/server/domain/parameters/seriesParameterService";
 import type { BookingCreateInput, BookingPatchInput } from "@/server/validation/performers";
 
 /** Types that are always free regardless of input. */
@@ -48,7 +48,12 @@ export async function createBooking(
     payCents = dollarsToCents(input.pay);
     isOverridden = true;
   } else if (rule.rateKind) {
-    payCents = await resolveRateCents(db, rule.rateKind, event.eventDate);
+    payCents = await resolveParameterCents(db, {
+      category: "rate",
+      kind: rule.rateKind,
+      seriesId: event.seriesId,
+      onDate: event.eventDate,
+    });
   }
 
   const requiresCheck = bookingRequiresCheck(type, payCents);

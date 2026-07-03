@@ -1,9 +1,14 @@
 import { NextResponse } from "next/server";
+import { eq } from "drizzle-orm";
 import { db } from "@/server/db/client";
+import { series } from "@/server/db/schema";
 import { withLogging } from "@/server/lib/withLogging";
 import { parseBody } from "@/server/lib/parseBody";
 import { rateParameterCreateSchema } from "@/server/validation/performers";
-import { createRateParameter, resolveRate } from "@/server/domain/bookings/rateParameterService";
+import {
+  createRateParameter,
+  resolveParameterCents,
+} from "@/server/domain/parameters/seriesParameterService";
 
 export const POST = withLogging(async (req) => {
   const input = await parseBody(req, rateParameterCreateSchema);
@@ -14,15 +19,19 @@ export const POST = withLogging(async (req) => {
 
 export const GET = withLogging(async (req) => {
   const url = new URL(req.url);
+  const seriesKey = url.searchParams.get("seriesKey");
   const kind = url.searchParams.get("kind");
-  const on = url.searchParams.get("on");
-  if (kind !== "caller" && kind !== "sound_tech") {
+  const on = url.searchParams.get("on") ?? new Date().toISOString().slice(0, 10);
+  if (!seriesKey || (kind !== "caller" && kind !== "sound_tech" && kind !== "musician")) {
     return NextResponse.json(
-      { error: { code: "VALIDATION_ERROR", message: "kind must be caller|sound_tech" } },
+      { error: { code: "VALIDATION_ERROR", message: "seriesKey and kind (caller|sound_tech|musician) required" } },
       { status: 422 },
     );
   }
-  const onDate = on ?? new Date().toISOString().slice(0, 10);
-  const resolved = await resolveRate(db, kind, onDate);
-  return NextResponse.json({ resolved });
+  const s = await db.query.series.findFirst({ where: eq(series.key, seriesKey) });
+  if (!s) return NextResponse.json({ resolved: null });
+  const cents = await resolveParameterCents(db, { category: "rate", kind, seriesId: s.id, onDate: on });
+  return NextResponse.json({
+    resolved: cents === 0 ? null : { seriesKey, kind, amount: cents / 100, effectiveDate: on },
+  });
 });

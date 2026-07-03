@@ -7,8 +7,8 @@ import { parseBody } from "@/server/lib/parseBody";
 import { expenseParameterCreateSchema } from "@/server/validation/organizer";
 import {
   createExpenseParameter,
-  resolveExpenseCents,
-} from "@/server/domain/organizer/expenseParameterService";
+  resolveParameterCents,
+} from "@/server/domain/parameters/seriesParameterService";
 
 export const POST = withLogging(async (req) => {
   const input = await parseBody(req, expenseParameterCreateSchema);
@@ -30,7 +30,7 @@ export const GET = withLogging(async (req) => {
   }
   const s = await db.query.series.findFirst({ where: eq(series.key, seriesKey) });
   if (!s) return NextResponse.json({ resolved: null });
-  const cents = await resolveExpenseCents(db, s.id, kind, on);
+  const cents = await resolveParameterCents(db, { category: "expense", kind, seriesId: s.id, onDate: on });
   return NextResponse.json({
     resolved: cents === 0 ? null : { seriesKey, kind, amount: cents / 100, effectiveDate: on },
   });

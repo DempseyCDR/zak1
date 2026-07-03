@@ -1,22 +1,24 @@
 import { beforeAll, beforeEach, afterAll, describe, expect, it } from "vitest";
+import { eq } from "drizzle-orm";
 import { ensureSchema, resetDb, closeDb, db } from "./helpers/db";
 import { jsonReq, ctx } from "./helpers/http";
 import { makeEvent, makePerformer } from "./helpers/factories";
-import { rateParameters } from "@/server/db/schema";
+import { series, seriesParameters } from "@/server/db/schema";
 import { POST as BOOK } from "@/app/api/events/[id]/bookings/route";
 
-// FR-008, SC-001
-describe("booking defaults to the in-effect rate", () => {
+// FR-002, FR-003, SC-001
+describe("booking defaults to the in-effect series-scoped rate", () => {
   beforeAll(ensureSchema);
   beforeEach(resetDb);
   afterAll(closeDb);
 
-  it("uses the rate in effect on the event date, and override sets is_overridden", async () => {
-    await db.insert(rateParameters).values([
-      { kind: "caller", amountCents: 12000, effectiveDate: "2026-01-01" },
-      { kind: "caller", amountCents: 15000, effectiveDate: "2026-06-01" },
+  it("uses the rate in effect on the event date for the event's series, and override sets is_overridden", async () => {
+    const evt = await makeEvent({ eventDate: "2026-06-18" }); // defaults to seriesKey "tnc"
+    const tnc = await db.query.series.findFirst({ where: eq(series.key, "tnc") });
+    await db.insert(seriesParameters).values([
+      { category: "rate", kind: "caller", seriesId: tnc!.id, amountCents: 12000, effectiveDate: "2026-01-01" },
+      { category: "rate", kind: "caller", seriesId: tnc!.id, amountCents: 15000, effectiveDate: "2026-06-01" },
     ]);
-    const evt = await makeEvent({ eventDate: "2026-06-18" });
     const p1 = await makePerformer("Default Caller");
     const p2 = await makePerformer("Override Caller");
 

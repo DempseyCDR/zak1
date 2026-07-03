@@ -2,7 +2,7 @@ import { beforeAll, beforeEach, afterAll, describe, expect, it } from "vitest";
 import { eq, sql } from "drizzle-orm";
 import { ensureSchema, resetDb, closeDb, db } from "./helpers/db";
 import { makeEvent, makeDoorRecord, makePerformer } from "./helpers/factories";
-import { attendance, events, seriesExpenseParameters, series } from "@/server/db/schema";
+import { attendance, events, seriesParameters, series } from "@/server/db/schema";
 import { updateDoorRecord } from "@/server/domain/door/doorRecordService";
 import { createBooking } from "@/server/domain/bookings/bookingService";
 import { recordAttendance } from "@/server/domain/attendance/attendanceService";
@@ -13,7 +13,8 @@ const year = 2026;
 
 async function seedRent(seriesKey: string, amountCents: number) {
   const s = await db.query.series.findFirst({ where: eq(series.key, seriesKey) });
-  await db.insert(seriesExpenseParameters).values({
+  await db.insert(seriesParameters).values({
+    category: "expense",
     seriesId: s!.id,
     kind: "rent",
     amountCents,

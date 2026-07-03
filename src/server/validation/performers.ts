@@ -27,7 +27,8 @@ export const performerPatchSchema = z.object({
 });
 
 export const rateParameterCreateSchema = z.object({
-  kind: z.enum(["caller", "sound_tech"]),
+  seriesKey: z.string().min(1),
+  kind: z.enum(["caller", "sound_tech", "musician"]),
   amount: z.number().min(0),
   effectiveDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "effectiveDate must be YYYY-MM-DD"),
 });
