@@ -5,6 +5,7 @@ import {
   contactEmails,
   contacts,
   doorRecords,
+  eventGroups,
   events,
   memberships,
   payers,
@@ -16,6 +17,7 @@ import {
 } from "@/server/db/schema";
 import { normalizeName } from "@/server/domain/contacts/normalize";
 import { recomputeContactStatus } from "@/server/domain/membership/membershipService";
+import type { EmailConsentTopic } from "@/server/db/schema";
 
 /**
  * Seed a realistic fixture: ~1,300 contacts and ~152 members. Used for manual
@@ -26,7 +28,7 @@ const FIRST = ["Ada", "Grace", "Alan", "Katherine", "Dorothy", "Edsger", "Donald
 const LAST = ["Lovelace", "Hopper", "Turing", "Johnson", "Vaughan", "Dijkstra", "Knuth", "Liskov", "Berners-Lee", "Hamilton"];
 
 async function main() {
-  await sql`TRUNCATE misc_expenses, series_expense_parameters, door_record_audit, gate_sales, door_records, attendance, quarterly_attendance_counts, events, event_groups, merge_audit, status_change_audit, memberships, payers, contact_emails, contacts RESTART IDENTITY CASCADE`;
+  await sql`TRUNCATE mailing_list_exports, misc_expenses, series_expense_parameters, door_record_audit, gate_sales, door_records, attendance, quarterly_attendance_counts, events, event_groups, merge_audit, status_change_audit, memberships, payers, contact_emails, contacts RESTART IDENTITY CASCADE`;
 
   // Series (config) — idempotent.
   await db
@@ -77,6 +79,41 @@ async function main() {
       .values({ seriesId: tnc.id, eventDate: "2026-06-18", chargesAdmission: true })
       .returning();
     if (evt) await db.insert(doorRecords).values({ eventId: evt.id });
+  }
+
+  // Sample contacts for feature 006 (iContact export) manual testing — one per consent topic.
+  const topicSamples: { name: string; email: string; topics: EmailConsentTopic[] }[] = [
+    { name: "Contra Fan", email: "contra.fan@example.com", topics: ["contra"] },
+    { name: "English Fan", email: "english.fan@example.com", topics: ["english"] },
+    { name: "Openband Fan", email: "openband.fan@example.com", topics: ["openband"] },
+    { name: "Special Events Fan", email: "specialevents.fan@example.com", topics: ["special_events"] },
+    { name: "Jane Austen Fan", email: "jab.fan@example.com", topics: ["jane_austen_ball"] },
+    { name: "Tracing Willing", email: "tracing.willing@example.com", topics: ["contact_tracing"] },
+    { name: "Opted Out", email: "opted.out@example.com", topics: ["do_not_contact"] },
+  ];
+  for (const s of topicSamples) {
+    const [contact] = await db
+      .insert(contacts)
+      .values({ displayName: s.name, nameNormalized: normalizeName(s.name) })
+      .returning();
+    if (contact) {
+      await db.insert(contactEmails).values({
+        contactId: contact.id,
+        email: s.email,
+        consentTopics: s.topics,
+      });
+    }
+  }
+
+  // Jane Austen Ball event group + event, for the janeaustenball "most recent year" label (FR-005).
+  const [jabGroup] = await db
+    .insert(eventGroups)
+    .values({ name: "Jane Austen Ball 2026", kind: "jane_austen_ball" })
+    .returning();
+  if (jabGroup && tnc) {
+    await db
+      .insert(events)
+      .values({ seriesId: tnc.id, eventDate: "2026-03-14", chargesAdmission: true, groupId: jabGroup.id });
   }
 
   // QBO account/class mapping (chart of accounts) + gate customers per series.

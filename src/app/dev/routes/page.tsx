@@ -26,6 +26,7 @@ const uiRoutes: { path: string; label: string; feature: string }[] = [
   { path: "/qbo-mapping", label: "QBO account/class mapping", feature: "004" },
   { path: "/organizer/<seriesKey>", label: "Organizer report & analytics", feature: "005" },
   { path: "/expense-parameters", label: "Series expense parameters", feature: "005" },
+  { path: "/exports", label: "Mailing list + contact-tracing exports", feature: "006" },
   { path: "/dev/routes", label: "Dev route index (this page)", feature: "dev" },
 ];
 
@@ -66,6 +67,10 @@ const apiRoutes: { methods: string; path: string; feature: string }[] = [
   { methods: "GET", path: "/api/organizer/[seriesKey]/report", feature: "005" },
   { methods: "GET, POST", path: "/api/expense-parameters", feature: "005" },
   { methods: "GET, POST", path: "/api/events/[id]/misc-expenses", feature: "005" },
+  // Feature 006 — iContact Export
+  { methods: "GET", path: "/api/exports", feature: "006" },
+  { methods: "GET", path: "/api/exports/[listId]", feature: "006" },
+  { methods: "GET", path: "/api/exports/contact-tracing", feature: "006" },
 ];
 
 export default function DevRoutesPage() {

@@ -50,6 +50,7 @@ pnpm dev                    # Next.js app at http://localhost:3000
 - `/qbo-mapping` — edit account/class mapping for the treasurer report
 - `/organizer/<seriesKey>` — organizer report & analytics: per-dance Dance Net rows with performer drill-down, quarterly summary (YTD + last year), rolling trend charts (feature 005)
 - `/expense-parameters` — effective-dated per-series rent & ongoing expenses used by the organizer report (feature 005)
+- `/exports` — iContact CSV export: 7 mailing lists (per-list download, consent-gated) + a separate contact-tracing export scoped to one event, purge-aware event dropdown (feature 006)
 
 ## Tests
 

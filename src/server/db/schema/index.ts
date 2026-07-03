@@ -15,3 +15,4 @@ export * from "./nonDanceIncome";
 export * from "./treasurerAudit";
 export * from "./seriesExpenseParameters";
 export * from "./miscExpenses";
+export * from "./mailingListExports";

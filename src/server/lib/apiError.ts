@@ -21,6 +21,7 @@ export type ApiErrorCode =
   | "BOOKING_NOT_FOUND"
   | "SOUND_TECH_NOT_ALLOWED"
   | "MAPPING_KEY_NOT_FOUND"
+  | "MAILING_LIST_NOT_FOUND"
   | "VALIDATION_ERROR";
 
 export class ApiError extends Error {
@@ -83,4 +84,6 @@ export const errors = {
     new ApiError("SOUND_TECH_NOT_ALLOWED", 422, "Sound Tech is not allowed for this event's series."),
   mappingKeyNotFound: () =>
     new ApiError("MAPPING_KEY_NOT_FOUND", 404, "Unknown account-mapping line key."),
+  mailingListNotFound: () =>
+    new ApiError("MAILING_LIST_NOT_FOUND", 404, "Unknown mailing list."),
 };

@@ -20,7 +20,8 @@ export type AuditEvent = {
     | "rate_parameter.created"
     | "treasurer_report.generated"
     | "qbo_mapping.updated"
-    | "expense_parameter.created";
+    | "expense_parameter.created"
+    | "mailing_list.exported";
   actor: string | null;
   details: Record<string, unknown>;
 };
