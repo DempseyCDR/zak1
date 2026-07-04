@@ -21,7 +21,11 @@ export type AuditEvent = {
     | "treasurer_report.generated"
     | "qbo_mapping.updated"
     | "expense_parameter.created"
-    | "mailing_list.exported";
+    | "mailing_list.exported"
+    | "band.created"
+    | "band.updated"
+    | "band.deleted"
+    | "band.booked";
   actor: string | null;
   details: Record<string, unknown>;
 };

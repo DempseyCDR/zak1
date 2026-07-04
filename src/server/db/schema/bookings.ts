@@ -1,6 +1,7 @@
 import { boolean, integer, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 import { events } from "./events";
 import { performers } from "./performers";
+import { bands } from "./bands";
 import { performerTypeEnum } from "./enums";
 
 export const bookings = pgTable("bookings", {
@@ -11,6 +12,8 @@ export const bookings = pgTable("bookings", {
   performerId: uuid("performer_id")
     .notNull()
     .references(() => performers.id),
+  // Set only for bookings created via book-as-unit (feature 008); null = ad-hoc.
+  bandId: uuid("band_id").references(() => bands.id),
   performerType: performerTypeEnum("performer_type").notNull(),
   payCents: integer("pay_cents").notNull().default(0),
   isDonated: boolean("is_donated").notNull().default(false),

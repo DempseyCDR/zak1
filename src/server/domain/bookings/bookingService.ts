@@ -1,5 +1,5 @@
 import { eq } from "drizzle-orm";
-import type { Db } from "@/server/db/client";
+import type { Db, DbOrTx } from "@/server/db/client";
 import { bookings, events, performers, series } from "@/server/db/schema";
 import type { BookingRow, PerformerType } from "@/server/db/schema";
 import { errors } from "@/server/lib/apiError";
@@ -15,10 +15,11 @@ function isForcedFree(type: PerformerType): boolean {
 }
 
 export async function createBooking(
-  db: Db,
+  db: DbOrTx,
   eventId: string,
   input: BookingCreateInput,
   actor: string | null = null,
+  bandId: string | null = null,
 ): Promise<BookingRow> {
   const event = await db.query.events.findFirst({ where: eq(events.id, eventId) });
   if (!event) throw errors.eventNotFound();
@@ -63,6 +64,7 @@ export async function createBooking(
     .values({
       eventId,
       performerId: input.performerId,
+      bandId,
       performerType: type,
       payCents,
       isDonated,

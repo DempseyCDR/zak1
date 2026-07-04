@@ -47,6 +47,10 @@ export default function BookingsPage() {
   // Inline "new event" (FR-014)
   const [newSeriesKey, setNewSeriesKey] = useState("");
   const [newDate, setNewDate] = useState("");
+  // Book a band (feature 008)
+  const [bands, setBands] = useState<{ id: string; name: string }[]>([]);
+  const [bandId, setBandId] = useState("");
+  const [bandMessage, setBandMessage] = useState<string | null>(null);
 
   // FR-012/013: most-recent-first, default to events within the last month unless overridden.
   const loadEvents = useCallback(async (older: boolean) => {
@@ -69,6 +73,7 @@ export default function BookingsPage() {
       setSeries(d.items ?? []);
       if (d.items?.[0]) setNewSeriesKey(d.items[0].key);
     });
+    void fetch("/api/bands").then((r) => r.json()).then((d) => setBands(d.items ?? []));
   }, []);
 
   async function createInlineEvent() {
@@ -125,6 +130,26 @@ export default function BookingsPage() {
     void loadBookings(eventId);
   }
 
+  async function bookWholeBand() {
+    if (!eventId || !bandId) return;
+    setBandMessage(null);
+    const res = await fetch(`/api/events/${eventId}/book-band`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ bandId }),
+    });
+    if (!res.ok) {
+      const b = await res.json().catch(() => null);
+      setBandMessage(b?.error?.message ?? "Failed to book band");
+      return;
+    }
+    const r = await res.json();
+    setBandMessage(
+      `Booked ${r.createdCount} member(s)${r.skippedCount ? `, skipped ${r.skippedCount} already booked` : ""}. Pay defaults to the series musician rate — adjust individual bookings below if needed.`,
+    );
+    void loadBookings(eventId);
+  }
+
   async function removeBooking(bookingId: string) {
     const res = await fetch(`/api/bookings/${bookingId}`, { method: "DELETE" });
     if (!res.ok) {
@@ -164,6 +189,18 @@ export default function BookingsPage() {
         </select>{" "}
         <input type="date" value={newDate} onChange={(e) => setNewDate(e.target.value)} />{" "}
         <button onClick={createInlineEvent} disabled={!newSeriesKey || !newDate}>Create + select</button>
+      </fieldset>
+
+      <fieldset style={{ marginTop: 12, maxWidth: 420 }}>
+        <legend>Book a band</legend>
+        <select value={bandId} onChange={(e) => setBandId(e.target.value)}>
+          <option value="">— band —</option>
+          {bands.map((b) => (
+            <option key={b.id} value={b.id}>{b.name}</option>
+          ))}
+        </select>{" "}
+        <button onClick={bookWholeBand} disabled={!eventId || !bandId}>Book whole band</button>
+        {bandMessage && <p style={{ color: "#333" }}>{bandMessage}</p>}
       </fieldset>
 
       <ul>

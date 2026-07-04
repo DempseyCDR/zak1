@@ -8,6 +8,7 @@ export * from "./events";
 export * from "./door";
 export * from "./attendance";
 export * from "./performers";
+export * from "./bands";
 export * from "./bookings";
 export * from "./qboMapping";
 export * from "./nonDanceIncome";

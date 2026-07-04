@@ -19,7 +19,8 @@ const uiRoutes: { path: string; label: string; feature: string }[] = [
   { path: "/checkin", label: "Door check-in", feature: "002" },
   { path: "/gate", label: "Gate money entry", feature: "002" },
   { path: "/performers", label: "Performer directory", feature: "003" },
-  { path: "/bookings", label: "Bookings", feature: "003" },
+  { path: "/bookings", label: "Bookings (incl. book-a-band)", feature: "003/008" },
+  { path: "/bands", label: "Band directory & rosters", feature: "008" },
   { path: "/rate-parameters", label: "Standard pay rates", feature: "003" },
   { path: "/events", label: "Events management", feature: "002" },
   { path: "/treasurer/<eventId>", label: "Treasurer report (printable)", feature: "004" },
@@ -71,6 +72,10 @@ const apiRoutes: { methods: string; path: string; feature: string }[] = [
   { methods: "GET", path: "/api/exports", feature: "006" },
   { methods: "GET", path: "/api/exports/[listId]", feature: "006" },
   { methods: "GET", path: "/api/exports/contact-tracing", feature: "006" },
+  // Feature 008 — Reusable Band Roster
+  { methods: "GET, POST", path: "/api/bands", feature: "008" },
+  { methods: "GET, PATCH, DELETE", path: "/api/bands/[id]", feature: "008" },
+  { methods: "POST", path: "/api/events/[id]/book-band", feature: "008" },
 ];
 
 export default function DevRoutesPage() {

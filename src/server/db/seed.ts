@@ -2,6 +2,8 @@ import { eq } from "drizzle-orm";
 import { db, sql } from "@/server/db/client";
 import {
   accountMapping,
+  bandMembers,
+  bands,
   contactEmails,
   contacts,
   doorRecords,
@@ -27,7 +29,7 @@ const FIRST = ["Ada", "Grace", "Alan", "Katherine", "Dorothy", "Edsger", "Donald
 const LAST = ["Lovelace", "Hopper", "Turing", "Johnson", "Vaughan", "Dijkstra", "Knuth", "Liskov", "Berners-Lee", "Hamilton"];
 
 async function main() {
-  await sql`TRUNCATE mailing_list_exports, misc_expenses, series_parameters, series_parameter_audit, door_record_audit, gate_sales, door_records, attendance, quarterly_attendance_counts, events, event_groups, merge_audit, status_change_audit, memberships, payers, contact_emails, contacts RESTART IDENTITY CASCADE`;
+  await sql`TRUNCATE mailing_list_exports, misc_expenses, series_parameters, series_parameter_audit, band_members, bands, door_record_audit, gate_sales, door_records, attendance, quarterly_attendance_counts, events, event_groups, merge_audit, status_change_audit, memberships, payers, contact_emails, contacts RESTART IDENTITY CASCADE`;
 
   // Series (config) — idempotent.
   await db
@@ -155,6 +157,29 @@ async function main() {
     { displayName: "Sample Caller", bio: "Calls contras." },
     { displayName: "Sample Sound Tech" },
   ]);
+
+  // Sample bands (feature 008) from a few musician performers.
+  const bandPerformers = await db
+    .insert(performers)
+    .values([
+      { displayName: "Fiona Fiddle", bio: "Fiddler." },
+      { displayName: "Danny Drums" },
+      { displayName: "Petra Piano" },
+    ])
+    .returning({ id: performers.id });
+  if (bandPerformers.length === 3) {
+    const [band] = await db
+      .insert(bands)
+      .values({ name: "The Contra Rebels", bio: "A high-energy contra band." })
+      .returning();
+    if (band) {
+      await db.insert(bandMembers).values([
+        { bandId: band.id, performerId: bandPerformers[0]!.id, isLead: true },
+        { bandId: band.id, performerId: bandPerformers[1]!.id, isLead: false },
+        { bandId: band.id, performerId: bandPerformers[2]!.id, isLead: false },
+      ]);
+    }
+  }
 
   // Sample series-scoped rate + expense parameters for every series (feature 009).
   for (const srow of allSeries) {

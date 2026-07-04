@@ -66,8 +66,16 @@ A visitor to the public website sees a registered Band's name, bio, and photo di
 - A Band has no photo set: the public listing shows its name and bio without an image, consistent with how individual performers without a photo are already handled.
 - A Band's roster changes after an event was booked from it: the previously created bookings for that event keep displaying as that Band (User Story 2, Scenario 3).
 - A performer belongs to more than one Band (e.g., leads one, plays in another): this is expected and consistent with feature 003's existing per-booking role model.
+- A roster member is already booked on the event (individually, or via another band already booked on that same event): booking the Band skips that member — one booking per member, never a duplicate (FR-003c).
 - No standard Musician rate is configured for a series: booking a Band in that series falls back to first-entered-amount-propagates behavior (FR-003b) instead of pre-filling from a rate.
 - The first roster member's pay is entered as $0 (donated), with no standard rate in effect: the system still proposes $0 for the remaining members, which the booker can raise individually for anyone who is actually paid.
+
+## Clarifications
+
+### Session 2026-07-03
+
+- Q: When booking a Band as a unit, if a roster member already has a booking on that event, what should happen? → A: Skip that member (create bookings only for members not already booked); no duplicate, no error.
+- Q: When a Band's name/bio/photo is edited (or the Band is deleted), how should an already-booked past event display? → A: Live — past events re-read the band's current identity; editing updates display everywhere (past + future); deletion is a soft-delete/archive so the row persists for past-event display but can't be picked for new bookings. (Resolves the SC-004 vs. Assumptions contradiction in favor of the repeated "current-state only, no history" intent.)
 
 ## Requirements *(mandatory)*
 
@@ -76,6 +84,7 @@ A visitor to the public website sees a registered Band's name, bio, and photo di
 - **FR-001**: System MUST allow creating a Band with a name, one Lead Musician, and zero or more Musicians, all selected from existing Performers.
 - **FR-002**: System MUST allow editing a Band's name, bio, photo, and roster (including reassigning the Lead Musician) at any time; edits apply only to future bookings of that Band, never retroactively to events already booked from it.
 - **FR-003**: Organizers MUST be able to book an entire Band onto an event in one action, creating one booking per current roster member with each member's correct performer type and the existing pay/check rules (feature 003 FR-001/002/006/007/008).
+- **FR-003c**: When booking a Band as a unit, the system MUST skip any roster member who already has a booking on that event (create bookings only for the not-yet-booked members), producing neither a duplicate booking nor an error. This avoids inflating the performer total or generating a second check for an already-booked member.
 - **FR-003a**: When booking a Band as a unit, each roster member's pay MUST default to the standard Musician rate in effect for the event's series and date (FR-012), when one exists; the booker MAY override any member's pay individually before saving.
 - **FR-003b**: When no standard Musician rate exists for that series and date, the booker MUST specify pay for the first roster member manually, and the system MUST propose that same amount as the default for each remaining member; the booker MAY change any of them individually before saving.
 - **FR-004**: Each booking created by booking a Band as a unit MUST retain traceability to that Band, so it continues to display as part of the Band (FR-007) even if that individual booking is later edited or the Band's roster subsequently changes.
@@ -85,7 +94,7 @@ A visitor to the public website sees a registered Band's name, bio, and photo di
 - **FR-008**: The public website MUST continue to display any booking not linked to a Band using today's ad hoc per-musician rules (feature 007 FR-003), even on an event that also has Band-linked bookings.
 - **FR-009**: A Band's photo and bio MUST be stored and displayed independently of, and MUST NOT overwrite or be overwritten by, any roster member's own individual photo and bio.
 - **FR-010**: System MUST provide an admin-facing way to create, view, and edit Bands (name, bio, photo, roster), independent of the existing Performer directory.
-- **FR-011**: System MUST allow deleting a Band; deleting a Band MUST NOT delete or alter any performer or any already-created booking.
+- **FR-011**: System MUST allow deleting a Band (implemented as a soft-delete/archive so already-booked events keep resolving the band's identity for display); deleting a Band MUST NOT delete or alter any performer or any already-created booking, and MUST remove the Band from the selectable directory for new bookings.
 - **FR-012**: System MUST support a standard Musician pay rate, effective-dated and scoped per series (extending the series-scoped rate-parameter design in BACKLOG.md B16), used to default pay for both Lead Musician and Musician bookings — whether booked individually (feature 003) or as part of a Band (this feature).
 - **FR-013**: Lead Musician and Musician MUST share identical pay, check, and public-display treatment. "Lead Musician" designates only which roster member is the Band's point of contact for booking, not a distinct pay tier.
 
@@ -102,7 +111,7 @@ A visitor to the public website sees a registered Band's name, bio, and photo di
 - **SC-001**: An organizer can book a Band of any size onto an event in a single action, regardless of how many musicians are in its roster.
 - **SC-002**: 100% of events whose musician bookings were created by booking a Band display that Band's name, bio, and photo on the public site instead of an ad hoc list.
 - **SC-003**: 100% of musician bookings not created via a Band continue to display exactly as they do today.
-- **SC-004**: Editing a Band's roster, bio, or photo never changes how an already-booked past event is displayed.
+- **SC-004**: Editing a Band's roster never retroactively changes which members were booked for a past event, or what any of them were paid — the already-created booking rows are immutable to roster edits. (Band identity — name/bio/photo — is live: it re-reads the current band, so cosmetic edits do update how the band appears on past listings, by design.)
 - **SC-005**: A Band's photo and bio can be set and changed without affecting any roster member's individually displayed photo or bio, in 100% of cases.
 - **SC-006**: Booking a Band whose members all share the same pay, with no standard rate configured, requires entering that amount only once — the booker fills in one pay field, not one per member.
 - **SC-007**: When a standard Musician rate is in effect for a series, booking a Band in that series pre-fills every member's pay automatically, with zero manual entries required before saving (overrides remain optional).
