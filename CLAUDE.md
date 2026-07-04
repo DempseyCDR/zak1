@@ -1,7 +1,7 @@
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan
-at specs/008-band-roster/plan.md
+at specs/007-public-website/plan.md
 <!-- SPECKIT END -->
 
 ## Development conventions (temporary)

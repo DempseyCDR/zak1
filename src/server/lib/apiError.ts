@@ -23,6 +23,7 @@ export type ApiErrorCode =
   | "MAPPING_KEY_NOT_FOUND"
   | "MAILING_LIST_NOT_FOUND"
   | "BAND_NOT_FOUND"
+  | "VENUE_NOT_FOUND"
   | "VALIDATION_ERROR";
 
 export class ApiError extends Error {
@@ -88,4 +89,5 @@ export const errors = {
   mailingListNotFound: () =>
     new ApiError("MAILING_LIST_NOT_FOUND", 404, "Unknown mailing list."),
   bandNotFound: () => new ApiError("BAND_NOT_FOUND", 404, "Band not found."),
+  venueNotFound: () => new ApiError("VENUE_NOT_FOUND", 404, "Venue not found."),
 };

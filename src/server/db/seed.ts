@@ -15,6 +15,7 @@ import {
   series,
   seriesParameters,
   seriesQboMap,
+  venues,
 } from "@/server/db/schema";
 import { normalizeName } from "@/server/domain/contacts/normalize";
 import { recomputeContactStatus } from "@/server/domain/membership/membershipService";
@@ -29,7 +30,7 @@ const FIRST = ["Ada", "Grace", "Alan", "Katherine", "Dorothy", "Edsger", "Donald
 const LAST = ["Lovelace", "Hopper", "Turing", "Johnson", "Vaughan", "Dijkstra", "Knuth", "Liskov", "Berners-Lee", "Hamilton"];
 
 async function main() {
-  await sql`TRUNCATE mailing_list_exports, misc_expenses, series_parameters, series_parameter_audit, band_members, bands, door_record_audit, gate_sales, door_records, attendance, quarterly_attendance_counts, events, event_groups, merge_audit, status_change_audit, memberships, payers, contact_emails, contacts RESTART IDENTITY CASCADE`;
+  await sql`TRUNCATE mailing_list_exports, misc_expenses, series_parameters, series_parameter_audit, band_members, bands, door_record_audit, gate_sales, door_records, attendance, quarterly_attendance_counts, events, event_groups, venues, merge_audit, status_change_audit, memberships, payers, contact_emails, contacts RESTART IDENTITY CASCADE`;
 
   // Series (config) — idempotent.
   await db
@@ -73,12 +74,18 @@ async function main() {
     await recomputeContactStatus(db, id, "membership_change", "seed");
   }
 
-  // A sample event + door record for manual validation.
+  // A sample venue (feature 007) for the public site.
+  const [venue] = await db
+    .insert(venues)
+    .values({ name: "German House", address: "315 Gregory St, Rochester, NY", latitude: 43.1417, longitude: -77.6062 })
+    .returning();
+
+  // A sample event + door record for manual validation, assigned the sample venue.
   const tnc = await db.query.series.findFirst({ where: eq(series.key, "tnc") });
   if (tnc) {
     const [evt] = await db
       .insert(events)
-      .values({ seriesId: tnc.id, eventDate: "2026-06-18", chargesAdmission: true })
+      .values({ seriesId: tnc.id, eventDate: "2026-06-18", chargesAdmission: true, venueId: venue?.id ?? null })
       .returning();
     if (evt) await db.insert(doorRecords).values({ eventId: evt.id });
   }

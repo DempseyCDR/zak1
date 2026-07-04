@@ -28,6 +28,9 @@ const uiRoutes: { path: string; label: string; feature: string }[] = [
   { path: "/organizer/<seriesKey>", label: "Organizer report & analytics", feature: "005" },
   { path: "/expense-parameters", label: "Series expense parameters", feature: "005" },
   { path: "/exports", label: "Mailing list + contact-tracing exports", feature: "006" },
+  { path: "/whats-on", label: "Public schedule (browse)", feature: "007" },
+  { path: "/whats-on/<eventId>", label: "Public event detail (venue + performers)", feature: "007" },
+  { path: "/venues", label: "Venue management", feature: "007" },
   { path: "/dev/routes", label: "Dev route index (this page)", feature: "dev" },
 ];
 
@@ -76,6 +79,10 @@ const apiRoutes: { methods: string; path: string; feature: string }[] = [
   { methods: "GET, POST", path: "/api/bands", feature: "008" },
   { methods: "GET, PATCH, DELETE", path: "/api/bands/[id]", feature: "008" },
   { methods: "POST", path: "/api/events/[id]/book-band", feature: "008" },
+  // Feature 007 — Public Website (browse)
+  { methods: "GET, POST", path: "/api/venues", feature: "007" },
+  { methods: "GET, PATCH", path: "/api/venues/[id]", feature: "007" },
+  { methods: "PATCH", path: "/api/events/[id]", feature: "007" },
 ];
 
 export default function DevRoutesPage() {

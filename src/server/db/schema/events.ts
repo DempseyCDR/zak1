@@ -1,5 +1,6 @@
 import { boolean, date, integer, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 import { eventGroupKindEnum } from "./enums";
+import { venues } from "./venues";
 
 export const series = pgTable("series", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -22,6 +23,7 @@ export const events = pgTable("events", {
     .notNull()
     .references(() => series.id),
   groupId: uuid("group_id").references(() => eventGroups.id),
+  venueId: uuid("venue_id").references(() => venues.id, { onDelete: "set null" }),
   eventDate: date("event_date").notNull(),
   chargesAdmission: boolean("charges_admission").notNull().default(true),
   // Persisted per-event attendance count (survives the 90-day purge); source for paying dancers.

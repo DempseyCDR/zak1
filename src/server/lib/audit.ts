@@ -25,7 +25,9 @@ export type AuditEvent = {
     | "band.created"
     | "band.updated"
     | "band.deleted"
-    | "band.booked";
+    | "band.booked"
+    | "venue.created"
+    | "venue.updated";
   actor: string | null;
   details: Record<string, unknown>;
 };
