@@ -6,12 +6,15 @@ import { withLogging } from "@/server/lib/withLogging";
 import { parseBody } from "@/server/lib/parseBody";
 import { errors } from "@/server/lib/apiError";
 import { assignVenueSchema } from "@/server/validation/venues";
-import { assignVenueToEvent } from "@/server/domain/venues/venueService";
+import { assignVenueToEvent, setEventRent } from "@/server/domain/venues/venueService";
 
 export const PATCH = withLogging<{ id: string }>(async (req, ctx) => {
   const { id } = await ctx.params;
   const input = await parseBody(req, assignVenueSchema);
-  await assignVenueToEvent(db, id, input.venueId);
+  const actor = req.headers.get("x-actor") ?? "admin";
+  // Apply only the fields provided (feature 011: rentCents is the per-event override; null clears).
+  if (input.venueId !== undefined) await assignVenueToEvent(db, id, input.venueId);
+  if (input.rentCents !== undefined) await setEventRent(db, id, input.rentCents, actor);
   const event = await db.query.events.findFirst({ where: eq(events.id, id) });
   if (!event) throw errors.eventNotFound();
   return NextResponse.json(event);

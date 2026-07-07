@@ -26,6 +26,8 @@ export const events = pgTable("events", {
   venueId: uuid("venue_id").references(() => venues.id, { onDelete: "set null" }),
   eventDate: date("event_date").notNull(),
   chargesAdmission: boolean("charges_admission").notNull().default(true),
+  // Per-event rent override / direct rent (feature 011). NULL = resolve from venue_rents layers.
+  rentCents: integer("rent_cents"),
   // Persisted per-event attendance count (survives the 90-day purge); source for paying dancers.
   attendanceCount: integer("attendance_count").notNull().default(0),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),

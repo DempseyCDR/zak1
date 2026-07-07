@@ -27,7 +27,8 @@ const uiRoutes: { path: string; label: string; feature: string }[] = [
   { path: "/qbo-mapping", label: "QBO account/class mapping", feature: "004" },
   { path: "/organizer/ecd", label: "Organizer report & analytics", feature: "005" },
   { path: "/organizer/tnc", label: "Organizer report & analytics", feature: "005" },
-  { path: "/expense-parameters", label: "Series expense parameters", feature: "005" },
+  { path: "/expense-parameters", label: "Ongoing series charges", feature: "005/011" },
+  { path: "/venue-rents", label: "Venue rents (default + series-at-venue)", feature: "011" },
   { path: "/exports", label: "Mailing list + contact-tracing exports", feature: "006" },
   { path: "/whats-on", label: "Public schedule (browse)", feature: "007" },
   { path: "/whats-on/<eventId>", label: "Public event detail (venue + performers)", feature: "007" },
@@ -83,7 +84,9 @@ const apiRoutes: { methods: string; path: string; feature: string }[] = [
   // Feature 007 — Public Website (browse)
   { methods: "GET, POST", path: "/api/venues", feature: "007" },
   { methods: "GET, PATCH", path: "/api/venues/[id]", feature: "007" },
-  { methods: "PATCH", path: "/api/events/[id]", feature: "007" },
+  { methods: "PATCH", path: "/api/events/[id]", feature: "007/011" },
+  // Feature 011 — Venue-scoped rent
+  { methods: "GET, POST", path: "/api/venue-rents", feature: "011" },
 ];
 
 export default function DevRoutesPage() {

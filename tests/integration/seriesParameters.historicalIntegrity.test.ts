@@ -2,15 +2,16 @@ import { beforeAll, beforeEach, afterAll, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
 import { ensureSchema, resetDb, closeDb, db } from "./helpers/db";
 import { makeEvent, makeDoorRecord, makePerformer } from "./helpers/factories";
-import { bookings } from "@/server/db/schema";
+import { bookings, events, venues } from "@/server/db/schema";
 import { updateDoorRecord } from "@/server/domain/door/doorRecordService";
 import { createBooking } from "@/server/domain/bookings/bookingService";
 import { createRateParameter } from "@/server/domain/parameters/seriesParameterService";
+import { createVenueRent } from "@/server/domain/parameters/rentService";
 import { assembleOrganizerReport } from "@/server/domain/organizer/reportService";
 
 const year = 2026;
 
-// FR-010 — superseding a parameter must not rewrite history already recorded.
+// FR-012 — superseding a parameter must not rewrite history already recorded.
 describe("superseding a parameter does not rewrite history", () => {
   beforeAll(ensureSchema);
   beforeEach(resetDb);
@@ -30,20 +31,19 @@ describe("superseding a parameter does not rewrite history", () => {
     expect(stored?.payCents).toBe(15000); // unchanged, not re-resolved to the new rate
   });
 
-  it("an Organizer Report for a past event keeps resolving the rent in effect on that event's date", async () => {
-    await createRateParameter(db, { seriesKey: "tnc", kind: "caller", amount: 150, effectiveDate: "2026-01-01" });
+  it("an Organizer Report for a past event keeps resolving the venue rent in effect on that event's date", async () => {
     const evt = await makeEvent({ seriesKey: "tnc", eventDate: "2026-03-01" });
+    const [venue] = await db.insert(venues).values({ name: "Grange", address: "1 Main St" }).returning();
+    await db.update(events).set({ venueId: venue!.id }).where(eq(events.id, evt.id));
     const drId = await makeDoorRecord(evt.id);
     await updateDoorRecord(db, drId, { grossCash: 300, seedFloat: 0 });
 
-    // Seed a rent parameter effective before the event, then supersede it with one effective
-    // well after the event's date.
-    const { createExpenseParameter } = await import("@/server/domain/parameters/seriesParameterService");
-    await createExpenseParameter(db, { seriesKey: "tnc", kind: "rent", amount: 80, effectiveDate: "2026-01-01" });
-    await createExpenseParameter(db, { seriesKey: "tnc", kind: "rent", amount: 999, effectiveDate: "2026-06-01" });
+    // Venue default rent effective before the event, superseded well after the event's date.
+    await createVenueRent(db, { venueId: venue!.id, amount: 80, effectiveDate: "2026-01-01" });
+    await createVenueRent(db, { venueId: venue!.id, amount: 999, effectiveDate: "2026-06-01" });
 
     const report = await assembleOrganizerReport(db, "tnc", year);
     const row = report.perDanceRows[0] as Record<string, unknown>;
-    expect(row.rent).toBe(80); // still the rate in effect on 2026-03-01, not the later $999 override
+    expect(row.rent).toBe(80); // rent in effect on 2026-03-01, not the later $999
   });
 });

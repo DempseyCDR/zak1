@@ -69,3 +69,16 @@ export async function assignVenueToEvent(db: Db, eventId: string, venueId: strin
   }
   await db.update(events).set({ venueId }).where(eq(events.id, eventId));
 }
+
+/** Set (or clear, with null) an event's per-event rent override (feature 011). 404s on unknown event. */
+export async function setEventRent(
+  db: Db,
+  eventId: string,
+  rentCents: number | null,
+  actor: string | null = null,
+): Promise<void> {
+  const event = await db.query.events.findFirst({ where: eq(events.id, eventId) });
+  if (!event) throw errors.eventNotFound();
+  await db.update(events).set({ rentCents }).where(eq(events.id, eventId));
+  writeAudit({ kind: "event.rent_set", actor, details: { eventId, rentCents } });
+}

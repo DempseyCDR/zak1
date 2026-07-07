@@ -2,7 +2,7 @@ import { beforeAll, beforeEach, afterAll, describe, expect, it } from "vitest";
 import { eq, sql } from "drizzle-orm";
 import { ensureSchema, resetDb, closeDb, db } from "./helpers/db";
 import { makeEvent, makeDoorRecord, makePerformer } from "./helpers/factories";
-import { attendance, events, seriesParameters, series } from "@/server/db/schema";
+import { attendance, events } from "@/server/db/schema";
 import { updateDoorRecord } from "@/server/domain/door/doorRecordService";
 import { createBooking } from "@/server/domain/bookings/bookingService";
 import { recordAttendance } from "@/server/domain/attendance/attendanceService";
@@ -11,25 +11,14 @@ import { assembleOrganizerReport } from "@/server/domain/organizer/reportService
 
 const year = 2026;
 
-async function seedRent(seriesKey: string, amountCents: number) {
-  const s = await db.query.series.findFirst({ where: eq(series.key, seriesKey) });
-  await db.insert(seriesParameters).values({
-    category: "expense",
-    seriesId: s!.id,
-    kind: "rent",
-    amountCents,
-    effectiveDate: "2026-01-01",
-  });
-}
-
 describe("organizer report", () => {
   beforeAll(ensureSchema);
   beforeEach(resetDb);
   afterAll(closeDb);
 
   it("computes a per-dance row's Dance Net and metrics (FR-002/003/006/013)", async () => {
-    await seedRent("tnc", 8000); // $80 rent
     const evt = await makeEvent({ seriesKey: "tnc", eventDate: "2026-06-18" });
+    await db.update(events).set({ rentCents: 8000 }).where(eq(events.id, evt.id)); // $80 per-event rent
     // admission derived = gross cash − seed float − non-admission cash
     const drId = await makeDoorRecord(evt.id, [
       { category: "merchandise", paymentMethod: "cash", amount: 50 },

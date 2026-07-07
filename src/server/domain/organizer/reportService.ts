@@ -5,7 +5,8 @@ import { errors } from "@/server/lib/apiError";
 import { centsToDollars } from "@/server/lib/money";
 import { computeEventGate } from "@/server/domain/gate/eventMoney";
 import { getBookingsForEvent } from "@/server/domain/bookings/bookingService";
-import { resolveParameterCents } from "@/server/domain/parameters/seriesParameterService";
+import { resolveOngoingTotalCents } from "@/server/domain/parameters/seriesParameterService";
+import { resolveEventRentCents } from "@/server/domain/parameters/rentService";
 import {
   avgTicketCents,
   breakEvenDancers,
@@ -57,18 +58,8 @@ export async function assembleOrganizerReport(
     const performerCount = new Set(bookings.map((b) => b.performerId)).size;
     const dancers = payingDancers(ev.attendanceCount, performerCount);
 
-    const rentCents = await resolveParameterCents(db, {
-      category: "expense",
-      kind: "rent",
-      seriesId: ev.seriesId,
-      onDate: ev.eventDate,
-    });
-    const ongoingCents = await resolveParameterCents(db, {
-      category: "expense",
-      kind: "ongoing",
-      seriesId: ev.seriesId,
-      onDate: ev.eventDate,
-    });
+    const rentCents = await resolveEventRentCents(db, ev);
+    const ongoingCents = await resolveOngoingTotalCents(db, ev.seriesId, ev.eventDate);
     const miscRows = await db.select().from(miscExpenses).where(eq(miscExpenses.eventId, ev.id));
     const miscCents = miscRows.reduce((a, m) => a + m.amountCents, 0) + gate.cardFeeCents;
 

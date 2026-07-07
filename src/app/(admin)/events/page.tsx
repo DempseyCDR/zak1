@@ -10,6 +10,7 @@ type EventRow = {
   groupId: string | null;
   eventDate: string;
   chargesAdmission: boolean;
+  rentCents: number | null;
 };
 
 export default function EventsPage() {
@@ -22,7 +23,25 @@ export default function EventsPage() {
   const [groupId, setGroupId] = useState("");
   const [groupName, setGroupName] = useState("");
   const [groupKind, setGroupKind] = useState("");
+  const [rentEventId, setRentEventId] = useState("");
+  const [rentAmount, setRentAmount] = useState("");
   const [error, setError] = useState<string | null>(null);
+
+  async function setEventRent(clear: boolean) {
+    if (!rentEventId) return;
+    const rentCents = clear ? null : Math.round(Number(rentAmount) * 100);
+    const res = await fetch(`/api/events/${rentEventId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ rentCents }),
+    });
+    if (res.ok) {
+      setRentAmount("");
+      void loadEvents();
+    } else {
+      setError((await res.json().catch(() => null))?.error?.message ?? "Failed to set rent");
+    }
+  }
 
   const loadEvents = useCallback(async () => {
     const res = await fetch("/api/events");
@@ -90,6 +109,7 @@ export default function EventsPage() {
             {ev.eventDate} — {seriesKeyById(ev.seriesId)}
             {ev.chargesAdmission ? "" : " (free)"}
             {ev.groupId ? ` · group ${groups.find((g) => g.id === ev.groupId)?.name ?? ev.groupId}` : ""}
+            {ev.rentCents != null ? ` · rent $${(ev.rentCents / 100).toFixed(2)}` : ""}
           </li>
         ))}
         {events.length === 0 && <li style={{ color: "#888" }}>No events</li>}
@@ -134,6 +154,37 @@ export default function EventsPage() {
           onChange={(e) => setGroupKind(e.target.value)}
         />
         <button onClick={createGroup}>Create group</button>
+      </div>
+
+      <h2>Per-event rent override</h2>
+      <p style={{ color: "#666", maxWidth: 520 }}>
+        Overrides an event&apos;s resolved rent (or sets rent directly when the event has no venue).
+        Clear to fall back to the venue/series rent. Manage standard rates under Venue rents.
+      </p>
+      <div style={{ display: "grid", gap: 6, maxWidth: 420 }}>
+        <select value={rentEventId} onChange={(e) => setRentEventId(e.target.value)}>
+          <option value="">— select an event —</option>
+          {events.map((ev) => (
+            <option key={ev.id} value={ev.id}>
+              {ev.eventDate} — {seriesKeyById(ev.seriesId)}
+            </option>
+          ))}
+        </select>
+        <input
+          type="number"
+          step="0.01"
+          placeholder="Rent ($)"
+          value={rentAmount}
+          onChange={(e) => setRentAmount(e.target.value)}
+        />
+        <div style={{ display: "flex", gap: 6 }}>
+          <button onClick={() => setEventRent(false)} disabled={!rentEventId || !rentAmount}>
+            Set rent
+          </button>
+          <button onClick={() => setEventRent(true)} disabled={!rentEventId}>
+            Clear override
+          </button>
+        </div>
       </div>
     </main>
   );

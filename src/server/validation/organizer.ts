@@ -1,10 +1,12 @@
 import { z } from "zod";
 
+// Feature 011: expense parameters are ongoing-only (rent moved to venue_rents); label is the charge
+// identity and is required so multiple concurrent ongoing charges can coexist per series.
 export const expenseParameterCreateSchema = z.object({
   seriesKey: z.string().min(1),
-  kind: z.enum(["rent", "ongoing"]),
+  kind: z.literal("ongoing"),
   amount: z.number().min(0),
-  label: z.string().trim().min(1).optional(),
+  label: z.string().trim().min(1),
   effectiveDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "effectiveDate must be YYYY-MM-DD"),
 });
 

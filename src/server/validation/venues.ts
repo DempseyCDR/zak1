@@ -14,8 +14,11 @@ export const venuePatchSchema = z.object({
   longitude: z.number().nullable().optional(),
 });
 
+// Event PATCH (feature 007 venue assignment; feature 011 adds the per-event rent override).
+// Both fields optional: only the keys present are applied. `null` clears (venue / rent override).
 export const assignVenueSchema = z.object({
-  venueId: z.string().uuid().nullable(),
+  venueId: z.string().uuid().nullable().optional(),
+  rentCents: z.number().int().min(0).nullable().optional(),
 });
 
 export type VenueCreateInput = z.infer<typeof venueCreateSchema>;

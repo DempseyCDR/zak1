@@ -7,7 +7,7 @@ import { parseBody } from "@/server/lib/parseBody";
 import { expenseParameterCreateSchema } from "@/server/validation/organizer";
 import {
   createExpenseParameter,
-  resolveParameterCents,
+  resolveOngoingTotalCents,
 } from "@/server/domain/parameters/seriesParameterService";
 
 export const POST = withLogging(async (req) => {
@@ -22,16 +22,17 @@ export const GET = withLogging(async (req) => {
   const seriesKey = url.searchParams.get("seriesKey");
   const kind = url.searchParams.get("kind");
   const on = url.searchParams.get("on") ?? new Date().toISOString().slice(0, 10);
-  if (!seriesKey || (kind !== "rent" && kind !== "ongoing")) {
+  if (!seriesKey || kind !== "ongoing") {
     return NextResponse.json(
-      { error: { code: "VALIDATION_ERROR", message: "seriesKey and kind (rent|ongoing) required" } },
+      { error: { code: "VALIDATION_ERROR", message: "seriesKey and kind=ongoing required" } },
       { status: 422 },
     );
   }
   const s = await db.query.series.findFirst({ where: eq(series.key, seriesKey) });
   if (!s) return NextResponse.json({ resolved: null });
-  const cents = await resolveParameterCents(db, { category: "expense", kind, seriesId: s.id, onDate: on });
+  // Sum of all ongoing charges in effect on `on` (feature 011: multiple concurrent labeled charges).
+  const cents = await resolveOngoingTotalCents(db, s.id, on);
   return NextResponse.json({
-    resolved: cents === 0 ? null : { seriesKey, kind, amount: cents / 100, effectiveDate: on },
+    resolved: cents === 0 ? null : { seriesKey, kind: "ongoing", amount: cents / 100, effectiveDate: on },
   });
 });

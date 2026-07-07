@@ -33,6 +33,43 @@ export async function resolveParameterCents(
   return row?.amountCents ?? 0;
 }
 
+/**
+ * Total ongoing charge (cents) for a series on a date: for each distinct label, the amount from the
+ * row with the greatest effective_date ≤ onDate, summed. A label whose latest row is $0 contributes 0
+ * (an ended charge). Supports multiple concurrent labeled ongoing charges (feature 011).
+ */
+export async function resolveOngoingTotalCents(
+  db: DbOrTx,
+  seriesId: string,
+  onDate: string,
+): Promise<number> {
+  const rows = await db
+    .select({
+      label: seriesParameters.label,
+      amountCents: seriesParameters.amountCents,
+    })
+    .from(seriesParameters)
+    .where(
+      and(
+        eq(seriesParameters.category, "expense"),
+        eq(seriesParameters.kind, "ongoing"),
+        eq(seriesParameters.seriesId, seriesId),
+        lte(seriesParameters.effectiveDate, onDate),
+      ),
+    )
+    .orderBy(seriesParameters.label, desc(seriesParameters.effectiveDate));
+
+  const seen = new Set<string>();
+  let total = 0;
+  for (const r of rows) {
+    const key = r.label ?? "";
+    if (seen.has(key)) continue; // first per label = latest (ordered by effective_date desc)
+    seen.add(key);
+    total += r.amountCents;
+  }
+  return total;
+}
+
 async function createSeriesParameter(
   db: Db,
   input: {
