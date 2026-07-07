@@ -3,6 +3,7 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import postgres from "postgres";
 import { resolveDatabaseUrl } from "@/server/validation/env";
+import { loadEnv } from "@/server/lib/loadEnv";
 
 /**
  * Minimal SQL migration runner. Applies every *.sql file under ./migrations in
@@ -38,6 +39,7 @@ export async function runMigrations(url: string, log = false): Promise<void> {
 
 // CLI entrypoint
 if (import.meta.url === `file://${process.argv[1]}`) {
+  loadEnv(); // ensure .env is loaded when run directly (not via the test harness)
   runMigrations(resolveDatabaseUrl(), true)
     .then(() => console.log("migrations complete"))
     .catch((err) => {
