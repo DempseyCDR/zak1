@@ -6,7 +6,6 @@ type ListItem = {
   listId: string;
   filename: string;
   kind: "topic" | "derived";
-  note: string | null;
   lastExport: { actor: string | null; rowCount: number; createdAt: string } | null;
 };
 
@@ -80,10 +79,7 @@ export default function ExportsPage() {
         <tbody>
           {items.map((item) => (
             <tr key={item.listId}>
-              <td style={{ padding: 8 }}>
-                {item.filename}
-                {item.note && <div style={{ color: "#666", fontSize: 12 }}>{item.note}</div>}
-              </td>
+              <td style={{ padding: 8 }}>{item.filename}</td>
               <td style={{ padding: 8 }}>
                 {item.lastExport
                   ? `${item.lastExport.rowCount} rows — ${new Date(item.lastExport.createdAt).toLocaleString()}`

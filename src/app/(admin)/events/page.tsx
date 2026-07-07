@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 
 type Series = { id: string; key: string; name: string };
-type Group = { id: string; name: string; kind: string };
+type Group = { id: string; name: string; kind: string | null };
 type EventRow = {
   id: string;
   seriesId: string;
@@ -21,7 +21,7 @@ export default function EventsPage() {
   const [chargesAdmission, setChargesAdmission] = useState(true);
   const [groupId, setGroupId] = useState("");
   const [groupName, setGroupName] = useState("");
-  const [groupKind, setGroupKind] = useState("weekend");
+  const [groupKind, setGroupKind] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   const loadEvents = useCallback(async () => {
@@ -70,7 +70,7 @@ export default function EventsPage() {
     const res = await fetch("/api/event-groups", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: groupName, kind: groupKind }),
+      body: JSON.stringify({ name: groupName, ...(groupKind.trim() ? { kind: groupKind.trim() } : {}) }),
     });
     if (res.ok) {
       const g = await res.json();
@@ -128,12 +128,11 @@ export default function EventsPage() {
       <h2>New event group</h2>
       <div style={{ display: "grid", gap: 6, maxWidth: 420 }}>
         <input placeholder="Group name" value={groupName} onChange={(e) => setGroupName(e.target.value)} />
-        <select value={groupKind} onChange={(e) => setGroupKind(e.target.value)}>
-          <option value="double_dance">Double Dance</option>
-          <option value="weekend">Weekend</option>
-          <option value="jane_austen_ball">Jane Austen Ball</option>
-          <option value="other">Other</option>
-        </select>
+        <input
+          placeholder="Category (optional)"
+          value={groupKind}
+          onChange={(e) => setGroupKind(e.target.value)}
+        />
         <button onClick={createGroup}>Create group</button>
       </div>
     </main>

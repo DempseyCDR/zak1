@@ -5,7 +5,6 @@ export const listIdSchema = z.enum([
   "english",
   "openband",
   "specialevents",
-  "janeaustenball",
   "performer",
   "member",
 ]);

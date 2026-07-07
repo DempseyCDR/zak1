@@ -114,10 +114,10 @@ async function main() {
     }
   }
 
-  // Jane Austen Ball event group + event, for the janeaustenball "most recent year" label (FR-005).
+  // Jane Austen Ball demo event group + event (feature 010: kind is now a free-text category).
   const [jabGroup] = await db
     .insert(eventGroups)
-    .values({ name: "Jane Austen Ball 2026", kind: "jane_austen_ball" })
+    .values({ name: "Jane Austen Ball 2026", kind: "jane austen ball" })
     .returning();
   if (jabGroup && tnc) {
     await db

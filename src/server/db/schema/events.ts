@@ -1,5 +1,4 @@
 import { boolean, date, integer, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
-import { eventGroupKindEnum } from "./enums";
 import { venues } from "./venues";
 
 export const series = pgTable("series", {
@@ -13,7 +12,8 @@ export const series = pgTable("series", {
 export const eventGroups = pgTable("event_groups", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: text("name").notNull(),
-  kind: eventGroupKindEnum("kind").notNull(),
+  // Free-text, optional category (feature 010; was the event_group_kind enum).
+  kind: text("kind"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

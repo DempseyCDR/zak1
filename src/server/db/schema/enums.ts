@@ -40,13 +40,6 @@ export const gateCategoryEnum = pgEnum("gate_category", [
 
 export const paymentMethodEnum = pgEnum("payment_method", ["cash", "card"]);
 
-export const eventGroupKindEnum = pgEnum("event_group_kind", [
-  "double_dance",
-  "weekend",
-  "jane_austen_ball",
-  "other",
-]);
-
 export const performerTypeEnum = pgEnum("performer_type", [
   "caller",
   "lead_musician",
@@ -60,7 +53,6 @@ export type PerformerType = (typeof performerTypeEnum.enumValues)[number];
 
 export type GateCategory = (typeof gateCategoryEnum.enumValues)[number];
 export type PaymentMethod = (typeof paymentMethodEnum.enumValues)[number];
-export type EventGroupKind = (typeof eventGroupKindEnum.enumValues)[number];
 
 export type EmailPurpose = (typeof emailPurposeEnum.enumValues)[number];
 export type EmailStatus = (typeof emailStatusEnum.enumValues)[number];

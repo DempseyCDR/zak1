@@ -16,7 +16,6 @@ export const MAILING_LISTS: MailingListDef[] = [
   { id: "english", kind: "topic", consentTopic: "english", filename: "english.csv" },
   { id: "openband", kind: "topic", consentTopic: "openband", filename: "openband.csv" },
   { id: "specialevents", kind: "topic", consentTopic: "special_events", filename: "specialevents.csv" },
-  { id: "janeaustenball", kind: "topic", consentTopic: "jane_austen_ball", filename: "janeaustenball.csv" },
   { id: "performer", kind: "derived", filename: "performer.csv" },
   { id: "member", kind: "derived", filename: "member.csv" },
 ];

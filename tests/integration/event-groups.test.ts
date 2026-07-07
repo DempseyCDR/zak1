@@ -30,6 +30,25 @@ describe("event groups", () => {
     expect((await eRes.json()).groupId).toBe(group.id);
   });
 
+  // Feature 010: kind is optional free text (FR-006, FR-007, SC-003, SC-006).
+  it("accepts an arbitrary free-text kind and persists it verbatim", async () => {
+    const res = await CREATE_GROUP(
+      jsonReq("POST", "/api/event-groups", { name: "Pride Dance 2026", kind: "double dance" }),
+      ctx(),
+    );
+    expect(res.status).toBe(201);
+    expect((await res.json()).kind).toBe("double dance");
+  });
+
+  it("allows an omitted kind (persists null)", async () => {
+    const res = await CREATE_GROUP(
+      jsonReq("POST", "/api/event-groups", { name: "Uncategorized Group" }),
+      ctx(),
+    );
+    expect(res.status).toBe(201);
+    expect((await res.json()).kind).toBeNull();
+  });
+
   it("rejects an event with an unknown groupId (404 EVENT_GROUP_NOT_FOUND)", async () => {
     const res = await CREATE_EVENT(
       jsonReq("POST", "/api/events", {

@@ -1,6 +1,6 @@
-import { and, desc, eq, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import type { DbOrTx } from "@/server/db/client";
-import { contactEmails, contacts, eventGroups, events, memberships, performers } from "@/server/db/schema";
+import { contactEmails, contacts, memberships, performers } from "@/server/db/schema";
 import { getMailingListDef } from "./mailingLists";
 import { throughYear } from "./throughYear";
 import type { ListId } from "@/server/validation/exports";
@@ -79,17 +79,4 @@ export async function buildListRows(db: DbOrTx, listId: ListId): Promise<Record<
       ),
     );
   return rows.map((r) => baseRow(r.email, r.displayName));
-}
-
-/** Year of the most recent Jane Austen Ball event, for the admin-page label only (Decision 6). */
-export async function getMostRecentJabYear(db: DbOrTx): Promise<number | null> {
-  const [row] = await db
-    .select({ eventDate: events.eventDate })
-    .from(events)
-    .innerJoin(eventGroups, eq(eventGroups.id, events.groupId))
-    .where(eq(eventGroups.kind, "jane_austen_ball"))
-    .orderBy(desc(events.eventDate))
-    .limit(1);
-  if (!row) return null;
-  return Number(row.eventDate.slice(0, 4));
 }

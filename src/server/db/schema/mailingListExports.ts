@@ -6,7 +6,6 @@ export const mailingListIdEnum = pgEnum("mailing_list_id", [
   "english",
   "openband",
   "specialevents",
-  "janeaustenball",
   "performer",
   "member",
   "contact_tracing",

@@ -2,7 +2,8 @@ import { z } from "zod";
 
 export const eventGroupCreateSchema = z.object({
   name: z.string().trim().min(1),
-  kind: z.enum(["double_dance", "weekend", "jane_austen_ball", "other"]),
+  // Free-text, optional category (feature 010; was a fixed enum). Empty/whitespace → omitted (null).
+  kind: z.string().trim().min(1).optional(),
 });
 
 export const eventCreateSchema = z.object({

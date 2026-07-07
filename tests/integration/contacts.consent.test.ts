@@ -45,6 +45,18 @@ describe("email consent topics", () => {
     expect((await res.json()).consentTopics).toEqual(["contra", "english", "special_events"]);
   });
 
+  it("still accepts the jane_austen_ball consent topic (retained by feature 010)", async () => {
+    const id = await createContact();
+    const res = await ADD_EMAIL(
+      jsonReq("POST", `/api/contacts/${id}/emails`, {
+        address: "jab@example.com",
+        consentTopics: ["jane_austen_ball"],
+      }),
+      ctx({ id }),
+    );
+    expect((await res.json()).consentTopics).toEqual(["jane_austen_ball"]);
+  });
+
   it("treats do_not_contact as exclusive/overriding", async () => {
     const id = await createContact();
     const res = await ADD_EMAIL(

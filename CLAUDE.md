@@ -1,7 +1,7 @@
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan
-at specs/007-public-website/plan.md
+at specs/010-retire-jab-mailing-list/plan.md
 <!-- SPECKIT END -->
 
 ## Development conventions (temporary)

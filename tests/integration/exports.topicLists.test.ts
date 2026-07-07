@@ -49,10 +49,8 @@ describe("buildListRows — topic lists", () => {
     expect(rows).toHaveLength(0);
   });
 
-  it("scopes the special-events and JAB list ids to their underscored consent topics", async () => {
+  it("scopes the special-events list id to its underscored consent topic", async () => {
     await makeContactWithEmail({ email: "se@example.com", consentTopics: ["special_events"] });
-    await makeContactWithEmail({ email: "jab@example.com", consentTopics: ["jane_austen_ball"] });
     expect(await buildListRows(db, "specialevents")).toHaveLength(1);
-    expect(await buildListRows(db, "janeaustenball")).toHaveLength(1);
   });
 });
