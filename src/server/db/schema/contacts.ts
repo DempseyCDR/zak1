@@ -4,8 +4,17 @@ import { membershipStatusEnum, volunteerRoleEnum } from "./enums";
 
 export const contacts = pgTable("contacts", {
   id: uuid("id").primaryKey().defaultRandom(),
+  // Structured names (feature 012): first_name required, last_name optional (dancers may decline one).
+  firstName: text("first_name").notNull(),
+  lastName: text("last_name"),
+  // Optional override; when non-blank it is the effective display name.
+  displayNameOverride: text("display_name_override"),
+  pronouns: text("pronouns"),
+  // display_name is the MAINTAINED effective display name (override, else "first last"); used by all
+  // name-display readers. name_normalized is the search key; dedup_normalized is the dedup key.
   displayName: text("display_name").notNull(),
   nameNormalized: text("name_normalized").notNull(),
+  dedupNormalized: text("dedup_normalized").notNull(),
   membershipStatus: membershipStatusEnum("membership_status").notNull().default("never"),
   listMember: boolean("list_member").notNull().default(false),
   statusRecomputedAt: timestamp("status_recomputed_at", { withTimezone: true }),

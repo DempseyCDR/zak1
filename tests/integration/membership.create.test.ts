@@ -16,7 +16,7 @@ describe("POST /api/memberships", () => {
   async function setup() {
     const res = await CREATE(
       jsonReq("POST", "/api/contacts", {
-        displayName: "Member One",
+        firstName: "Member One",
         email: { address: "m1@example.com" },
       }),
       ctx(),

@@ -4,7 +4,7 @@ import { contactEmails, contacts } from "@/server/db/schema";
 import type { ContactRow } from "@/server/db/schema";
 import { errors } from "@/server/lib/apiError";
 import { writeAudit } from "@/server/lib/audit";
-import { normalizeName, uniqueSet } from "./normalize";
+import { deriveContactNames, normalizeName, uniqueSet } from "./normalize";
 import { addEmailInTx } from "./emailService";
 import type { ContactCreateInput, ContactPatchInput } from "@/server/validation/contacts";
 
@@ -18,11 +18,21 @@ export async function createContact(
   actor: string | null = null,
 ): Promise<ContactWithEmails> {
   return db.transaction(async (tx) => {
+    const derived = deriveContactNames({
+      firstName: input.firstName,
+      lastName: input.lastName ?? null,
+      displayNameOverride: input.displayNameOverride ?? null,
+    });
     const [contact] = await tx
       .insert(contacts)
       .values({
-        displayName: input.displayName,
-        nameNormalized: normalizeName(input.displayName),
+        firstName: input.firstName,
+        lastName: input.lastName ?? null,
+        displayNameOverride: input.displayNameOverride ?? null,
+        pronouns: input.pronouns ?? null,
+        displayName: derived.displayName,
+        nameNormalized: derived.nameNormalized,
+        dedupNormalized: derived.dedupNormalized,
         phone: input.phone ?? null,
         // No email and no phone: allow the contact but flag it for admin follow-up.
         needsReview: !input.email && !input.phone,
@@ -71,11 +81,37 @@ export async function patchContact(
 
   if (roles.length > 0 && !isVolunteer) throw errors.rolesRequireVolunteer();
 
+  // Recompute the maintained name values when any name field changes (an override edit, or first/last).
+  const nameChanged =
+    input.firstName !== undefined ||
+    input.lastName !== undefined ||
+    input.displayNameOverride !== undefined;
+  const derived = nameChanged
+    ? deriveContactNames({
+        firstName: input.firstName ?? existing.firstName,
+        lastName: input.lastName !== undefined ? input.lastName : existing.lastName,
+        displayNameOverride:
+          input.displayNameOverride !== undefined
+            ? input.displayNameOverride
+            : existing.displayNameOverride,
+      })
+    : null;
+
   const [updated] = await db
     .update(contacts)
     .set({
-      ...(input.displayName !== undefined
-        ? { displayName: input.displayName, nameNormalized: normalizeName(input.displayName) }
+      ...(input.firstName !== undefined ? { firstName: input.firstName } : {}),
+      ...(input.lastName !== undefined ? { lastName: input.lastName } : {}),
+      ...(input.displayNameOverride !== undefined
+        ? { displayNameOverride: input.displayNameOverride }
+        : {}),
+      ...(input.pronouns !== undefined ? { pronouns: input.pronouns } : {}),
+      ...(derived
+        ? {
+            displayName: derived.displayName,
+            nameNormalized: derived.nameNormalized,
+            dedupNormalized: derived.dedupNormalized,
+          }
         : {}),
       ...(input.phone !== undefined ? { phone: input.phone } : {}),
       isVolunteer,
@@ -90,7 +126,7 @@ export async function patchContact(
 
 export type ContactSummary = Pick<
   ContactRow,
-  "id" | "displayName" | "membershipStatus" | "listMember"
+  "id" | "displayName" | "membershipStatus" | "listMember" | "pronouns"
 >;
 
 /**
@@ -101,20 +137,27 @@ export async function searchContacts(
   db: Db,
   q: string,
   limit = 20,
+  opts: { orderBy?: "recent" | "name" } = {},
 ): Promise<ContactSummary[]> {
   const cols = {
     id: contacts.id,
     displayName: contacts.displayName,
     membershipStatus: contacts.membershipStatus,
     listMember: contacts.listMember,
+    pronouns: contacts.pronouns,
   };
 
   if (!q.trim()) {
+    // Browse the roster: alphabetical by last then first name for the door (FR-007), else most recent.
+    const order =
+      opts.orderBy === "name"
+        ? [sql`${contacts.lastName} ASC NULLS LAST`, contacts.firstName]
+        : [desc(contacts.createdAt)];
     return db
       .select(cols)
       .from(contacts)
       .where(isNull(contacts.mergedIntoId))
-      .orderBy(desc(contacts.createdAt))
+      .orderBy(...order)
       .limit(limit);
   }
 

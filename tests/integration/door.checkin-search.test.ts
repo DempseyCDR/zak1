@@ -13,7 +13,7 @@ describe("GET /api/attendance/search", () => {
   it("returns ranked candidates with emails for disambiguation", async () => {
     await CREATE_CONTACT(
       jsonReq("POST", "/api/contacts", {
-        displayName: "Ada Lovelace",
+        firstName: "Ada Lovelace",
         email: { address: "ada@example.com" },
       }),
       ctx(),

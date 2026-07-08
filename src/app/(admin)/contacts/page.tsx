@@ -7,6 +7,7 @@ type ContactSummary = {
   displayName: string;
   membershipStatus: string;
   listMember: boolean;
+  pronouns: string | null;
 };
 
 const PURPOSES = ["personal", "booking", "public_profile", "other"] as const;
@@ -23,7 +24,10 @@ const TOPICS = [
 export default function ContactsPage() {
   const [q, setQ] = useState("");
   const [items, setItems] = useState<ContactSummary[]>([]);
-  const [displayName, setDisplayName] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [displayNameOverride, setDisplayNameOverride] = useState("");
+  const [pronouns, setPronouns] = useState("");
   const [address, setAddress] = useState("");
   const [phone, setPhone] = useState("");
   const [purposes, setPurposes] = useState<string[]>(["personal"]); // FR-002a default
@@ -50,7 +54,10 @@ export default function ContactsPage() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        displayName,
+        firstName,
+        ...(lastName.trim() ? { lastName: lastName.trim() } : {}),
+        ...(displayNameOverride.trim() ? { displayNameOverride: displayNameOverride.trim() } : {}),
+        ...(pronouns.trim() ? { pronouns: pronouns.trim() } : {}),
         ...(address.trim() ? { email: { address, purposes, consentTopics: topics } } : {}),
         ...(phone.trim() ? { phone: phone.trim() } : {}),
       }),
@@ -63,7 +70,10 @@ export default function ContactsPage() {
     if (!hasContactInfo) {
       setWarning("Contact created with no email or phone on file — flagged for follow-up.");
     }
-    setDisplayName("");
+    setFirstName("");
+    setLastName("");
+    setDisplayNameOverride("");
+    setPronouns("");
     setAddress("");
     setPhone("");
     setPurposes(["personal"]);
@@ -89,7 +99,8 @@ export default function ContactsPage() {
         <ul>
           {items.map((c) => (
             <li key={c.id}>
-              {c.displayName} — <em>{c.membershipStatus}</em>
+              {c.displayName}
+              {c.pronouns ? ` (${c.pronouns})` : ""} — <em>{c.membershipStatus}</em>
             </li>
           ))}
           {items.length === 0 && <li style={{ color: "#888" }}>No contacts</li>}
@@ -100,9 +111,27 @@ export default function ContactsPage() {
         <h2>Add contact</h2>
         <form onSubmit={createContact} style={{ display: "grid", gap: 8 }}>
           <input
-            placeholder="Display name"
-            value={displayName}
-            onChange={(e) => setDisplayName(e.target.value)}
+            placeholder="First name"
+            value={firstName}
+            onChange={(e) => setFirstName(e.target.value)}
+            style={{ padding: 8 }}
+          />
+          <input
+            placeholder="Last name (optional)"
+            value={lastName}
+            onChange={(e) => setLastName(e.target.value)}
+            style={{ padding: 8 }}
+          />
+          <input
+            placeholder="Display name override (optional)"
+            value={displayNameOverride}
+            onChange={(e) => setDisplayNameOverride(e.target.value)}
+            style={{ padding: 8 }}
+          />
+          <input
+            placeholder="Pronouns (optional)"
+            value={pronouns}
+            onChange={(e) => setPronouns(e.target.value)}
             style={{ padding: 8 }}
           />
           <input

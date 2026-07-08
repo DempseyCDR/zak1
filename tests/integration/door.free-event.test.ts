@@ -2,9 +2,8 @@ import { beforeAll, beforeEach, afterAll, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
 import { ensureSchema, resetDb, closeDb, db } from "./helpers/db";
 import { jsonReq, ctx } from "./helpers/http";
-import { makeEvent } from "./helpers/factories";
+import { makeEvent, contactRow } from "./helpers/factories";
 import { contacts, doorRecords, gateSales } from "@/server/db/schema";
-import { normalizeName } from "@/server/domain/contacts/normalize";
 import { POST as ATTEND } from "@/app/api/events/[id]/attendance/route";
 import { POST as CREATE_DR } from "@/app/api/door-records/route";
 import { PUT as PUT_GATE } from "@/app/api/door-records/[id]/gate-sales/route";
@@ -32,7 +31,7 @@ describe("free events", () => {
     const drId = (await drRes.json()).id as string;
     const [donor] = await db
       .insert(contacts)
-      .values({ displayName: "Donor", nameNormalized: normalizeName("Donor") })
+      .values(contactRow("Donor"))
       .returning();
     const res = await PUT_GATE(
       jsonReq("PUT", `/api/door-records/${drId}/gate-sales`, {

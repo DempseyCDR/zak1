@@ -2,7 +2,7 @@ import { beforeAll, beforeEach, afterAll, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
 import { ensureSchema, resetDb, closeDb, db } from "./helpers/db";
 import { contacts, memberships, payers, statusChangeAudit } from "@/server/db/schema";
-import { normalizeName } from "@/server/domain/contacts/normalize";
+import { contactRow } from "./helpers/factories";
 import { refreshAllStatuses } from "@/server/domain/membership/membershipService";
 
 // FR-009, SC-002: daily refresh transitions expired memberships and is idempotent.
@@ -15,7 +15,7 @@ describe("refreshAllStatuses (daily job)", () => {
     // Insert membership directly (bypassing recompute) so the contact starts 'never'.
     const [contact] = await db
       .insert(contacts)
-      .values({ displayName: "Lapsed Person", nameNormalized: normalizeName("Lapsed Person") })
+      .values(contactRow("Lapsed Person"))
       .returning();
     const [payer] = await db.insert(payers).values({ name: "Payer", contactId: contact!.id }).returning();
     await db

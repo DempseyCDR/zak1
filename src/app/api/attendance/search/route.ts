@@ -8,7 +8,8 @@ import { searchContacts } from "@/server/domain/contacts/contactService";
 export const GET = withLogging(async (req) => {
   const url = new URL(req.url);
   const q = url.searchParams.get("q") ?? "";
-  const matches = await searchContacts(db, q);
+  // Door roster: browse alphabetically by last name (feature 012, FR-007); a query ranks by similarity.
+  const matches = await searchContacts(db, q, 20, { orderBy: "name" });
   const ids = matches.map((m) => m.id);
   const emails = ids.length
     ? await db

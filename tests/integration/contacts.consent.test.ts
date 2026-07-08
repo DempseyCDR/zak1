@@ -13,7 +13,7 @@ describe("email consent topics", () => {
   async function createContact() {
     const res = await CREATE(
       jsonReq("POST", "/api/contacts", {
-        displayName: "Consent Test",
+        firstName: "Consent Test",
         email: { address: "consent@example.com" },
       }),
       ctx(),
@@ -24,7 +24,7 @@ describe("email consent topics", () => {
   it("defaults consent topics to ['contact_tracing']", async () => {
     const res = await CREATE(
       jsonReq("POST", "/api/contacts", {
-        displayName: "Default Consent",
+        firstName: "Default Consent",
         email: { address: "dc@example.com" },
       }),
       ctx(),

@@ -4,7 +4,8 @@ export const attendanceSchema = z.union([
   z.object({ contactId: z.string().uuid() }),
   z.object({
     newContact: z.object({
-      displayName: z.string().trim().min(1),
+      firstName: z.string().trim().min(1),
+      lastName: z.string().trim().min(1).optional(),
       email: z.string().trim().email().optional(),
       phone: z.string().trim().min(1).optional(),
     }),

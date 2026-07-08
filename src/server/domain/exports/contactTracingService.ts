@@ -3,7 +3,6 @@ import type { Db } from "@/server/db/client";
 import { attendance, contactEmails, contacts, events } from "@/server/db/schema";
 import { errors } from "@/server/lib/apiError";
 import { listEventAttendance } from "@/server/domain/attendance/attendanceService";
-import { splitDisplayName } from "./exportService";
 
 export type ContactTracingResult = { count: number; rows: Record<string, string>[] };
 
@@ -20,7 +19,7 @@ export async function buildContactTracingRows(db: Db, eventId: string): Promise<
   if (count === 0) return { count: 0, rows: [] };
 
   const qualifying = await db
-    .select({ email: contactEmails.email, displayName: contacts.displayName })
+    .select({ email: contactEmails.email, firstName: contacts.firstName, lastName: contacts.lastName })
     .from(attendance)
     .innerJoin(contacts, eq(contacts.id, attendance.contactId))
     .innerJoin(contactEmails, eq(contactEmails.contactId, contacts.id))
@@ -32,10 +31,12 @@ export async function buildContactTracingRows(db: Db, eventId: string): Promise<
       ),
     );
 
-  const rows = qualifying.map((r) => {
-    const { firstName, lastName } = splitDisplayName(r.displayName);
-    return { email: r.email, first_name: firstName, last_name: lastName, date: event.eventDate };
-  });
+  const rows = qualifying.map((r) => ({
+    email: r.email,
+    first_name: r.firstName,
+    last_name: r.lastName ?? "",
+    date: event.eventDate,
+  }));
 
   return { count, rows };
 }

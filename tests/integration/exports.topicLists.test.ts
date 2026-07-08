@@ -11,7 +11,8 @@ describe("buildListRows — topic lists", () => {
 
   it("includes an active email carrying the list's consent topic", async () => {
     await makeContactWithEmail({
-      displayName: "Ada Lovelace",
+      firstName: "Ada",
+      lastName: "Lovelace",
       email: "ada@example.com",
       consentTopics: ["contra"],
     });
@@ -20,6 +21,15 @@ describe("buildListRows — topic lists", () => {
     expect(rows[0]?.email).toBe("ada@example.com");
     expect(rows[0]?.first_name).toBe("Ada");
     expect(rows[0]?.last_name).toBe("Lovelace");
+  });
+
+  // FR-009, SC-003 — First/Last come from the structured fields; a blank last name → blank cell.
+  it("emits a blank Last Name for a contact with no last name", async () => {
+    await makeContactWithEmail({ firstName: "Cher", email: "cher@example.com", consentTopics: ["contra"] });
+    const rows = await buildListRows(db, "contra");
+    const cher = rows.find((r) => r.email === "cher@example.com");
+    expect(cher?.first_name).toBe("Cher");
+    expect(cher?.last_name).toBe("");
   });
 
   it("excludes an email not carrying the list's topic", async () => {

@@ -35,14 +35,22 @@ export const emailCreateSchema = z
 
 // Email and phone are both optional — a dancer may decline to give either — but
 // callers should warn (not block) when neither is present.
+// Structured names (feature 012): first name required, last name optional (dancers may decline one),
+// display-name override + pronouns optional.
 export const contactCreateSchema = z.object({
-  displayName: z.string().trim().min(1),
+  firstName: z.string().trim().min(1),
+  lastName: z.string().trim().min(1).optional(),
+  displayNameOverride: z.string().trim().min(1).optional(),
+  pronouns: z.string().trim().min(1).optional(),
   email: emailCreateSchema.optional(),
   phone: z.string().trim().min(1).optional(),
 });
 
 export const contactPatchSchema = z.object({
-  displayName: z.string().trim().min(1).optional(),
+  firstName: z.string().trim().min(1).optional(),
+  lastName: z.string().trim().min(1).nullable().optional(),
+  displayNameOverride: z.string().trim().min(1).nullable().optional(),
+  pronouns: z.string().trim().min(1).nullable().optional(),
   phone: z.string().trim().min(1).nullable().optional(),
   isVolunteer: z.boolean().optional(),
   volunteerRoles: z.array(volunteerRole).optional(),

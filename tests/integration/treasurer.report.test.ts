@@ -2,9 +2,8 @@ import { beforeAll, beforeEach, afterAll, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
 import { ensureSchema, resetDb, closeDb, db } from "./helpers/db";
 import { jsonReq, ctx } from "./helpers/http";
-import { makeEvent, makeDoorRecord, makePerformer } from "./helpers/factories";
+import { makeEvent, makeDoorRecord, makePerformer, contactRow } from "./helpers/factories";
 import { contacts, treasurerReportAudit } from "@/server/db/schema";
-import { normalizeName } from "@/server/domain/contacts/normalize";
 import { updateDoorRecord } from "@/server/domain/door/doorRecordService";
 import { createBooking } from "@/server/domain/bookings/bookingService";
 import { GET as REPORT } from "@/app/api/events/[id]/treasurer-report/route";
@@ -24,7 +23,7 @@ describe("GET /api/events/:id/treasurer-report", () => {
     const evt = await makeEvent({ seriesKey: "tnc" });
     const [buyer] = await db
       .insert(contacts)
-      .values({ displayName: "Member Buyer", nameNormalized: normalizeName("Member Buyer") })
+      .values(contactRow("Member Buyer"))
       .returning();
     const drId = await makeDoorRecord(evt.id, [
       { category: "gift_card", paymentMethod: "card", amount: 25 },
@@ -81,11 +80,11 @@ describe("GET /api/events/:id/treasurer-report", () => {
     const evt = await makeEvent({ seriesKey: "tnc" });
     const [a] = await db
       .insert(contacts)
-      .values({ displayName: "Donor A", nameNormalized: normalizeName("Donor A") })
+      .values(contactRow("Donor A"))
       .returning();
     const [b] = await db
       .insert(contacts)
-      .values({ displayName: "Member B", nameNormalized: normalizeName("Member B") })
+      .values(contactRow("Member B"))
       .returning();
     const drId = await makeDoorRecord(evt.id, [
       { category: "merchandise", paymentMethod: "cash", amount: 30 },

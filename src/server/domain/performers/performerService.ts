@@ -4,7 +4,7 @@ import { bookings, contacts, events, performers } from "@/server/db/schema";
 import type { PerformerRow } from "@/server/db/schema";
 import { errors } from "@/server/lib/apiError";
 import { centsToDollars } from "@/server/lib/money";
-import { normalizeName } from "@/server/domain/contacts/normalize";
+import { deriveContactNames } from "@/server/domain/contacts/normalize";
 import { addEmailInTx } from "@/server/domain/contacts/emailService";
 import type { PerformerCreateInput, PerformerPatchInput } from "@/server/validation/performers";
 
@@ -21,11 +21,14 @@ export async function createPerformer(
   return db.transaction(async (tx) => {
     let contactId = input.contactId ?? null;
     if (!contactId) {
+      const names = deriveContactNames({ firstName: input.displayName });
       const [contact] = await tx
         .insert(contacts)
         .values({
-          displayName: input.displayName,
-          nameNormalized: normalizeName(input.displayName),
+          firstName: input.displayName,
+          displayName: names.displayName,
+          nameNormalized: names.nameNormalized,
+          dedupNormalized: names.dedupNormalized,
           phone: input.phone ?? null,
           needsReview: !input.email && !input.phone,
           source: "performer",

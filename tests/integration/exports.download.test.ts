@@ -14,7 +14,8 @@ describe("GET /api/exports/:listId", () => {
 
   it("returns the CSV with the exact filename and records an audit row", async () => {
     await makeContactWithEmail({
-      displayName: "Ada Lovelace",
+      firstName: "Ada",
+      lastName: "Lovelace",
       email: "ada@example.com",
       consentTopics: ["contra"],
     });

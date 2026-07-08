@@ -12,7 +12,7 @@ describe("contact creation with optional email/phone", () => {
 
   it("creates a contact with only a phone number (no email)", async () => {
     const res = await CREATE(
-      jsonReq("POST", "/api/contacts", { displayName: "Phone Only", phone: "585-555-0100" }),
+      jsonReq("POST", "/api/contacts", { firstName: "Phone Only", phone: "585-555-0100" }),
       ctx(),
     );
     expect(res.status).toBe(201);
@@ -24,7 +24,7 @@ describe("contact creation with optional email/phone", () => {
 
   it("creates a contact with neither email nor phone, flagged needsReview", async () => {
     const res = await CREATE(
-      jsonReq("POST", "/api/contacts", { displayName: "No Contact Info" }),
+      jsonReq("POST", "/api/contacts", { firstName: "No Contact Info" }),
       ctx(),
     );
     expect(res.status).toBe(201);
@@ -37,7 +37,7 @@ describe("contact creation with optional email/phone", () => {
   it("does not flag needsReview when an email is given", async () => {
     const res = await CREATE(
       jsonReq("POST", "/api/contacts", {
-        displayName: "Has Email",
+        firstName: "Has Email",
         email: { address: "has-email@example.com" },
       }),
       ctx(),

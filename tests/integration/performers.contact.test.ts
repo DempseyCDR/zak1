@@ -1,6 +1,7 @@
 import { beforeAll, beforeEach, afterAll, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
 import { ensureSchema, resetDb, closeDb, db } from "./helpers/db";
+import { contactRow } from "./helpers/factories";
 import { contactEmails, contacts, performers } from "@/server/db/schema";
 import { createPerformer } from "@/server/domain/performers/performerService";
 
@@ -45,7 +46,7 @@ describe("performer → contact", () => {
   it("reuses an existing contact when one is provided", async () => {
     const [existing] = await db
       .insert(contacts)
-      .values({ displayName: "Existing", nameNormalized: "existing" })
+      .values(contactRow("Existing"))
       .returning();
     const p = await createPerformer(db, { displayName: "Existing", contactId: existing!.id });
     expect(p.contactId).toBe(existing!.id);

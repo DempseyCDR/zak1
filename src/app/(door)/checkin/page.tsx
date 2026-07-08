@@ -65,7 +65,7 @@ export default function CheckinPage() {
     void record(
       {
         newContact: {
-          displayName: newName,
+          firstName: newName,
           ...(newEmail.trim() ? { email: newEmail.trim() } : {}),
           ...(newPhone.trim() ? { phone: newPhone.trim() } : {}),
         },

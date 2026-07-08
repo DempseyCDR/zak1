@@ -18,7 +18,7 @@ import {
   venues,
   venueRents,
 } from "@/server/db/schema";
-import { normalizeName } from "@/server/domain/contacts/normalize";
+import { deriveContactNames } from "@/server/domain/contacts/normalize";
 import { recomputeContactStatus } from "@/server/domain/membership/membershipService";
 import type { EmailConsentTopic } from "@/server/db/schema";
 
@@ -49,8 +49,9 @@ async function main() {
   for (let i = 0; i < total; i += 500) {
     const batch = Array.from({ length: Math.min(500, total - i) }, (_, j) => {
       const n = i + j;
-      const name = `${FIRST[n % FIRST.length]} ${LAST[(n * 7) % LAST.length]} ${n}`;
-      return { displayName: name, nameNormalized: normalizeName(name) };
+      const firstName = FIRST[n % FIRST.length]!;
+      const lastName = `${LAST[(n * 7) % LAST.length]!} ${n}`;
+      return { firstName, lastName, ...deriveContactNames({ firstName, lastName }) };
     });
     const inserted = await db.insert(contacts).values(batch).returning({ id: contacts.id });
     ids.push(...inserted.map((r) => r.id));
@@ -104,7 +105,7 @@ async function main() {
   for (const s of topicSamples) {
     const [contact] = await db
       .insert(contacts)
-      .values({ displayName: s.name, nameNormalized: normalizeName(s.name) })
+      .values({ firstName: s.name, ...deriveContactNames({ firstName: s.name }) })
       .returning();
     if (contact) {
       await db.insert(contactEmails).values({
@@ -114,6 +115,19 @@ async function main() {
       });
     }
   }
+
+  // Demo contacts exercising structured names (feature 012): a nickname override + pronouns, and a
+  // mononym with no last name.
+  await db.insert(contacts).values([
+    {
+      firstName: "Robert",
+      lastName: "Frost",
+      displayNameOverride: "Bob Frost",
+      pronouns: "he/him",
+      ...deriveContactNames({ firstName: "Robert", lastName: "Frost", displayNameOverride: "Bob Frost" }),
+    },
+    { firstName: "Cher", pronouns: "she/her", ...deriveContactNames({ firstName: "Cher" }) },
+  ]);
 
   // Jane Austen Ball demo event group + event (feature 010: kind is now a free-text category).
   const [jabGroup] = await db

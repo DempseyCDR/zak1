@@ -15,7 +15,7 @@ describe("GET /api/events/:id/attendance (attendee list)", () => {
     const evt = await makeEvent();
     const cRes = await CREATE_CONTACT(
       jsonReq("POST", "/api/contacts", {
-        displayName: "Ada Lovelace",
+        firstName: "Ada Lovelace",
         email: { address: "ada@example.com" },
       }),
       ctx(),

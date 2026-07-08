@@ -13,7 +13,7 @@ describe("volunteer roles", () => {
   async function createContact() {
     const res = await CREATE(
       jsonReq("POST", "/api/contacts", {
-        displayName: "Vol Test",
+        firstName: "Vol Test",
         email: { address: "vol@example.com" },
       }),
       ctx(),

@@ -16,7 +16,7 @@ describe("POST /api/events/:id/attendance (new contact)", () => {
     const evt = await makeEvent();
     const res = await ATTEND(
       jsonReq("POST", `/api/events/${evt.id}/attendance`, {
-        newContact: { displayName: "Walk In", email: "walkin@example.com" },
+        newContact: { firstName: "Walk In", email: "walkin@example.com" },
       }),
       ctx({ id: evt.id }),
     );
@@ -32,7 +32,7 @@ describe("POST /api/events/:id/attendance (new contact)", () => {
     const evt = await makeEvent();
     const res = await ATTEND(
       jsonReq("POST", `/api/events/${evt.id}/attendance`, {
-        newContact: { displayName: "Phone Walk In", phone: "585-555-0101" },
+        newContact: { firstName: "Phone Walk In", phone: "585-555-0101" },
       }),
       ctx({ id: evt.id }),
     );
@@ -47,7 +47,7 @@ describe("POST /api/events/:id/attendance (new contact)", () => {
     const evt = await makeEvent();
     const res = await ATTEND(
       jsonReq("POST", `/api/events/${evt.id}/attendance`, {
-        newContact: { displayName: "Declined Contact Info" },
+        newContact: { firstName: "Declined Contact Info" },
       }),
       ctx({ id: evt.id }),
     );

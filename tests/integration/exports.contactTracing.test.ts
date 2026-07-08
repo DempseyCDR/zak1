@@ -1,8 +1,7 @@
 import { beforeAll, beforeEach, afterAll, describe, expect, it } from "vitest";
 import { ensureSchema, resetDb, closeDb, db } from "./helpers/db";
-import { makeContactWithEmail, makeEvent } from "./helpers/factories";
+import { makeContactWithEmail, makeEvent, contactRow } from "./helpers/factories";
 import { attendance, contacts } from "@/server/db/schema";
-import { normalizeName } from "@/server/domain/contacts/normalize";
 import { buildContactTracingRows } from "@/server/domain/exports/contactTracingService";
 
 // FR-006, FR-006a, FR-002a, FR-003, FR-011, SC-005
@@ -15,7 +14,8 @@ describe("buildContactTracingRows", () => {
     const evt = await makeEvent({ eventDate: "2026-06-18" });
 
     const consented = await makeContactWithEmail({
-      displayName: "Ada Lovelace",
+      firstName: "Ada",
+      lastName: "Lovelace",
       email: "ada@example.com",
       consentTopics: ["contact_tracing"],
     });
@@ -30,7 +30,7 @@ describe("buildContactTracingRows", () => {
     });
     const [noEmailContact] = await db
       .insert(contacts)
-      .values({ displayName: "No Email", nameNormalized: normalizeName("No Email") })
+      .values(contactRow("No Email"))
       .returning();
 
     await db.insert(attendance).values([

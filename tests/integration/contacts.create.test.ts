@@ -12,7 +12,7 @@ describe("POST /api/contacts", () => {
   it("creates a contact with status 'never' and a stable id", async () => {
     const res = await POST(
       jsonReq("POST", "/api/contacts", {
-        displayName: "Ada Lovelace",
+        firstName: "Ada Lovelace",
         email: { address: "ada@example.com" },
       }),
       ctx(),
@@ -29,14 +29,14 @@ describe("POST /api/contacts", () => {
   it("rejects a duplicate active email with 409 EMAIL_DUPLICATE", async () => {
     await POST(
       jsonReq("POST", "/api/contacts", {
-        displayName: "First",
+        firstName: "First",
         email: { address: "dup@example.com" },
       }),
       ctx(),
     );
     const res = await POST(
       jsonReq("POST", "/api/contacts", {
-        displayName: "Second",
+        firstName: "Second",
         email: { address: "DUP@example.com" }, // case-insensitive match
       }),
       ctx(),

@@ -2,7 +2,7 @@ import { beforeAll, beforeEach, afterAll, describe, expect, it } from "vitest";
 import { isNull } from "drizzle-orm";
 import { ensureSchema, resetDb, closeDb, db } from "./helpers/db";
 import { contacts, mergeAudit } from "@/server/db/schema";
-import { normalizeName } from "@/server/domain/contacts/normalize";
+import { contactRow } from "./helpers/factories";
 import { GET as SUGGESTIONS } from "@/app/api/dedup/suggestions/route";
 import { jsonReq, ctx } from "./helpers/http";
 
@@ -14,8 +14,8 @@ describe("dedup suggestions have no side effects", () => {
 
   it("does not merge or retire any contact when suggestions are generated", async () => {
     await db.insert(contacts).values([
-      { displayName: "Pat Doe", nameNormalized: normalizeName("Pat Doe") },
-      { displayName: "Patt Doe", nameNormalized: normalizeName("Patt Doe") },
+      contactRow("Pat Doe"),
+      contactRow("Patt Doe"),
     ]);
 
     await SUGGESTIONS(jsonReq("GET", "/api/dedup/suggestions"), ctx());

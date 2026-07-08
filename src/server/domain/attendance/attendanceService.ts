@@ -3,7 +3,7 @@ import type { Db } from "@/server/db/client";
 import { attendance, contactEmails, contacts, events } from "@/server/db/schema";
 import type { AttendanceRow } from "@/server/db/schema";
 import { errors } from "@/server/lib/apiError";
-import { normalizeName } from "@/server/domain/contacts/normalize";
+import { deriveContactNames } from "@/server/domain/contacts/normalize";
 import type { AttendanceInput } from "@/server/validation/attendance";
 
 const UNIQUE_VIOLATION = "23505";
@@ -29,11 +29,18 @@ export async function recordAttendance(
     });
     if (dup) throw errors.alreadyCheckedIn();
   } else if ("newContact" in input) {
+    const names = deriveContactNames({
+      firstName: input.newContact.firstName,
+      lastName: input.newContact.lastName ?? null,
+    });
     const [created] = await db
       .insert(contacts)
       .values({
-        displayName: input.newContact.displayName,
-        nameNormalized: normalizeName(input.newContact.displayName),
+        firstName: input.newContact.firstName,
+        lastName: input.newContact.lastName ?? null,
+        displayName: names.displayName,
+        nameNormalized: names.nameNormalized,
+        dedupNormalized: names.dedupNormalized,
         phone: input.newContact.phone ?? null,
         needsReview: true,
         source: "door",

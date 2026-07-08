@@ -8,9 +8,9 @@ export type MergeSuggestion = {
 };
 
 /**
- * Surface likely-duplicate contact pairs via pg_trgm similarity on normalized
- * names. Only non-merged contacts; each unordered pair appears once (a.id<b.id).
- * Suggestions only — no side effects, no automatic merges.
+ * Surface likely-duplicate contact pairs via pg_trgm similarity on the structured-name dedup key
+ * (`dedup_normalized` = first+last), so a display-name override cannot mask a duplicate (feature 012).
+ * Only non-merged contacts; each unordered pair appears once (a.id<b.id). Suggestions only — no merges.
  */
 export async function getMergeSuggestions(
   db: Db,
@@ -28,14 +28,14 @@ export async function getMergeSuggestions(
   }>(sql`
     SELECT a.id AS a_id, a.display_name AS a_name, a.membership_status AS a_status,
            b.id AS b_id, b.display_name AS b_name, b.membership_status AS b_status,
-           similarity(a.name_normalized, b.name_normalized) AS sim
+           similarity(a.dedup_normalized, b.dedup_normalized) AS sim
     FROM contacts a
     JOIN contacts b
       ON a.id < b.id
      AND a.merged_into_id IS NULL
      AND b.merged_into_id IS NULL
-     AND a.name_normalized % b.name_normalized
-    WHERE similarity(a.name_normalized, b.name_normalized) >= ${threshold}
+     AND a.dedup_normalized % b.dedup_normalized
+    WHERE similarity(a.dedup_normalized, b.dedup_normalized) >= ${threshold}
     ORDER BY sim DESC
     LIMIT ${limit}
   `);

@@ -1,7 +1,7 @@
 import { beforeAll, beforeEach, afterAll, describe, expect, it } from "vitest";
 import { ensureSchema, resetDb, closeDb, db } from "./helpers/db";
 import { contacts } from "@/server/db/schema";
-import { normalizeName } from "@/server/domain/contacts/normalize";
+import { contactRow } from "./helpers/factories";
 import { GET as SUGGESTIONS } from "@/app/api/dedup/suggestions/route";
 import { jsonReq, ctx } from "./helpers/http";
 
@@ -12,7 +12,7 @@ describe("GET /api/dedup/suggestions", () => {
   afterAll(closeDb);
 
   async function seed(name: string) {
-    await db.insert(contacts).values({ displayName: name, nameNormalized: normalizeName(name) });
+    await db.insert(contacts).values(contactRow(name));
   }
 
   it("surfaces similar-name pairs with a similarity score", async () => {

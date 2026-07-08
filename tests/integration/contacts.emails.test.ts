@@ -13,7 +13,7 @@ describe("contact emails", () => {
   async function createContact() {
     const res = await CREATE(
       jsonReq("POST", "/api/contacts", {
-        displayName: "Grace Hopper",
+        firstName: "Grace Hopper",
         email: { address: "grace@example.com" },
       }),
       ctx(),
@@ -24,7 +24,7 @@ describe("contact emails", () => {
   it("defaults purposes to ['personal'] when omitted", async () => {
     const res = await CREATE(
       jsonReq("POST", "/api/contacts", {
-        displayName: "Default Purpose",
+        firstName: "Default Purpose",
         email: { address: "dp@example.com" },
       }),
       ctx(),

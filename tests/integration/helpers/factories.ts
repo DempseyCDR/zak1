@@ -2,7 +2,7 @@ import { db } from "./db";
 import { createEvent } from "@/server/domain/events/eventService";
 import { createPerformer } from "@/server/domain/performers/performerService";
 import { createDoorRecord, putGateSales } from "@/server/domain/door/doorRecordService";
-import { normalizeName } from "@/server/domain/contacts/normalize";
+import { deriveContactNames } from "@/server/domain/contacts/normalize";
 import { contactEmails, contacts } from "@/server/db/schema";
 import type { EventRow, PerformerRow } from "@/server/db/schema";
 import type { GateCategory, PaymentMethod } from "@/server/db/schema";
@@ -26,21 +26,49 @@ export async function makePerformer(displayName = "Test Performer"): Promise<Per
   return createPerformer(db, { displayName });
 }
 
+/**
+ * Insert-values for a contact created directly in a test (bypassing the API): the given name becomes
+ * first_name (last blank) and fills the maintained display/normalized/dedup columns — so display,
+ * search, and dedup behave exactly as they did before feature 012's structured names.
+ */
+export function contactRow(displayName: string): {
+  firstName: string;
+  displayName: string;
+  nameNormalized: string;
+  dedupNormalized: string;
+} {
+  return { firstName: displayName, ...deriveContactNames({ firstName: displayName }) };
+}
+
 /** Create a contact with a single email, for export-qualification tests. */
 export async function makeContactWithEmail(opts: {
+  /** Backward-compatible: used as firstName when firstName is not given. */
   displayName?: string;
+  firstName?: string;
+  lastName?: string;
+  displayNameOverride?: string;
   email: string;
   consentTopics?: EmailConsentTopic[];
   emailStatus?: EmailStatus;
   listMember?: boolean;
   membershipStatus?: MembershipStatus;
 }): Promise<{ contactId: string; emailId: string }> {
-  const displayName = opts.displayName ?? "Test Contact";
+  const firstName = opts.firstName ?? opts.displayName ?? "Test Contact";
+  const lastName = opts.lastName ?? null;
+  const names = deriveContactNames({
+    firstName,
+    lastName,
+    displayNameOverride: opts.displayNameOverride ?? null,
+  });
   const [contact] = await db
     .insert(contacts)
     .values({
-      displayName,
-      nameNormalized: normalizeName(displayName),
+      firstName,
+      lastName,
+      displayNameOverride: opts.displayNameOverride ?? null,
+      displayName: names.displayName,
+      nameNormalized: names.nameNormalized,
+      dedupNormalized: names.dedupNormalized,
       listMember: opts.listMember ?? false,
       membershipStatus: opts.membershipStatus ?? "never",
     })

@@ -15,7 +15,7 @@ describe("POST /api/events/:id/attendance (existing contact)", () => {
     const evt = await makeEvent();
     const cRes = await CREATE_CONTACT(
       jsonReq("POST", "/api/contacts", {
-        displayName: "Grace Hopper",
+        firstName: "Grace Hopper",
         email: { address: "grace@example.com" },
       }),
       ctx(),

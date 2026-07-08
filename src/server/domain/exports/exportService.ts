@@ -5,20 +5,9 @@ import { getMailingListDef } from "./mailingLists";
 import { throughYear } from "./throughYear";
 import type { ListId } from "@/server/validation/exports";
 
-/** Split on the last whitespace boundary: remainder = first name, final token = last name (FR-011). */
-export function splitDisplayName(displayName: string): { firstName: string; lastName: string } {
-  const trimmed = displayName.trim();
-  const lastSpace = trimmed.lastIndexOf(" ");
-  if (lastSpace === -1) return { firstName: "", lastName: trimmed };
-  return {
-    firstName: trimmed.slice(0, lastSpace).trim(),
-    lastName: trimmed.slice(lastSpace + 1).trim(),
-  };
-}
-
-function baseRow(email: string, displayName: string): Record<string, string> {
-  const { firstName, lastName } = splitDisplayName(displayName);
-  return { email, first_name: firstName, last_name: lastName };
+// First/Last come straight from the structured contact fields (feature 012); blank last → blank cell.
+function baseRow(email: string, firstName: string, lastName: string | null): Record<string, string> {
+  return { email, first_name: firstName, last_name: lastName ?? "" };
 }
 
 /** Rows for one of the 7 fixed mailing lists (topic or derived), FR-002/FR-002a/FR-003/FR-011. */
@@ -27,7 +16,7 @@ export async function buildListRows(db: DbOrTx, listId: ListId): Promise<Record<
 
   if (def.kind === "topic") {
     const rows = await db
-      .select({ email: contactEmails.email, displayName: contacts.displayName })
+      .select({ email: contactEmails.email, firstName: contacts.firstName, lastName: contacts.lastName })
       .from(contactEmails)
       .innerJoin(contacts, eq(contacts.id, contactEmails.contactId))
       .where(
@@ -36,14 +25,15 @@ export async function buildListRows(db: DbOrTx, listId: ListId): Promise<Record<
           sql`${def.consentTopic}::email_consent_topic = ANY(${contactEmails.consentTopics})`,
         ),
       );
-    return rows.map((r) => baseRow(r.email, r.displayName));
+    return rows.map((r) => baseRow(r.email, r.firstName, r.lastName));
   }
 
   if (listId === "member") {
     const rows = await db
       .select({
         email: contactEmails.email,
-        displayName: contacts.displayName,
+        firstName: contacts.firstName,
+        lastName: contacts.lastName,
         membershipStatus: contacts.membershipStatus,
         maxExpiry: sql<string | null>`(SELECT MAX(${memberships.expiryDate}) FROM ${memberships} WHERE ${memberships.contactId} = ${contacts.id})`,
       })
@@ -59,7 +49,7 @@ export async function buildListRows(db: DbOrTx, listId: ListId): Promise<Record<
     return rows.map((r) => {
       const year = throughYear(r.maxExpiry);
       return {
-        ...baseRow(r.email, r.displayName),
+        ...baseRow(r.email, r.firstName, r.lastName),
         membership_status: r.membershipStatus,
         membership_through_year: year === null ? "" : String(year),
       };
@@ -68,7 +58,7 @@ export async function buildListRows(db: DbOrTx, listId: ListId): Promise<Record<
 
   // performer — selectDistinct guards against a contact linked to more than one performers row
   const rows = await db
-    .selectDistinct({ email: contactEmails.email, displayName: contacts.displayName })
+    .selectDistinct({ email: contactEmails.email, firstName: contacts.firstName, lastName: contacts.lastName })
     .from(contactEmails)
     .innerJoin(contacts, eq(contacts.id, contactEmails.contactId))
     .innerJoin(performers, eq(performers.contactId, contacts.id))
@@ -78,5 +68,5 @@ export async function buildListRows(db: DbOrTx, listId: ListId): Promise<Record<
         sql`NOT ('do_not_contact'::email_consent_topic = ANY(${contactEmails.consentTopics}))`,
       ),
     );
-  return rows.map((r) => baseRow(r.email, r.displayName));
+  return rows.map((r) => baseRow(r.email, r.firstName, r.lastName));
 }

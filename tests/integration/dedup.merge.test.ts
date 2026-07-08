@@ -15,7 +15,7 @@ describe("POST /api/dedup/merge", () => {
 
   async function createContact(name: string, address: string) {
     const res = await CREATE(
-      jsonReq("POST", "/api/contacts", { displayName: name, email: { address } }),
+      jsonReq("POST", "/api/contacts", { firstName: name, email: { address } }),
       ctx(),
     );
     return (await res.json()).id as string;
