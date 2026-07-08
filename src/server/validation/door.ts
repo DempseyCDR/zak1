@@ -11,6 +11,10 @@ export const eventCreateSchema = z.object({
   eventDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "eventDate must be YYYY-MM-DD"),
   chargesAdmission: z.boolean().default(true),
   groupId: z.string().uuid().optional(),
+  // Feature 013: optional label, venue-local wall-clock start time (HH:MM), and public description.
+  label: z.string().trim().min(1).optional(),
+  startTime: z.string().regex(/^\d{2}:\d{2}$/, "startTime must be HH:MM").optional(),
+  description: z.string().trim().min(1).optional(),
 });
 
 export const doorRecordCreateSchema = z.object({

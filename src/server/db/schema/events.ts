@@ -1,4 +1,4 @@
-import { boolean, date, integer, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { boolean, date, integer, pgTable, text, time, timestamp, uuid } from "drizzle-orm/pg-core";
 import { venues } from "./venues";
 
 export const series = pgTable("series", {
@@ -25,6 +25,11 @@ export const events = pgTable("events", {
   groupId: uuid("group_id").references(() => eventGroups.id),
   venueId: uuid("venue_id").references(() => venues.id, { onDelete: "set null" }),
   eventDate: date("event_date").notNull(),
+  // Display/identification fields (feature 013), all optional. start_time is a venue-local wall-clock
+  // time (no time zone); label distinguishes same-day group members; description is a public blurb.
+  label: text("label"),
+  startTime: time("start_time"),
+  description: text("description"),
   chargesAdmission: boolean("charges_admission").notNull().default(true),
   // Per-event rent override / direct rent (feature 011). NULL = resolve from venue_rents layers.
   rentCents: integer("rent_cents"),

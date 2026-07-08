@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { formatWallClock } from "@/server/domain/public/wallClock";
 
 type Series = { id: string; key: string; name: string };
 type Group = { id: string; name: string; kind: string | null };
@@ -11,6 +12,9 @@ type EventRow = {
   eventDate: string;
   chargesAdmission: boolean;
   rentCents: number | null;
+  label: string | null;
+  startTime: string | null;
+  description: string | null;
 };
 
 export default function EventsPage() {
@@ -20,6 +24,9 @@ export default function EventsPage() {
   const [seriesKey, setSeriesKey] = useState("");
   const [eventDate, setEventDate] = useState("");
   const [chargesAdmission, setChargesAdmission] = useState(true);
+  const [label, setLabel] = useState("");
+  const [startTime, setStartTime] = useState("");
+  const [description, setDescription] = useState("");
   const [groupId, setGroupId] = useState("");
   const [groupName, setGroupName] = useState("");
   const [groupKind, setGroupKind] = useState("");
@@ -74,6 +81,9 @@ export default function EventsPage() {
         eventDate,
         chargesAdmission,
         ...(groupId ? { groupId } : {}),
+        ...(label.trim() ? { label: label.trim() } : {}),
+        ...(startTime ? { startTime } : {}),
+        ...(description.trim() ? { description: description.trim() } : {}),
       }),
     });
     if (!res.ok) {
@@ -81,6 +91,9 @@ export default function EventsPage() {
       return;
     }
     setEventDate("");
+    setLabel("");
+    setStartTime("");
+    setDescription("");
     void loadEvents();
   }
 
@@ -106,7 +119,9 @@ export default function EventsPage() {
       <ul>
         {events.map((ev) => (
           <li key={ev.id}>
-            {ev.eventDate} — {seriesKeyById(ev.seriesId)}
+            {ev.eventDate}
+            {ev.startTime ? ` ${formatWallClock(ev.startTime)}` : ""} — {seriesKeyById(ev.seriesId)}
+            {ev.label ? ` · ${ev.label}` : ""}
             {ev.chargesAdmission ? "" : " (free)"}
             {ev.groupId ? ` · group ${groups.find((g) => g.id === ev.groupId)?.name ?? ev.groupId}` : ""}
             {ev.rentCents != null ? ` · rent $${(ev.rentCents / 100).toFixed(2)}` : ""}
@@ -126,6 +141,22 @@ export default function EventsPage() {
           type="date"
           value={eventDate}
           onChange={(e) => setEventDate(e.target.value)}
+        />
+        <input
+          placeholder="Label (optional, e.g. Afternoon)"
+          value={label}
+          onChange={(e) => setLabel(e.target.value)}
+        />
+        <label>
+          Start time (optional)
+          <br />
+          <input type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} />
+        </label>
+        <textarea
+          placeholder="Description (optional, shown on the public site)"
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          rows={3}
         />
         <label>
           <input

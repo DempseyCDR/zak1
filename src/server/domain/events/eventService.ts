@@ -41,10 +41,31 @@ export async function createEvent(db: Db, input: EventCreateInput): Promise<Even
       groupId: input.groupId ?? null,
       eventDate: input.eventDate,
       chargesAdmission: input.chargesAdmission,
+      label: input.label ?? null,
+      startTime: input.startTime ?? null,
+      description: input.description ?? null,
     })
     .returning();
   if (!row) throw new Error("event insert failed");
   return row;
+}
+
+/** Set/clear an event's display fields (feature 013). Only provided keys are applied; null clears. */
+export async function updateEventDetails(
+  db: Db,
+  eventId: string,
+  input: { label?: string | null; startTime?: string | null; description?: string | null },
+): Promise<void> {
+  const event = await db.query.events.findFirst({ where: eq(events.id, eventId) });
+  if (!event) throw errors.eventNotFound();
+  await db
+    .update(events)
+    .set({
+      ...(input.label !== undefined ? { label: input.label } : {}),
+      ...(input.startTime !== undefined ? { startTime: input.startTime } : {}),
+      ...(input.description !== undefined ? { description: input.description } : {}),
+    })
+    .where(eq(events.id, eventId));
 }
 
 export async function listEvents(db: Db, from?: string, to?: string): Promise<EventRow[]> {

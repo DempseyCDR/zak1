@@ -87,9 +87,30 @@ async function main() {
   if (tnc) {
     const [evt] = await db
       .insert(events)
-      .values({ seriesId: tnc.id, eventDate: "2026-06-18", chargesAdmission: true, venueId: venue?.id ?? null })
+      .values({
+        seriesId: tnc.id,
+        eventDate: "2026-06-18",
+        chargesAdmission: true,
+        venueId: venue?.id ?? null,
+        startTime: "19:30",
+        description: "Contra with a live band and a friendly caller — beginners welcome.",
+      })
       .returning();
     if (evt) await db.insert(doorRecords).values({ eventId: evt.id });
+
+    // A same-day double dance (feature 013): two labeled events in one group on one date.
+    const [doubleDance] = await db
+      .insert(eventGroups)
+      .values({ name: "Pride Dance 2026", kind: "double dance" })
+      .returning();
+    if (doubleDance) {
+      await db.insert(events).values([
+        { seriesId: tnc.id, eventDate: "2026-06-27", chargesAdmission: true, venueId: venue?.id ?? null,
+          groupId: doubleDance.id, label: "Afternoon", startTime: "14:00" },
+        { seriesId: tnc.id, eventDate: "2026-06-27", chargesAdmission: true, venueId: venue?.id ?? null,
+          groupId: doubleDance.id, label: "Evening", startTime: "19:30" },
+      ]);
+    }
   }
 
   // Sample contacts for feature 006 (iContact export) manual testing — one per consent topic.

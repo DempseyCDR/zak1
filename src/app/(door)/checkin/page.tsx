@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 
-type EventRow = { id: string; eventDate: string; seriesId: string };
+type EventRow = { id: string; eventDate: string; seriesId: string; label: string | null };
 type Candidate = { id: string; displayName: string; membershipStatus: string; emails: string[] };
 
 export default function CheckinPage() {
@@ -87,6 +87,7 @@ export default function CheckinPage() {
           {events.map((e) => (
             <option key={e.id} value={e.id}>
               {e.eventDate}
+              {e.label ? ` — ${e.label}` : ""}
             </option>
           ))}
         </select>

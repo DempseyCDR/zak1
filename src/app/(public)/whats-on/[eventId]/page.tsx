@@ -9,8 +9,18 @@ export default async function PublicEventPage({ params }: { params: Promise<{ ev
 
   return (
     <main style={{ padding: 24, maxWidth: 720 }}>
-      <h1>{detail.activity}</h1>
-      <p style={{ color: "#444" }}>{detail.date}</p>
+      <h1>
+        {detail.activity}
+        {detail.label ? ` — ${detail.label}` : ""}
+      </h1>
+      <p style={{ color: "#444" }}>
+        {detail.date}
+        {detail.startTime ? ` · ${detail.startTime}` : ""}
+      </p>
+
+      {detail.description && (
+        <p style={{ whiteSpace: "pre-line", margin: "12px 0" }}>{detail.description}</p>
+      )}
 
       {detail.venue && (
         <section style={{ marginBottom: 16 }}>
