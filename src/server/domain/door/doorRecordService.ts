@@ -20,6 +20,7 @@ export type DoorRecordView = {
   cashPaidOutReason: string | null;
   deposit: number;
   giftCardRedemptionCount: number;
+  compCount: number;
 };
 
 function toView(row: DoorRecordRow): DoorRecordView {
@@ -34,6 +35,7 @@ function toView(row: DoorRecordRow): DoorRecordView {
     cashPaidOutReason: row.cashPaidOutReason,
     deposit: centsToDollars(row.depositCents),
     giftCardRedemptionCount: row.giftCardRedemptionCount,
+    compCount: row.compCount,
   };
 }
 
@@ -115,6 +117,7 @@ export async function updateDoorRecord(
       posFeeCents: fee,
       depositCents: deposit,
       giftCardRedemptionCount: input.giftCardRedemptionCount ?? current.giftCardRedemptionCount,
+      compCount: input.compCount ?? current.compCount,
       updatedAt: new Date(),
     })
     .where(eq(doorRecords.id, id))

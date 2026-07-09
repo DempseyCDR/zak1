@@ -18,6 +18,9 @@ export const doorRecords = pgTable("door_records", {
   cashPaidOutReason: text("cash_paid_out_reason"),
   depositCents: integer("deposit_cents").notNull().default(0),
   giftCardRedemptionCount: integer("gift_card_redemption_count").notNull().default(0),
+  // Feature 014: people admitted free ("next dance free" + performers' guests), one combined count.
+  // Distinct from giftCardRedemptionCount; subtracted from paying dancers in the organizer report.
+  compCount: integer("comp_count").notNull().default(0),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });

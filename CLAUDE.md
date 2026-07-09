@@ -1,7 +1,7 @@
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan
-at specs/013-event-label-start-time/plan.md
+at specs/014-door-comp-count/plan.md
 <!-- SPECKIT END -->
 
 ## Development conventions (temporary)

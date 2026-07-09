@@ -56,7 +56,7 @@ export async function assembleOrganizerReport(
     const { bookings, performerTotal } = await getBookingsForEvent(db, ev.id);
     const performerTotalCents = bookings.reduce((a, b) => a + b.payCents, 0);
     const performerCount = new Set(bookings.map((b) => b.performerId)).size;
-    const dancers = payingDancers(ev.attendanceCount, performerCount);
+    const dancers = payingDancers(ev.attendanceCount, performerCount, gate.compCount);
 
     const rentCents = await resolveEventRentCents(db, ev);
     const ongoingCents = await resolveOngoingTotalCents(db, ev.seriesId, ev.eventDate);

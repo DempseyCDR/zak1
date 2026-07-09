@@ -18,9 +18,16 @@ export function danceNetCents(i: {
   );
 }
 
-/** paying dancers = attendance − distinct performers − 1 (door attendant), floored at 0 (FR-013). */
-export function payingDancers(attendanceCount: number, performerCount: number): number {
-  return Math.max(0, attendanceCount - performerCount - 1);
+/**
+ * paying dancers = attendance − distinct performers − 1 (door attendant) − comps, floored at 0.
+ * comps (feature 014) = people admitted free; default 0 keeps historical callers unchanged (FR-013, FR-003).
+ */
+export function payingDancers(
+  attendanceCount: number,
+  performerCount: number,
+  compCount = 0,
+): number {
+  return Math.max(0, attendanceCount - performerCount - 1 - compCount);
 }
 
 /** Avg Ticket cents = admission ÷ paying dancers (no fee subtraction, FR-006); 0 when no dancers. */

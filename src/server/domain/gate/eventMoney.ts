@@ -27,6 +27,7 @@ export type EventGate = {
   cardGrossCents: number;
   cardFeeCents: number; // door card fee (pos_fee_cents)
   depositCents: number;
+  compCount: number; // feature 014: people admitted free; subtracted from paying dancers
 };
 
 function zero(): EventGate {
@@ -44,6 +45,7 @@ function zero(): EventGate {
     cardGrossCents: 0,
     cardFeeCents: 0,
     depositCents: 0,
+    compCount: 0,
   };
 }
 
@@ -78,5 +80,6 @@ export async function computeEventGate(db: DbOrTx, eventId: string): Promise<Eve
     cardGrossCents: door.pcGrossCents,
     cardFeeCents: door.posFeeCents,
     depositCents: door.depositCents,
+    compCount: door.compCount,
   };
 }

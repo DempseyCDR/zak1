@@ -32,6 +32,8 @@ export const doorRecordPatchSchema = z.object({
   cashPaidOut: z.number().min(0).optional(),
   cashPaidOutReason: z.string().min(1).optional(),
   giftCardRedemptionCount: z.number().int().min(0).optional(),
+  // Feature 014: comps (people admitted free), a distinct count from gift-card redemptions.
+  compCount: z.number().int().min(0).optional(),
 });
 
 // Admission is never an entered gate line — it is derived in the report.

@@ -96,7 +96,8 @@ async function main() {
         description: "Contra with a live band and a friendly caller — beginners welcome.",
       })
       .returning();
-    if (evt) await db.insert(doorRecords).values({ eventId: evt.id });
+    // comp_count (feature 014): two people admitted free, so dev data exercises the paying-dancer subtraction.
+    if (evt) await db.insert(doorRecords).values({ eventId: evt.id, compCount: 2 });
 
     // A same-day double dance (feature 013): two labeled events in one group on one date.
     const [doubleDance] = await db

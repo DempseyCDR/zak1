@@ -40,6 +40,7 @@ export default function GatePage() {
   const [seedFloat, setSeedFloat] = useState("15");
   const [cashPaidOut, setCashPaidOut] = useState("");
   const [cashPaidOutReason, setCashPaidOutReason] = useState("");
+  const [compCount, setCompCount] = useState("");
   const [deposit, setDeposit] = useState<number | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   // contact search for adding a named line
@@ -153,6 +154,7 @@ export default function GatePage() {
         pcGross: Number(pcGross) || 0,
         seedFloat: Number(seedFloat) || 0,
         cashPaidOut: Number(cashPaidOut) || 0,
+        compCount: Number(compCount) || 0,
         ...(cashPaidOutReason ? { cashPaidOutReason } : {}),
       }),
     });
@@ -262,6 +264,7 @@ export default function GatePage() {
         <label>Seed float <input value={seedFloat} onChange={(e) => setSeedFloat(e.target.value)} /></label>
         <label>Cash paid out <input value={cashPaidOut} onChange={(e) => setCashPaidOut(e.target.value)} /></label>
         <label>Payout reason <input value={cashPaidOutReason} onChange={(e) => setCashPaidOutReason(e.target.value)} /></label>
+        <label>Comps (admitted free) <input value={compCount} onChange={(e) => setCompCount(e.target.value)} /></label>
         <button onClick={save} disabled={!doorRecordId}>Save</button>
       </div>
 
