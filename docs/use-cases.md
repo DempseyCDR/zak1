@@ -167,7 +167,20 @@ authenticated roles inherit the Organizer base (read oversight). ⚠️ = inferr
 3. Record a **gift-card redemption** at check-in — counts only (B29).
 4. Take admission at the door (collect cash for the FS; card via the POS device).
 5. Hand off / confirm the comp & gift-card counts with the FS.
-6. **Boundary:** no `/gate` access.
+6. Review the **roster of attendees already checked in** for the event, **sortable by first name and by
+   last name** (B33). Distinct from the directory search used to *find* people to check in.
+7. Add a **new contact** at check-in — enter **first + last name**; the display name is auto-concatenated
+   ("first last") and **editable** by the Door Attendant (B34).
+8. **Family check-in** (community dance): one parent contact + a **count of children** (B35).
+9. **Open-band musician check-in** (community dance): note an **unpaid, non-leading** open-band musician;
+   they are **comp'd into the paired regular contra dance** in the same event group (B36).
+10. **Boundary:** no `/gate` access.
+
+> **Community dance** — an **event type** (B37) on a **tnc**-series event, paired (via `event_group`) with
+> a regular contra dance. Special check-in rules: families check in as one parent + a **children count**
+> (children **count as paying**) (B35); and it runs on a mix of **paid musicians** (booked) plus
+> **open-band musicians** (unpaid volunteers) who earn a cross-event comp into the paired contra dance and
+> **count as attending** (B36).
 
 ### 5.4 Treasurer (club-wide officer)
 
@@ -243,5 +256,11 @@ settings → **President**; venue data needs no dedicated role (**Treasurer + Bo
 | B29 | Comp & gift-card counts captured at check-in (Door Attendant → FS); resolves B21 |
 | B30 | Online membership purchase (PayPal buy button) |
 | B31 | Door membership enrollment — link gate `membership` payment to a membership record |
+| B32 | User authentication / login + session foundation (staff roles) — **prerequisite, spec first** |
+| B33 | Door Attendant checked-in roster view — sortable by first / last name |
+| B34 | Check-in new-contact capture — first + last name + editable display name |
+| B35 | Family check-in — one parent contact + a children count (community dance) |
+| B36 | Open-band musician check-in → comp into the paired event-group contra dance |
+| B37 | Community dance event type (drives B35/B36 rules) |
 
 See [`../specs/BACKLOG.md`](../specs/BACKLOG.md) for full write-ups.
