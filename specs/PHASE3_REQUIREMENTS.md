@@ -56,11 +56,16 @@ is nothing to attach to. This is the foundation the rest of Phase 3 stands on.
 
 ### What must change
 
-1. Identity + credential model for **staff/volunteer** users (distinct from B2, which is the deferred
-   *non-volunteer* contact login). Decide how a login identity relates to a `contact`.
+1. **Sign in with Google** (decided 2026-07-14 — the club runs Google Workspace and issues accounts to all
+   staff). No passwords are stored; Google verifies identity and owns recovery. A staff identity links to a
+   **volunteer** contact by matching Google's verified email to the contact's `is_login` email — activating
+   the dormant feature-001 substrate (`is_volunteer` / `volunteer_roles` / `is_login`) rather than building
+   a parallel one. Distinct from B2 (deferred *non-volunteer* contact login).
 2. Login / logout, session management, and the accessor the authorization layer reads (server-side
    session → current user + their grants).
 3. A route/middleware seam so pages and API handlers can require an authenticated user.
+4. An **operator bootstrap** (seed/CLI) to designate the first volunteer/officer — without it nobody can
+   sign in, since **0 of 1334 contacts are volunteers** today and no UI sets `is_volunteer`.
 
 ### Expected outcomes (testable)
 
@@ -74,11 +79,18 @@ is nothing to attach to. This is the foundation the rest of Phase 3 stands on.
 
 ### Open questions for `/speckit-clarify`
 
-- **Library vs. hand-rolled?** Auth.js / Lucia / iron-session vs. a minimal custom session. Recommend an
-  established, self-hosted session library (no third-party IdP needed for a single club).
-- **Identity ↔ contact.** Is a login a `contact` with credentials, or a separate `users` table linked to
-  a contact? (Affects B34/membership flows that also create contacts.)
-- **Password reset / initial credential issuance** — in scope for Phase 3 or deferred?
+*Resolved during `/speckit-specify` + `/speckit-clarify` (see `specs/015-staff-auth/spec.md`):* auth method
+= **Google sign-in**; identity ↔ contact = **Google verified email → contact's `is_login` email**, gated on
+`is_volunteer`; **no passwords**, so no reset/issuance question; **officer approval dropped** as redundant.
+
+*Remaining, for `/speckit-plan`:*
+
+- Session inactivity timeout value; whether to additionally restrict sign-in to the club's Workspace domain.
+
+*Settled by constitution v1.2.0 (2026-07-14):* the Google round-trip test strategy — automated tests must
+not call Google's production endpoints; exercise the provider at its boundary (local conforming
+implementation or signed-OIDC-token fixture) while integration-testing everything behind the seam against
+real Postgres.
 
 ---
 
@@ -98,6 +110,11 @@ This is **not a backlog line item** — it is the core of "flesh out user roles,
    `administrator` → super-user semantics).
 3. Enforce the matrix: per-route **and** per-field rules (e.g. an event's public price/description
    = Webmaster/Booker while its date/venue/cancel = Booker), plus the **Door Attendant ✗ `/gate`** deny.
+4. **Give the dormant volunteer substrate real writers.** `contacts.is_volunteer` and
+   `contacts.volunteer_roles` exist since feature 001 but **no UI sets them** (0 of 1334 contacts are
+   volunteers today); the only write path is `PATCH /api/contacts/[id]`. P3-1 bootstraps just the first
+   officer via an operator seed/CLI — **P3-2 owns designating volunteers and assigning their roles in the
+   UI** (the President's job, matrix row 20). Same dormant-field pattern as B21.
 
 ### Expected outcomes (testable)
 
