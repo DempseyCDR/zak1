@@ -23,6 +23,32 @@ Modified principles:
   - Technology Standards: removed TypeScript/Node.js lock-in; all stack choices deferred to per-build decisions
 Reason: project will explore multiple tech stacks across different builds.
 Templates updated: N/A (no template changes required)
+
+Version change: 1.1.0 → 1.2.0 (2026-07-14)
+Modified sections:
+  - Technology Standards → Testing: split into two provisions. The no-mocking rule is retained in full
+    force for databases and services the project operates; a narrow exception is added for third-party
+    services the project does NOT operate.
+Added sections: N/A (existing provision expanded)
+Removed sections: N/A
+Reason: "Real infrastructure" is already satisfied for the database by a real LOCAL Postgres, not the
+  production database. Read literally, the old rule would require calling an external identity provider's
+  PRODUCTION endpoints from the automated suite — the equivalent of testing against prod: rate limits,
+  abuse/bot detection, credentials in CI, non-determinism, and dependence on third-party uptime. The
+  rule's real intent is to forbid faking semantics we depend on (constraints, transactions, citext,
+  arrays), where a mock lies to us. An IdP dependency is narrow and standardized (a signed token carrying
+  a verified email claim); all logic that can genuinely break is on our side of that seam and remains
+  live-tested. Driven by feature 015 (specs/015-staff-auth), which authenticates staff via Google.
+Version rationale: MINOR — a provision is materially expanded; no principle removed or incompatibly
+  redefined; every previously-compliant test remains compliant (the change only permits, never requires).
+Templates updated (all verified this session):
+  - .specify/templates/plan-template.md ✅ no change required (Constitution Check derives its gates from
+    this file rather than duplicating rules)
+  - .specify/templates/spec-template.md ✅ no change required (no testing/mocking references)
+  - .specify/templates/tasks-template.md ✅ no change required (integration-test tasks are generic and
+    state no mocking policy)
+  - README.md ✅ no change required (links to the constitution generically)
+Deferred TODOs: none
 -->
 
 # zak1 Constitution
@@ -81,8 +107,18 @@ Observability is not optional and is not deferred to "after MVP."
 - **Language**: To be chosen per build; strict type checking MUST be enabled regardless of choice.
 - **Frontend**: To be specified per feature; MUST share type contracts with the backend.
 - **Backend**: To be specified per feature; REST or equivalent structured API preferred.
-- **Testing**: To be specified per build; integration tests MUST run against real infrastructure
-  (no mocking of databases or external services in integration suites).
+- **Testing**: To be specified per build. Integration tests MUST run against **real infrastructure** —
+  a real, locally-run instance of the dependency. Databases and services the project operates MUST NOT be
+  mocked, stubbed, or faked in integration suites.
+- **Third-party services the project does not operate** (e.g. an external identity provider) are the sole
+  exception to the rule above. Automated tests MUST NOT call their production endpoints: doing so is
+  unreliable (rate limits, abuse detection, availability) and is no more "real" than testing against a
+  production database. Such a dependency MUST instead be exercised at its boundary via either (a) a
+  conforming implementation run locally, or (b) a fixture reproducing the provider's verified contract
+  (e.g. signed OIDC tokens). All of the project's own logic behind that boundary — claim validation,
+  identity matching, session creation — MUST still be covered by integration tests against real
+  infrastructure. This exception narrows the blast radius of an unavailable or defensive third party; it
+  is NOT a licence to fake semantics the project depends on.
 - **Linting / Formatting**: The standard linter and formatter for the chosen language MUST pass in CI.
 - **Package / dependency manager**: To be established at build setup; MUST be consistent within a build.
 
@@ -115,4 +151,4 @@ document takes precedence.
 **Compliance**: All PRs must pass the Constitution Check in `plan.md` before merging.
 Exceptions require written justification in the Complexity Tracking table.
 
-**Version**: 1.1.0 | **Ratified**: 2026-06-16 | **Last Amended**: 2026-06-18
+**Version**: 1.2.0 | **Ratified**: 2026-06-16 | **Last Amended**: 2026-07-14
