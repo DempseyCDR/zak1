@@ -140,8 +140,11 @@ the session ends after the defined inactivity period.
   sign-in fails until that email is added. This is a real data prerequisite, not a code bug.
 - A volunteer whose access has been withdrawn (`is_volunteer` cleared) → cannot sign in; an existing
   session is not honored.
-- A Google account suspended/revoked by the Workspace administrator → Google refuses; any existing app
-  session must not outlive the withdrawal of access.
+- A Google account suspended/revoked by the Workspace administrator → Google refuses **new** sign-ins
+  immediately. An **existing** app session is unaffected until it idles out, because the app does not
+  re-contact Google after sign-in: worst-case exposure is one idle window (`SESSION_IDLE_TTL_HOURS`,
+  default 8h). **Clearing `is_volunteer` is the authoritative, immediate kill-switch** (FR-011) and is
+  therefore the required offboarding step — Workspace suspension alone does NOT end an active session.
 - Directly opening a deep staff URL while signed out → redirected to sign in (ideally returning to the
   intended page afterward).
 - A session that has expired or been signed out elsewhere → next action is treated as unauthenticated.
@@ -246,6 +249,12 @@ the session ends after the defined inactivity period.
   in"; role/scope permission checks (the `docs/use-cases.md` matrix) are out of scope here.
 - **Session model**: the app maintains its own server-side session after Google sign-in, with an inactivity
   expiry; a sensible default timeout will be chosen at planning and MAY be configurable.
+- **Google-side suspension is not detected mid-session** (deliberate). The Google identity is verified once,
+  at sign-in; thereafter the app relies on its own session plus a live `is_volunteer` check. Re-validating
+  with Google per request would put an external dependency on every request and contradict the boundary seam
+  the constitution (v1.2.0) is built around. Consequence: suspending a Workspace account stops *new* sign-ins
+  at once but leaves an active session alive for up to one idle window, so offboarding MUST clear
+  `is_volunteer` (FR-011), which takes effect on the next request.
 - **Open for planning — restricting sign-in to the club's Workspace domain** is available as extra
   hardening, but the real gates are the volunteer-contact match and `is_volunteer`; whether to also enforce
   a domain restriction is a planning decision.
