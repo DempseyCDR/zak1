@@ -91,6 +91,22 @@ true`** on the ID token — this one is mandatory and security-critical.
 **Alternatives considered**: enforce `hd == <club domain>` as defense-in-depth (rejected per above; can be
 added later as a config if wanted — the seam is one claim check).
 
+**Confirmed 2026-07-14 — the anticipated brittleness is the club's normal case.** The club has a *mixed*
+population: **long-term** volunteers receive `cdrochester.org` Workspace accounts, while **short-term**
+volunteers (e.g. staffing one event group such as a double dance) decline another mailbox and sign in with a
+**personal** Google-registered email. Enforcing `hd` would lock out every short-term volunteer. This also
+settles the Google console configuration:
+
+- **OAuth consent screen User Type MUST be `External`, never `Internal`.** Internal admits only the
+  Workspace org — it would be an `hd` restriction imposed by Google rather than by us, with the same
+  lock-out. External is a **superset**: it admits `cdrochester.org` accounts *and* personal ones.
+- **Publishing status should be `Published`, not `Testing`.** Testing admits only an explicitly maintained
+  test-user list (max 100) — an operational trap that strands a short-term volunteer on the night of an
+  event. Our scopes (`openid`, `email`) are non-sensitive, so the sensitive-scope verification review should
+  not apply.
+- Refresh-token expiry under External+Testing is **irrelevant** to us: the design never uses refresh tokens
+  (we verify the ID token once and run our own session — see R2/R6).
+
 ---
 
 ## R5 — Where enforcement lives: **not** in Next.js middleware

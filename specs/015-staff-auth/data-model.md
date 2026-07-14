@@ -91,9 +91,12 @@ Google ID token
                                     AND contact.is_volunteer
                 ├─ 0 matches ...... REFUSE (generic message, FR-009)
                 ├─ >1 matches ..... REFUSE as ambiguous — never guess (FR-009)
-                └─ exactly 1 ...... create staff_identity(contact_id, google_sub)
-                                     set that email's is_login = true
-                                     (partial unique index enforces one per contact)
+                └─ exactly 1 ...... contact already has an identity (different sub)?
+                                     yes → REFUSE `identity_exists` — check BEFORE insert
+                                           so it is a clean refusal, not a UNIQUE violation
+                                     no  → create staff_identity(contact_id, google_sub)
+                                           set that email's is_login = true
+                                           (partial unique index enforces one per contact)
   └─ create staff_session (+ set cookie), write audit
 ```
 
@@ -164,4 +167,10 @@ Drizzle schema: `src/server/db/schema/auth.ts`, exported from `schema/index.ts`.
 `auth.identity.created`, `auth.bootstrap.designated`.
 
 Refusal reason codes (server-side only): `email_unverified`, `no_match`, `ambiguous_match`,
-`not_volunteer`, `sub_email_mismatch`, `token_invalid`.
+`not_volunteer`, `sub_email_mismatch`, `identity_exists`, `token_invalid`.
+
+`identity_exists` = the matched contact already has a staff identity bound to a **different** `google_sub`
+(one Google account per person). This must be detected and refused **before** the insert, so it surfaces as
+a normal refusal rather than a `contact_id` UNIQUE violation. Expect it in practice: long-term volunteers
+commonly hold both a `cdrochester.org` and a personal Google account (backlog **B38** adds self-service
+re-binding).

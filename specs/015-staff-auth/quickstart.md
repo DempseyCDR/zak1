@@ -17,6 +17,17 @@ is the run/verify guide.
 - Postgres 16 running; `zak1_dev` (demo data) and `zak1_test` present.
 - A **Google Cloud OAuth 2.0 Client ID** (type: *Web application*) in a project owned by the club, with an
   authorized redirect URI of `http://localhost:3000/api/auth/google/callback` for local dev.
+- **OAuth consent screen — User Type `External`** (⚠️ **not** `Internal`) and publishing status
+  **`Published`** (not `Testing`). Rationale (research R4): staff are a *mixed* population — long-term
+  volunteers hold `cdrochester.org` Workspace accounts, short-term volunteers use **personal** Google
+  accounts. `Internal` admits only the Workspace org and would lock out every short-term volunteer;
+  `External` is a **superset** that admits both. `Testing` admits only an explicitly maintained test-user
+  list (max 100) — a trap that strands a volunteer on the night of an event. Scopes are `openid` + `email`
+  (non-sensitive), so no sensitive-scope verification review is expected. The app name shown on the consent
+  screen is the club-facing one (**cdrochester**); `zak1` is only the internal build codename and never
+  appears to users.
+  - *Optional*: a Workspace admin can mark the app **trusted** in the admin console so `cdrochester.org`
+    users skip the consent prompt, while personal accounts still work.
 - ⚠️ **Never run `pnpm run db:seed`** here — it TRUNCATEs `zak1_dev` and destroys the demo data.
 
 ## 2. Configure

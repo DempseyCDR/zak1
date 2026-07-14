@@ -140,6 +140,13 @@ the session ends after the defined inactivity period.
   sign-in fails until that email is added. This is a real data prerequisite, not a code bug.
 - A volunteer whose access has been withdrawn (`is_volunteer` cleared) → cannot sign in; an existing
   session is not honored.
+- **A person who already has a staff identity signs in with a *different* Google account** whose verified
+  email also matches their contact — e.g. a long-term volunteer who first signed in with their personal
+  account and later tries their `cdrochester.org` account (holding both is normal, not exceptional) →
+  **refused** with the generic message; recorded server-side as `identity_exists`. **One Google account per
+  person** is the rule (FR-006). The refusal MUST be graceful — never a raw database constraint error.
+  Re-pointing a person to a different Google account is an operator action today (backlog **B38** makes it
+  self-service).
 - A Google account suspended/revoked by the Workspace administrator → Google refuses **new** sign-ins
   immediately. An **existing** app session is unaffected until it idles out, because the app does not
   re-contact Google after sign-in: worst-case exposure is one idle window (`SESSION_IDLE_TTL_HOURS`,
@@ -229,8 +236,18 @@ the session ends after the defined inactivity period.
 
 ## Assumptions
 
-- **The club runs Google Workspace and issues accounts to everyone who signs in as staff** (stated by the
-  club). Google sign-in is therefore universal for staff; no password fallback is needed.
+- **Every staff user can sign in with Google — but not all of them via Workspace** (stated by the club).
+  **Long-term** volunteers receive `cdrochester.org` **Workspace** accounts. **Short-term** volunteers
+  (e.g. staffing a single event group such as a double dance) decline Yet Another Email Address and use a
+  **personal email registered with Google**. Google sign-in is therefore universal for staff and no
+  password fallback is needed — but the club's Workspace domain is **not** a reliable signal of staff
+  status.
+- **Consequence — the Google OAuth consent screen MUST use User Type "External"**, never "Internal".
+  Internal admits only the Workspace org and would lock out every short-term volunteer. External is a
+  *superset*: it admits `cdrochester.org` accounts **and** personal ones. Publishing status should be
+  **Published** rather than Testing — Testing admits only an explicitly maintained test-user list (max
+  100), which would strand a short-term volunteer on the night of an event. The scopes used (`openid`,
+  `email`) are non-sensitive.
 - **Staff = volunteers already in the contact directory.** A staff identity links to an existing `contact`
   designated a volunteer. New-person onboarding is not part of this feature.
 - **Data prerequisite**: a volunteer's Workspace email must be recorded as an **active email on their

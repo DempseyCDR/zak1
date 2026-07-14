@@ -84,19 +84,20 @@ first sign-in, and can sign out.
 - [ ] T016 [P] [US1] Integration test sign-out in `tests/integration/auth.signout.test.ts`: deletes the `staff_sessions` row and clears the cookie (FR-002)
 - [ ] T017 [P] [US1] Integration test OAuth `state` mismatch in `tests/integration/auth.callback.test.ts`: a callback whose `state` does not match the stored cookie is refused, **no session is created**, and the refusal is logged (contracts §2 — CSRF defence)
 - [ ] T018 [P] [US1] Integration test the `next` open-redirect guard in `tests/integration/auth.redirect.test.ts`: absolute URLs, scheme-relative values (`//evil.com`), and any non-relative `next` are rejected; only a leading-`/` relative path is honored (contracts §1)
+- [ ] T019 [P] [US1] Integration test the **dual-account collision** in `tests/integration/auth.identity.test.ts`: a contact that already has a staff identity, signed in from a **different** Google account whose verified email also matches that contact (the long-term volunteer with both a `cdrochester.org` and a personal account), is **refused** with reason `identity_exists` — a clean refusal, **not** a `contact_id` UNIQUE violation (FR-006, FR-009)
 
 ### Implementation for User Story 1
 
-- [ ] T019 [P] [US1] Implement the verification seam `verifyGoogleIdToken(token) → VerifiedClaims` in `src/server/auth/claims.ts` using `jose` with an **injectable JWKS** (remote in prod, local in tests) (FR-001, FR-009)
-- [ ] T020 [P] [US1] Implement the arctic Google client, authorization-URL construction, PKCE + state generation, and code→token exchange in `src/server/auth/google.ts` (FR-001)
-- [ ] T021 [US1] Implement sign-in resolution in `src/server/auth/signIn.ts`: claims → active email match → exactly-one volunteer contact → upsert identity → set `is_login`; return typed refusal reason codes (`email_unverified`, `no_match`, `ambiguous_match`, `not_volunteer`, `sub_email_mismatch`, `token_invalid`) per [data-model.md](data-model.md) §4 (FR-006, FR-009, FR-012, FR-013, FR-014) (depends on T019)
-- [ ] T022 [US1] Implement session create + destroy in `src/server/auth/session.ts`: random opaque token, **store only its hash**, set `expires_at` from `SESSION_IDLE_TTL_HOURS`, httpOnly/secure/SameSite=Lax cookie (FR-001, FR-002, FR-007) (depends on T006)
-- [ ] T023 [US1] Implement `GET /api/auth/google` in `src/app/api/auth/google/route.ts`: store state + PKCE verifier in short-lived cookies, redirect to Google; **validate `?next=` is a relative path** (open-redirect guard) per contracts §1 (FR-001) (satisfies T018)
-- [ ] T024 [US1] Implement `GET /api/auth/google/callback` in `src/app/api/auth/google/callback/route.ts`: verify `state`, exchange code, verify ID token, resolve identity, create session, redirect; **all refusals return the same generic `/login?error=access_denied`** (FR-001, FR-009) (depends on T020, T021, T022; satisfies T017)
-- [ ] T025 [US1] Implement `POST /api/auth/signout` in `src/app/api/auth/signout/route.ts` (**POST only** — a GET sign-out is CSRF-triggerable) (FR-002) (depends on T022)
-- [ ] T026 [P] [US1] Create the `/login` page in `src/app/login/page.tsx` with a "Sign in with Google" action and generic `?error=access_denied` rendering (FR-001)
-- [ ] T027 [US1] Add `writeAudit` rows + pino structured logs for `auth.signin.succeeded`, `auth.signin.refused` (with server-side reason code), `auth.signout`, `auth.identity.created` across `src/server/auth/` (FR-010, SC-005, Constitution IV)
-- [ ] T028 [US1] Update `src/app/dev/routes/page.tsx` to list `/login` and the three `/api/auth/*` endpoints — **repo convention requires this in the same change** (`CLAUDE.md`)
+- [ ] T020 [P] [US1] Implement the verification seam `verifyGoogleIdToken(token) → VerifiedClaims` in `src/server/auth/claims.ts` using `jose` with an **injectable JWKS** (remote in prod, local in tests) (FR-001, FR-009)
+- [ ] T021 [P] [US1] Implement the arctic Google client, authorization-URL construction, PKCE + state generation, and code→token exchange in `src/server/auth/google.ts` (FR-001)
+- [ ] T022 [US1] Implement sign-in resolution in `src/server/auth/signIn.ts`: claims → active email match → exactly-one volunteer contact → upsert identity → set `is_login`; return typed refusal reason codes (`email_unverified`, `no_match`, `ambiguous_match`, `not_volunteer`, `sub_email_mismatch`, `identity_exists`, `token_invalid`) per [data-model.md](data-model.md) §4; the `identity_exists` check MUST happen **before** the insert so a dual-account attempt is a clean refusal, not a UNIQUE violation (FR-006, FR-009, FR-012, FR-013, FR-014) (depends on T020; satisfies T019)
+- [ ] T023 [US1] Implement session create + destroy in `src/server/auth/session.ts`: random opaque token, **store only its hash**, set `expires_at` from `SESSION_IDLE_TTL_HOURS`, httpOnly/secure/SameSite=Lax cookie (FR-001, FR-002, FR-007) (depends on T006)
+- [ ] T024 [US1] Implement `GET /api/auth/google` in `src/app/api/auth/google/route.ts`: store state + PKCE verifier in short-lived cookies, redirect to Google; **validate `?next=` is a relative path** (open-redirect guard) per contracts §1 (FR-001) (satisfies T018)
+- [ ] T025 [US1] Implement `GET /api/auth/google/callback` in `src/app/api/auth/google/callback/route.ts`: verify `state`, exchange code, verify ID token, resolve identity, create session, redirect; **all refusals return the same generic `/login?error=access_denied`** (FR-001, FR-009) (depends on T021, T022, T023; satisfies T017)
+- [ ] T026 [US1] Implement `POST /api/auth/signout` in `src/app/api/auth/signout/route.ts` (**POST only** — a GET sign-out is CSRF-triggerable) (FR-002) (depends on T023)
+- [ ] T027 [P] [US1] Create the `/login` page in `src/app/login/page.tsx` with a "Sign in with Google" action and generic `?error=access_denied` rendering (FR-001)
+- [ ] T028 [US1] Add `writeAudit` rows + pino structured logs for `auth.signin.succeeded`, `auth.signin.refused` (with server-side reason code), `auth.signout`, `auth.identity.created` across `src/server/auth/` (FR-010, SC-005, Constitution IV)
+- [ ] T029 [US1] Update `src/app/dev/routes/page.tsx` to list `/login` and the three `/api/auth/*` endpoints — **repo convention requires this in the same change** (`CLAUDE.md`)
 
 **Checkpoint**: US1 fully functional — a bootstrapped officer can sign in and out
 
@@ -112,19 +113,19 @@ access takes effect immediately.
 
 ### Tests for User Story 2 ⚠️ Write FIRST, confirm they FAIL
 
-- [ ] T029 [P] [US2] Integration test API default-deny in `tests/integration/auth.protection.test.ts`: unauthenticated `/api/*` returns 401; `/api/auth/*` remains reachable (FR-004, SC-002)
-- [ ] T030 [P] [US2] Integration test **revocation** in `tests/integration/auth.revocation.test.ts`: with a live session, clearing `contacts.is_volunteer` causes the very next request to be refused — **without deleting the session row or waiting for expiry** (FR-011, SC-006)
-- [ ] T031 [P] [US2] Integration test public-route regression guard in `tests/integration/auth.public.test.ts`: public schedule/event pages remain reachable with no session (FR-003, SC-003 — feature 007 must not regress)
-- [ ] T032 [P] [US2] Integration **route-inventory** test in `tests/integration/auth.routeInventory.test.ts`: enumerate every `route.ts` under `src/app/api/` and assert each one **except** `/api/auth/*` rejects an unauthenticated request. Self-maintaining — a newly added unprotected route fails the suite automatically (FR-004, SC-002)
+- [ ] T030 [P] [US2] Integration test API default-deny in `tests/integration/auth.protection.test.ts`: unauthenticated `/api/*` returns 401; `/api/auth/*` remains reachable (FR-004, SC-002)
+- [ ] T031 [P] [US2] Integration test **revocation** in `tests/integration/auth.revocation.test.ts`: with a live session, clearing `contacts.is_volunteer` causes the very next request to be refused — **without deleting the session row or waiting for expiry** (FR-011, SC-006)
+- [ ] T032 [P] [US2] Integration test public-route regression guard in `tests/integration/auth.public.test.ts`: public schedule/event pages remain reachable with no session (FR-003, SC-003 — feature 007 must not regress)
+- [ ] T033 [P] [US2] Integration **route-inventory** test in `tests/integration/auth.routeInventory.test.ts`: enumerate every `route.ts` under `src/app/api/` and assert each one **except** `/api/auth/*` rejects an unauthenticated request. Self-maintaining — a newly added unprotected route fails the suite automatically (FR-004, SC-002)
 
 ### Implementation for User Story 2
 
-- [ ] T033 [US2] Implement `getCurrentStaff()` / `requireStaff()` in `src/server/auth/currentStaff.ts`: read the session cookie, hash-match the row, enforce `expires_at`, and **join through to `contacts.is_volunteer` live** so withdrawal bites immediately; return the `CurrentStaff` shape from contracts §4 — **identity only, no roles** (FR-005, FR-011) (depends on T022)
-- [ ] T034 [US2] Implement the `withAuth` API wrapper in `src/server/auth/withAuth.ts` mirroring `src/server/lib/withLogging.ts`: 401 when unauthenticated, inject `staff` when authenticated (FR-004) (depends on T033)
-- [ ] T035 [P] [US2] Add `src/app/(admin)/layout.tsx` calling `requireStaff()` to protect every admin page in one place (FR-004)
-- [ ] T036 [P] [US2] Add `src/app/(door)/layout.tsx` calling `requireStaff()` to protect `/checkin` and `/gate` (FR-004)
-- [ ] T037 [US2] Apply `withAuth` to every route under `src/app/api/` **except** `src/app/api/auth/*` (default-deny per contracts §5); T032 is the acceptance gate — iterate until the route-inventory test is green (FR-004, SC-002) (depends on T034)
-- [ ] T038 [US2] Record the public-route allowlist in `src/app/dev/routes/page.tsx` and decide `/` and `/dev/routes` classification (`(public)/*` + `/api/auth/*` are public; `/dev/routes` exposes app structure — protect unless deliberately left open) (FR-003)
+- [ ] T034 [US2] Implement `getCurrentStaff()` / `requireStaff()` in `src/server/auth/currentStaff.ts`: read the session cookie, hash-match the row, enforce `expires_at`, and **join through to `contacts.is_volunteer` live** so withdrawal bites immediately; return the `CurrentStaff` shape from contracts §4 — **identity only, no roles** (FR-005, FR-011) (depends on T023)
+- [ ] T035 [US2] Implement the `withAuth` API wrapper in `src/server/auth/withAuth.ts` mirroring `src/server/lib/withLogging.ts`: 401 when unauthenticated, inject `staff` when authenticated (FR-004) (depends on T034)
+- [ ] T036 [P] [US2] Add `src/app/(admin)/layout.tsx` calling `requireStaff()` to protect every admin page in one place (FR-004)
+- [ ] T037 [P] [US2] Add `src/app/(door)/layout.tsx` calling `requireStaff()` to protect `/checkin` and `/gate` (FR-004)
+- [ ] T038 [US2] Apply `withAuth` to every route under `src/app/api/` **except** `src/app/api/auth/*` (default-deny per contracts §5); T033 is the acceptance gate — iterate until the route-inventory test is green (FR-004, SC-002) (depends on T035)
+- [ ] T039 [US2] Record the public-route allowlist in `src/app/dev/routes/page.tsx` and decide `/` and `/dev/routes` classification (`(public)/*` + `/api/auth/*` are public; `/dev/routes` exposes app structure — protect unless deliberately left open) (FR-003)
 
 **Checkpoint**: US1 + US2 both work — sign-in works and everything non-public is closed
 
@@ -139,13 +140,13 @@ past and confirm the next request is unauthenticated.
 
 ### Tests for User Story 3 ⚠️ Write FIRST, confirm they FAIL
 
-- [ ] T039 [P] [US3] Integration test rolling extension in `tests/integration/auth.session.test.ts`: each authenticated request advances `last_seen_at`/`expires_at`; no re-authentication across pages (FR-007, SC-004)
-- [ ] T040 [P] [US3] Integration test idle expiry in `tests/integration/auth.session.test.ts`: a session past `expires_at` is treated as unauthenticated (FR-008)
+- [ ] T040 [P] [US3] Integration test rolling extension in `tests/integration/auth.session.test.ts`: each authenticated request advances `last_seen_at`/`expires_at`; no re-authentication across pages (FR-007, SC-004)
+- [ ] T041 [P] [US3] Integration test idle expiry in `tests/integration/auth.session.test.ts`: a session past `expires_at` is treated as unauthenticated (FR-008)
 
 ### Implementation for User Story 3
 
-- [ ] T041 [US3] Implement rolling session extension (advance `last_seen_at` and `expires_at` on authenticated reads) in `src/server/auth/session.ts` (FR-007) (depends on T033)
-- [ ] T042 [US3] Honor `SESSION_IDLE_TTL_HOURS` (default 8) when creating and extending sessions in `src/server/auth/session.ts` and `src/server/validation/env.ts` (FR-008; research R3)
+- [ ] T042 [US3] Implement rolling session extension (advance `last_seen_at` and `expires_at` on authenticated reads) in `src/server/auth/session.ts` (FR-007) (depends on T034)
+- [ ] T043 [US3] Honor `SESSION_IDLE_TTL_HOURS` (default 8) when creating and extending sessions in `src/server/auth/session.ts` and `src/server/validation/env.ts` (FR-008; research R3)
 
 **Checkpoint**: All three user stories independently functional
 
@@ -153,15 +154,15 @@ past and confirm the next request is unauthenticated.
 
 ## Phase 6: Polish & Cross-Cutting Concerns
 
-- [ ] T043 [P] Confirm the suite **never contacts Google** — grep `tests/` for outbound Google/network use; all IdP interaction must go through `tests/integration/helpers/oidc.ts` (constitution v1.2.0)
-- [ ] T044 [P] Verify no password surface exists: `grep -rniE "password|bcrypt|argon|scrypt|pbkdf2" src/server/auth/ src/server/db/schema/auth.ts` returns nothing (FR-016, SC-009)
-- [ ] T045 Run the full suite green (`pnpm test`, expect 220 existing + new), `pnpm exec tsc --noEmit`, and `pnpm exec eslint src/server/auth src/app/api/auth src/app/login` (Constitution I, III)
-- [ ] T046 Execute the S1–S9 validation scenarios in `specs/015-staff-auth/quickstart.md`, including the cold-start bootstrap and live revocation (SC-001, SC-003, SC-006, SC-008)
-- [ ] T047 Browser-verify sign-in end-to-end using the preview tooling (`preview_start { name: "dev" }`) — never a raw `pnpm dev` (SC-001)
-- [ ] T048 [P] Update `docs/zak1_Help_Glossary.md` with auth terms (staff identity, session, login email, bootstrap) and their file index entries
-- [ ] T049 [P] Re-sync `specs/DATA_MODEL.md` with `staff_identities` / `staff_sessions` and the `is_login` constraint
-- [ ] T050 [P] Close **B32** in `specs/BACKLOG.md` (mark Done → feature 015) and note in `specs/PHASE3_REQUIREMENTS.md` that P3-1 has shipped
-- [ ] T051 [P] Refresh auto-memory (`zak1-implementation-status`, `zak1-phase3-roles`) with feature 015's outcome per project convention
+- [ ] T044 [P] Confirm the suite **never contacts Google** — grep `tests/` for outbound Google/network use; all IdP interaction must go through `tests/integration/helpers/oidc.ts` (constitution v1.2.0)
+- [ ] T045 [P] Verify no password surface exists: `grep -rniE "password|bcrypt|argon|scrypt|pbkdf2" src/server/auth/ src/server/db/schema/auth.ts` returns nothing (FR-016, SC-009)
+- [ ] T046 Run the full suite green (`pnpm test`, expect 220 existing + new), `pnpm exec tsc --noEmit`, and `pnpm exec eslint src/server/auth src/app/api/auth src/app/login` (Constitution I, III)
+- [ ] T047 Execute the S1–S9 validation scenarios in `specs/015-staff-auth/quickstart.md`, including the cold-start bootstrap and live revocation (SC-001, SC-003, SC-006, SC-008)
+- [ ] T048 Browser-verify sign-in end-to-end using the preview tooling (`preview_start { name: "dev" }`) — never a raw `pnpm dev` (SC-001)
+- [ ] T049 [P] Update `docs/zak1_Help_Glossary.md` with auth terms (staff identity, session, login email, bootstrap) and their file index entries
+- [ ] T050 [P] Re-sync `specs/DATA_MODEL.md` with `staff_identities` / `staff_sessions` and the `is_login` constraint
+- [ ] T051 [P] Close **B32** in `specs/BACKLOG.md` (mark Done → feature 015) and note in `specs/PHASE3_REQUIREMENTS.md` that P3-1 has shipped
+- [ ] T052 [P] Refresh auto-memory (`zak1-implementation-status`, `zak1-phase3-roles`) with feature 015's outcome per project convention
 
 ---
 
@@ -172,9 +173,9 @@ past and confirm the next request is unauthenticated.
 - **Setup (Phase 1)**: No dependencies — start immediately
 - **Foundational (Phase 2)**: Depends on Setup — **BLOCKS all user stories**
 - **US1 (Phase 3)**: Depends on Foundational. **The MVP.**
-- **US2 (Phase 4)**: Depends on Foundational; consumes US1's `session.ts` (T022). Testable independently
+- **US2 (Phase 4)**: Depends on Foundational; consumes US1's `session.ts` (T023). Testable independently
   via a factory-created session, but ships naturally after US1.
-- **US3 (Phase 5)**: Depends on Foundational; extends US2's `currentStaff` read path (T033).
+- **US3 (Phase 5)**: Depends on Foundational; extends US2's `currentStaff` read path (T034).
 - **Polish (Phase 6)**: After the desired stories are complete
 
 ### Story Dependencies — honest note
@@ -194,9 +195,9 @@ no benefit.
 
 - T003 in Setup
 - T004, T007, T008, T009, T011 in Foundational (different files)
-- All tests within a story (T013–T018; T029–T032; T039–T040)
-- T019/T020 (different files) and T026 within US1
-- T035/T036 (different layouts) within US2
+- All tests within a story (T013–T018; T030–T033; T040–T041)
+- T020/T021 (different files) and T027 within US1
+- T036/T037 (different layouts) within US2
 - Most of Phase 6
 
 ---
@@ -248,4 +249,4 @@ Task: "Create /login page in src/app/login/page.tsx"
   `role × capability × scope` on top (see `docs/use-cases.md`)
 - **Offboarding note** (spec Edge Cases): suspending someone's Workspace account stops *new* sign-ins but
   leaves an active session alive for up to one idle window. Clearing `is_volunteer` is the immediate
-  kill-switch (FR-011) — T030 is the test that proves it.
+  kill-switch (FR-011) — T031 is the test that proves it.

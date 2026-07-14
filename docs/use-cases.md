@@ -233,6 +233,15 @@ The Treasurer may also edit membership records directly. The VP never edits them
 1. **Row 17 scope** — does the VP (via the Mailing List Manager) own the **whole** contact directory +
    dedup, or only the mailing-side (emails, consent topics, exports), with contact *records* owned
    elsewhere? *(still open)*
+1a. **A fourth scope granularity: per-event-group** *(surfaced 2026-07-14, feature 015 auth review)*. The
+   club distinguishes **long-term** volunteers (who receive `cdrochester.org` Workspace accounts) from
+   **short-term** ones recruited for **a particular event group** — e.g. a double dance — who use personal
+   email and are to have "a more restricted scope of activity". Our model has ⬤ per-series, ◍ per-event, and
+   ⬡ club-wide; an **event-group** scope sits between per-series and per-event and is not yet modeled.
+   P3-2 must decide whether to add it (`event_groups` already exists; a double dance is one). Note this is
+   purely an **authorization** concern — feature 015 treats short- and long-term volunteers identically
+   (`is_volunteer`), and deliberately does not enforce the Workspace domain, precisely so short-term
+   volunteers can sign in at all.
 2. **Other officers/grants** — the four bylaws officers (President, VP, Secretary, Treasurer) and the
    Super-user are now modeled. Any further grants (e.g. a member-at-large, committee chairs) are not yet
    surfaced.
