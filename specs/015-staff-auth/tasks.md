@@ -156,13 +156,13 @@ past and confirm the next request is unauthenticated.
 
 - [X] T044 [P] Confirm the suite **never contacts Google** — grep `tests/` for outbound Google/network use; all IdP interaction must go through `tests/integration/helpers/oidc.ts` (constitution v1.2.0)
 - [X] T045 [P] Verify no password surface exists: `grep -rniE "password|bcrypt|argon|scrypt|pbkdf2" src/server/auth/ src/server/db/schema/auth.ts` returns nothing (FR-016, SC-009)
-- [ ] T046 Run the full suite green (`pnpm test`, expect 220 existing + new), `pnpm exec tsc --noEmit`, and `pnpm exec eslint src/server/auth src/app/api/auth src/app/login` (Constitution I, III)
-- [ ] T047 Execute the S1–S9 validation scenarios in `specs/015-staff-auth/quickstart.md`, including the cold-start bootstrap and live revocation (SC-001, SC-003, SC-006, SC-008)
-- [ ] T048 Browser-verify sign-in end-to-end using the preview tooling (`preview_start { name: "dev" }`) — never a raw `pnpm dev` (SC-001)
-- [ ] T049 [P] Update `docs/zak1_Help_Glossary.md` with auth terms (staff identity, session, login email, bootstrap) and their file index entries
-- [ ] T050 [P] Re-sync `specs/DATA_MODEL.md` with `staff_identities` / `staff_sessions` and the `is_login` constraint
-- [ ] T051 [P] Close **B32** in `specs/BACKLOG.md` (mark Done → feature 015) and note in `specs/PHASE3_REQUIREMENTS.md` that P3-1 has shipped
-- [ ] T052 [P] Refresh auto-memory (`zak1-implementation-status`, `zak1-phase3-roles`) with feature 015's outcome per project convention
+- [X] T046 Run the full suite green (`pnpm test`, expect 220 existing + new), `pnpm exec tsc --noEmit`, and `pnpm exec eslint src/server/auth src/app/api/auth src/app/login` (Constitution I, III)
+- [X] T047 Execute the S1–S9 validation scenarios in `specs/015-staff-auth/quickstart.md`, including the cold-start bootstrap and live revocation (SC-001, SC-003, SC-006, SC-008)
+- [X] T048 Browser-verify sign-in end-to-end using the preview tooling (`preview_start { name: "dev" }`) — never a raw `pnpm dev` (SC-001)
+- [X] T049 [P] Update `docs/zak1_Help_Glossary.md` with auth terms (staff identity, session, login email, bootstrap) and their file index entries
+- [X] T050 [P] Re-sync `specs/DATA_MODEL.md` with `staff_identities` / `staff_sessions` and the `is_login` constraint
+- [X] T051 [P] Close **B32** in `specs/BACKLOG.md` (mark Done → feature 015) and note in `specs/PHASE3_REQUIREMENTS.md` that P3-1 has shipped
+- [X] T052 [P] Refresh auto-memory (`zak1-implementation-status`, `zak1-phase3-roles`) with feature 015's outcome per project convention
 
 ---
 

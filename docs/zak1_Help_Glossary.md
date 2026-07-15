@@ -42,8 +42,11 @@ contact who is flagged `is_volunteer`.
   volunteer may hold roles — [`migrations/0001_init.sql`](src/server/db/migrations/0001_init.sql).
 - **Assignment logic:** roles are de-duplicated on write in
   [`domain/contacts/contactService.ts`](src/server/domain/contacts/contactService.ts).
-- ⚠️ **Not yet a permission gate.** These roles record *who may do what*; the app does **not** yet
-  restrict routes by role. Enforcement is Phase 3 work.
+- ⚠️ **Roles are still not a permission gate.** `volunteer_roles` records *who may do what*, but the app
+  does **not** yet restrict anything by role — that is authorization, and it is the next feature (P3-2).
+- ✅ **`is_volunteer` IS enforced** as of feature 015: it is the gate for signing in at all, re-checked
+  live on every request. Authentication ("who is signed in?") exists; authorization ("may they do this?")
+  does not.
 
 ### A.2 Functional roles (implied by features, not yet access-controlled)
 
@@ -174,6 +177,45 @@ Each entry: plain-English definition, then **Files** (the code locations that ow
   performer info (feature 007; online sales deferred).
   **Files:** [`domain/public/publicSchedule.ts`](src/server/domain/public/publicSchedule.ts) · [`domain/public/performerDisplay.ts`](src/server/domain/public/performerDisplay.ts) · [`domain/bands/publicDisplay.ts`](src/server/domain/bands/publicDisplay.ts) · UI `/whats-on`, `/whats-on/<eventId>`.
 
+### Staff authentication (feature 015)
+
+- **Staff sign-in / Sign in with Google** — how a volunteer authenticates. The club runs Google Workspace,
+  but staff are **mixed**: long-term volunteers use `cdrochester.org` accounts, short-term ones use personal
+  Google accounts. No password is ever stored — Google verifies identity and owns recovery.
+  **Files:** [`auth/google.ts`](src/server/auth/google.ts) (arctic client, PKCE) · [`auth/claims.ts`](src/server/auth/claims.ts) · API `src/app/api/auth/google/route.ts`, `…/callback/route.ts` · UI `/login`.
+- **Verified claims / the boundary seam** — the one place an external assertion becomes trusted data:
+  `verifyGoogleIdToken(token) → VerifiedClaims`. **`email_verified` must be `true`** — the linchpin, without
+  which a token could assert any address. The verifier is injectable, which is how tests use a local key set
+  and never call Google (constitution v1.2.0).
+  **Files:** [`auth/claims.ts`](src/server/auth/claims.ts) · [`validation/auth.ts`](src/server/validation/auth.ts) · test fixture `tests/integration/helpers/oidc.ts`.
+- **Staff identity** — a volunteer contact's ability to sign in; binds a Google account (`google_sub`, the
+  durable link) to a **contact**. Created **automatically** on first successful sign-in — no registration
+  form, no approval. **One Google account per person.**
+  **Files:** [`schema/auth.ts`](src/server/db/schema/auth.ts) · [`auth/signIn.ts`](src/server/auth/signIn.ts) · [`migrations/0020_staff_auth.sql`](src/server/db/migrations/0020_staff_auth.sql).
+- **Login email (`is_login`)** — the contact email that is the sign-in identifier. Dormant since feature 001;
+  activated by 015. Permitted only on volunteer contacts, and **at most one per contact** (partial unique
+  index). **Files:** [`schema/contactEmails.ts`](src/server/db/schema/contactEmails.ts) · [`domain/contacts/emailService.ts`](src/server/domain/contacts/emailService.ts) (`isLoginAllowed`).
+- **Staff session** — a **revocable** server-side row, not a stateless token. Only a **hash** of the cookie
+  token is stored. Rolling idle window (`SESSION_IDLE_TTL_HOURS`, default 8).
+  **Files:** [`auth/session.ts`](src/server/auth/session.ts) · [`schema/auth.ts`](src/server/db/schema/auth.ts).
+- **Revocation (the live `is_volunteer` join)** — why sessions are rows: clearing `contacts.is_volunteer`
+  locks a person out on their **next request**, with no sweep. A JWT could not do this. ⚠️ Suspending someone's
+  *Google* account is **not** the kill-switch (we never re-contact Google) — clearing `is_volunteer` is.
+  **Files:** [`auth/session.ts`](src/server/auth/session.ts) (`readSession`).
+- **`requireStaff()` / `getCurrentStaff()` — the authorization seam** — answers *"who is signed in?"* and
+  never *"may they do this?"*. `CurrentStaff` deliberately carries **no roles**; P3-2 layers
+  role × capability × scope around it. **Files:** [`auth/currentStaff.ts`](src/server/auth/currentStaff.ts).
+- **`withAuth`** — the API wrapper (mirrors `withLogging`). **`/api/*` is default-deny**: every route uses it
+  except `/api/auth/*`. A route-inventory test fails the suite if a new route ever forgets.
+  **Files:** [`auth/withAuth.ts`](src/server/auth/withAuth.ts) · guard `tests/integration/auth.routeInventory.test.ts`.
+- **Refusal reason codes** — `email_unverified`, `no_match`, `ambiguous_match`, `not_volunteer`,
+  `identity_exists`, `sub_email_mismatch`, `token_invalid`. **Server-side only**: the user always sees one
+  generic message, since distinguishing them would let anyone probe club membership.
+  **Files:** [`validation/auth.ts`](src/server/validation/auth.ts) · [`auth/signIn.ts`](src/server/auth/signIn.ts).
+- **Operator bootstrap** — `pnpm run auth:bootstrap -- --email … [--contact-id …] [--role …]`. The cold-start
+  path: nothing in the UI sets `is_volunteer`, so without it nobody could sign in. ⚠️ **Not `db:seed`** — it
+  only touches the named contact. **Files:** [`db/bootstrapOfficer.ts`](src/server/db/bootstrapOfficer.ts).
+
 ### Cross-cutting infrastructure
 
 - **Audit row** — A structured record of a mutating action (`writeAudit`).
@@ -204,4 +246,7 @@ Each entry: plain-English definition, then **Files** (the code locations that ow
 | Treasurer / QBO | `domain/treasurer/` · `schema/qboMapping.ts` |
 | Organizer / paying dancers / Dance Net | `domain/organizer/danceResult.ts`, `reportService.ts` |
 | Public schedule | `domain/public/` |
+| Staff auth (sign-in, claims, session) | `src/server/auth/` · `schema/auth.ts` · `validation/auth.ts` |
+| Auth routes / login page | `src/app/api/auth/**` · `src/app/login/page.tsx` |
+| Operator bootstrap (first officer) | `src/server/db/bootstrapOfficer.ts` |
 | Route index (all UI + API) | `src/app/dev/routes/page.tsx` |

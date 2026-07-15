@@ -100,7 +100,7 @@ The person directory — the hub most other data links to.
 | membership_status | membership_status NOT NULL default `never` | materialized; recomputed on membership change + nightly |
 | list_member | boolean NOT NULL default false | `status != never` — drives the member mailing list |
 | status_recomputed_at | timestamptz NULL | |
-| is_volunteer | boolean NOT NULL default false | |
+| is_volunteer | boolean NOT NULL default false | **the staff access gate** (feature 015): re-checked live on every session read, so withdrawing it ends an active session on the next request |
 | volunteer_roles | volunteer_role[] NOT NULL default `{}` | CHECK: roles allowed only if `is_volunteer` |
 | merged_into_id | uuid NULL → contacts(id) | self-FK; non-null means this row was merged away |
 | needs_review | boolean NOT NULL default false | door-created / no-contact-info contacts flagged for admin |
@@ -122,11 +122,12 @@ Multiple emails per contact, each with its own purposes/consent.
 | purposes | email_purpose[] NOT NULL default `{personal}` | CHECK ≥1; GIN-indexed |
 | consent_topics | email_consent_topic[] NOT NULL default `{contact_tracing}` | CHECK ≥1; GIN-indexed |
 | status | email_status NOT NULL default `active` | |
-| is_login | boolean NOT NULL default false | login allowed only on volunteer contacts (service rule) |
+| is_login | boolean NOT NULL default false | **the staff login identifier** (feature 015). Allowed only on volunteer contacts (service rule, `isLoginAllowed`); **at most one per contact** (DB constraint, feature 015) |
 | provider_set_date, provider_last_open, provider_last_click | timestamptz NULL | read-only provider telemetry (iContact) |
 | created_at, updated_at | timestamptz | |
 
-- **Unique**: partial unique on `lower(trim(email)) WHERE status IN ('active','transition')` — an email can't be active on two contacts at once.
+- **Unique**: partial unique on `lower(trim(email)) WHERE status IN ('active','transition')` — an email can't be active on two contacts at once. Feature 015 relies on this: it makes the sign-in email→contact match unambiguous *by construction*, so the "multiple matches" branch is unreachable in practice.
+- **Unique**: `contact_emails_one_login_per_contact` — partial unique on `contact_id WHERE is_login` (feature 015). Before 015 nothing enforced single designation.
 - **Domain rules**: `contact_tracing` is the **default** consent topic on a new email. `do_not_contact` is exclusive — the service collapses `consent_topics` to exactly `{do_not_contact}` when set, so a DNC email can never match a content topic (this is what makes mailing-list exclusion "free").
 
 ### `payers`
@@ -519,12 +520,62 @@ Audit trail of on-demand CSV exports (the CSV rows themselves are never stored).
 
 ---
 
+## 8. Staff Authentication & Sessions (feature 015)
+
+Staff sign in with **Google**; the platform stores **no password**. A Google account binds to an existing
+**volunteer** contact by matching Google's verified email to an active `contact_emails` row, which then
+becomes that contact's `is_login` email. This activates the dormant feature-001 substrate
+(`is_volunteer` / `volunteer_roles` / `is_login`) rather than introducing a parallel user model — there is
+deliberately **no `users` table**; the person *is* a `contact`.
+
+### `staff_identities`
+A volunteer contact's ability to authenticate via Google. Holds no secret.
+
+| Column | Type | Notes |
+|---|---|---|
+| id | uuid PK | |
+| contact_id | uuid NOT NULL UNIQUE → contacts(id) ON DELETE CASCADE | **one identity per person** |
+| google_sub | text NOT NULL UNIQUE | Google's immutable account id — the durable link |
+| created_at | timestamptz NOT NULL default now() | row created on first successful sign-in |
+| last_sign_in_at | timestamptz NULL | |
+
+- **Domain rules**: provisioned **automatically** on first successful sign-in — no registration form, no
+  approval step. `google_sub` wins once bound: if a known account presents a changed email, the binding is
+  kept and the mismatch logged; it must never silently re-point to another contact.
+- `contact_id` UNIQUE is why a person may hold only **one** Google account. A long-term volunteer with both
+  a personal and a `cdrochester.org` account gets a clean `identity_exists` refusal (checked *before*
+  insert, so never a raw constraint violation). Backlog **B38** makes re-binding self-service.
+- **Eligibility is deliberately NOT copied here** — `contacts.is_volunteer` is read live, so it cannot go
+  stale.
+
+### `staff_sessions`
+A revocable authenticated period.
+
+| Column | Type | Notes |
+|---|---|---|
+| id | uuid PK | |
+| staff_identity_id | uuid NOT NULL → staff_identities(id) ON DELETE CASCADE | |
+| token_hash | text NOT NULL UNIQUE | **SHA-256 hash only** — the raw token lives solely in the client cookie |
+| created_at | timestamptz NOT NULL default now() | |
+| last_seen_at | timestamptz NOT NULL default now() | advanced on each authenticated read (rolling window) |
+| expires_at | timestamptz NOT NULL | `last_seen_at + SESSION_IDLE_TTL_HOURS` (default 8) |
+
+- **Indexes**: `staff_sessions_identity_idx` on `staff_identity_id`.
+- **Why rows and not a JWT**: a stateless token cannot be revoked before expiry. Every session read joins
+  `staff_sessions → staff_identities → contacts` and requires `contacts.is_volunteer`, so withdrawing
+  access locks the person out on their **next request** — no revocation sweep, no stored copy to go stale.
+- **Domain rules**: rolling idle expiry; sign-out deletes the row; only the hash is stored, so a database
+  leak yields no usable sessions.
+
+---
+
 ## Deferred / not modeled
 
 These were specced but intentionally **not built** (no tables exist), per project decisions:
 
-- **Online sales / Online Order** (feature 007 US2 — PayPal advance tickets & memberships): deferred;
-  the public site is browse-only. The treasurer online-fee calculator stays dormant as a result.
+- **Online sales / Online Order** (feature 007 US2 — PayPal advance tickets): deferred; the public site is
+  browse-only. The treasurer online-fee calculator stays dormant as a result. *Online **membership**
+  purchase is now scoped separately as backlog **B30** (a PayPal Hosted Button the club already uses).*
 - **Group tickets** (BACKLOG B1): one ticket redeemable across an `EventGroup`'s events — the
   `event_groups` scaffolding exists, but purchase/redemption/revenue-split do not.
 - **Primary-email designation** (B3), **effective-dated venue/other event attributes beyond venue**

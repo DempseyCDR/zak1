@@ -7,8 +7,9 @@ is [`../docs/use-cases.md`](../docs/use-cases.md); per-item detail lives in [`BA
 Each package below is written to be handed to `/speckit-specify` as one (or a small number of) feature
 descriptions; run `/speckit-clarify` afterward to resolve the flagged open questions._
 
-Status: **planning** — not yet specified/implemented. Nothing in the codebase has changed for B22–B37.
-Phase 3 features are expected to number **015+**.
+Status: **in progress**. **P3-1 shipped as feature 015** (auth foundation, commit `6702db1`, 2026-07-14).
+P3-2 onward are still planning; nothing in the codebase has changed for B22–B31 or B33–B36.
+Phase 3 features number **015+**.
 
 ---
 
@@ -21,9 +22,9 @@ far cheaper up front than retrofitted.
 
 | Pkg | Theme | Backlog items | Depends on |
 |---|---|---|---|
-| **P3-1** | Authentication & session foundation | **B32** | — |
+| **P3-1** | Authentication & session foundation ✅ **SHIPPED** (feature 015) | **B32** | — |
 | **P3-2** | Authorization — role × capability × scope enforcement | *(derived from `use-cases.md`, not a B-item)* | P3-1 |
-| **P3-3** | Check-in overhaul (Door Attendant + community dance) | **B34, B33, B37, B35, B36, B29** | P3-1/P3-2 |
+| **P3-3** | Check-in overhaul (Door Attendant + community dance) | **B34, B33, B35, B36, B29** | P3-1/P3-2 |
 | **P3-4** | Booking & event management (Booker) | **B23, B24, B25, B26, B22, B27** | P3-1/P3-2 |
 | **P3-5** | Performer payments & membership acquisition | **B28, B31, B30** | P3-1/P3-2; B30 also relates to 007 US2 / B1 |
 
@@ -32,7 +33,6 @@ far cheaper up front than retrofitted.
 - **B32 → everything.** Auth is the prerequisite for all role gating and role-aware UI.
 - **P3-2 → P3-3/4/5.** The permission layer (base + grants, scope-aware) is the framework the feature
   packages plug into; it must exist before UI is gated by role.
-- **B37 → B35, B36** (community-dance event type drives both special rules).
 - **B34 → B33** (last-name capture must exist before a last-name roster sort is meaningful).
 - **B23 → B24** (booking status must exist before the report can distinguish proposed/requested/confirmed).
 - **B29 ↔ B36** (the comp model B29 builds feeds the open-band cross-comp in B36; do B29 first).
@@ -45,7 +45,11 @@ before finalizing the contacts capabilities in the permission layer.
 
 ---
 
-## P3-1 — Authentication & session foundation (B32)
+## P3-1 — Authentication & session foundation (B32) ✅ SHIPPED
+
+> **Shipped 2026-07-14 as feature 015** (`specs/015-staff-auth`, commit `6702db1`): Google
+> sign-in, DB-backed revocable sessions, `/api/*` default-deny, operator bootstrap. Verified
+> end-to-end against real Google. 291 tests green. Authorization remains P3-2.
 
 ### Context / why
 
@@ -137,7 +141,11 @@ This is **not a backlog line item** — it is the core of "flesh out user roles,
 
 ## P3-3 — Check-in overhaul (Door Attendant + community dance)
 
-### Included: B34, B33, B37, B35, B36, B29 · Internal order: B34 → B33; B37 → B35 → B36; B29 before B36.
+### Included: B34, B33, B35, B36, B29 · Internal order: B34 → B33; B29 before B36.
+
+> **B37 retired 2026-07-14**: a community dance is its own **series** (already seeded), not an event
+> type — so no `events.type` is needed. B35 (children count) applies to **all series**; B36 is the
+> community_dance series' own rule.
 
 ### Context / why
 
@@ -152,12 +160,11 @@ comp capture to check-in, revising feature 014 and resolving B21.
    **editable display name** (add `displayNameOverride` to the check-in path; concatenation already works).
 2. **B33** — a **checked-in roster** panel on `/checkin`, **sortable by first / last name** (the
    `listEventAttendance` endpoint must return structured first/last and support ordering).
-3. **B37** — add an event **`type`**; `community_dance` is the first value and drives B35/B36.
-4. **B35** — **family check-in**: one parent contact + a **children count**; **children count as paying**
-   (attendance total and paying dancers include them).
-5. **B36** — **open-band musician** check-in: flag an unpaid, non-leading musician; they are **comp'd into
-   the paired regular contra dance** in the same event group and **count as attending**.
-6. **B29** — capture **comp & gift-card counts at check-in** (Door Attendant), materialized on the door
+3. **B35** — **family check-in** (**all series**): one parent contact + a **children count**; **children
+   count as paying** (attendance total and paying dancers include them).
+4. **B36** — **open-band musician** check-in (the **community_dance series** rule): flag an unpaid,
+   non-leading musician; they are **comp'd into ALL events of the event group** and **count as attending**.
+5. **B29** — capture **comp & gift-card counts at check-in** (Door Attendant), materialized on the door
    record for FS confirmation; counts only, no attendee attribution. Revises feature 014; resolves B21.
 
 ### Expected outcomes (testable)
