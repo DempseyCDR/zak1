@@ -44,11 +44,12 @@ the *whole* contacts directory + dedup, or only the mailing-side (emails, consen
 before finalizing the contacts capabilities in the permission layer. *(The per-event-group scope question
 was resolved 2026-07-14 — see `use-cases.md` §1/§4.)*
 
-⚠️ **A consequence P3-2 should decide on deliberately:** `is_volunteer` is cleared by the President only
-when a volunteer *leaves*, so a short-term volunteer's **group-scoped grants go inert** once the group's
-events pass, but their **authentication and Organizer-base read do not** — they can sign in and read the
-organizer report (attendance, Dance Net, average ticket) indefinitely. If that standing read is unwanted,
-the Organizer base itself must become scoped.
+**Decided 2026-07-14 — the Organizer base stays UNSCOPED.** `is_volunteer` is cleared only when a
+volunteer *leaves*, so a short-term volunteer's ⬢ grants go inert once the group's events pass while their
+authentication and Organizer-base read persist indefinitely. **The club accepts this**: a volunteer may
+retain read access to club data indefinitely. P3-2 therefore does **not** need to scope oversight reads —
+scope filtering applies to *grants and writes*, not to the authenticated baseline. "Short-term" bounds
+authority, not access.
 
 ---
 

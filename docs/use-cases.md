@@ -132,12 +132,14 @@ authenticated roles inherit the Organizer base (read oversight). ⚠️ = inferr
 - **Group-scoped grants self-expire in effect.** Groups are named per instance ("Jane Austen Ball 2026",
   "Pride Dance 2026"), so once a group's events are past, a grant scoped to it is inert without anyone
   revoking it — a useful property for exactly the short-term case.
-- ⚠️ **…but authentication does not expire with it.** `contacts.is_volunteer` is cleared by the President
-  **only when a volunteer leaves** (decided 2026-07-14). So a short-term volunteer who helped at one
-  Thanksgiving retains the ability to **sign in indefinitely**, and with it the **Organizer base read** —
-  which includes the organizer report (attendance, Dance Net, average ticket). Their *scoped* grants go
-  inert; their *baseline* access does not. If that standing read is not wanted, the Organizer base itself
-  has to become scoped — a P3-2 decision, not a bug.
+- **…but authentication does not expire with it — and that is fine** (decided 2026-07-14).
+  `contacts.is_volunteer` is cleared by the President **only when a volunteer leaves**, so a short-term
+  volunteer who helped at one Thanksgiving retains the ability to **sign in indefinitely**, and with it the
+  **Organizer base read** (organizer report: attendance, Dance Net, average ticket). **The club accepts
+  this**: a volunteer may retain read access to club data indefinitely. So "short-term" bounds a
+  volunteer's *authority*, not their *access* — their ⬢ grants go inert while their baseline read persists.
+  **Consequence for P3-2: the Organizer base stays UNSCOPED** (club-wide read) — no per-scope filtering of
+  oversight reads needs to be built.
 - **Delegation chains.** President→Booker, Treasurer→FS, VP→{Webmaster, Mailing List Manager}. The
   club-wide officer hands a grant down to a per-series/operational delegate.
 - **Superset relationships.** Treasurer ⊇ FS (any series). **Super-user ⊇ everything** (writes any row).
