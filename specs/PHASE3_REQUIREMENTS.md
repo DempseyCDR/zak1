@@ -41,7 +41,14 @@ far cheaper up front than retrofitted.
 
 **Still-open model question that gates P3-2:** **row 17 scope** — does the VP / Mailing List Manager own
 the *whole* contacts directory + dedup, or only the mailing-side (emails, consent, exports)? Resolve
-before finalizing the contacts capabilities in the permission layer.
+before finalizing the contacts capabilities in the permission layer. *(The per-event-group scope question
+was resolved 2026-07-14 — see `use-cases.md` §1/§4.)*
+
+⚠️ **A consequence P3-2 should decide on deliberately:** `is_volunteer` is cleared by the President only
+when a volunteer *leaves*, so a short-term volunteer's **group-scoped grants go inert** once the group's
+events pass, but their **authentication and Organizer-base read do not** — they can sign in and read the
+organizer report (attendance, Dance Net, average ticket) indefinitely. If that standing read is unwanted,
+the Organizer base itself must become scoped.
 
 ---
 
@@ -109,6 +116,13 @@ This is **not a backlog line item** — it is the core of "flesh out user roles,
 
 1. Model roles as **base (Organizer) + additive grants**, with **scope that can vary per capability**
    (the Mailing List Manager is per-series but exports across all series — see `use-cases.md` §4).
+   ⚠️ **Scope is not a tree.** Four granularities — ⬡ club-wide, ⬤ per-series, ⬢ **per-event-group**,
+   ◍ per-event — and **⬢ is orthogonal to ⬤**: event groups deliberately span series ("Thanksgiving 2026"
+   = tnc + ecd; a double dance = community_dance + tnc). `event_groups` has no `series_id` and
+   `events.group_id` is independent of `events.series_id`, so a group-scoped grant legitimately reaches
+   events in a series the holder has no series authority over. Evaluate scope as a **set of filters
+   (series OR group OR event)**, never a single tree walk. **Short-term volunteers are ⬢ group-scoped**
+   (decided 2026-07-14) — per-event grants cannot express it.
 2. Implement the **officer → delegate** assignment paths (President→Booker, Treasurer→FS,
    VP→{Webmaster, Mailing List Manager}) and the **Super-user** global-write role (rename the DB enum
    `administrator` → super-user semantics).

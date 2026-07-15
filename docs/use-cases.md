@@ -45,8 +45,18 @@ The four elected bylaws officers are **President, Vice-President, Secretary, Tre
 **Super-user** is a technical app role (global write), not an officer. The President normally assigns
 roles; the Super-user *can* do so too by virtue of writing anything.
 
-**Scope legend:** ⬤ per-series · ◍ per-event/shift · ⬡ club-wide.
+**Scope legend:** ⬡ club-wide · ⬤ per-series · ⬢ **per-event-group** · ◍ per-event/shift.
 Per-series roles are always "of series X" — Booker-of-ecd has no authority over tnc.
+
+⚠️ **Scope is NOT a hierarchy.** It would be tempting to read club-wide ⊃ series ⊃ event as a tree, but
+**event groups deliberately span series**: "Thanksgiving 2026" contains both **tnc** and **ecd** events, and
+a double dance pairs a `community_dance` event with a `tnc` one. `event_groups` has no `series_id`, and
+`events.group_id` is independent of `events.series_id` — the schema already allows this.
+
+So **⬢ group and ⬤ series are orthogonal axes**, and a group-scoped grant can legitimately reach events in a
+series the holder has **no series-scoped authority over**. That is intended, not a leak. Any permission
+check must therefore evaluate scope as a **set of filters (series OR group OR event)**, never as a single
+tree walk.
 
 ---
 
@@ -115,6 +125,19 @@ authenticated roles inherit the Organizer base (read oversight). ⚠️ = inferr
 - **Scope exceptions exist.** A role's scope isn't absolute per capability: the **Mailing List Manager**
   is a *per-series* role but may read/export **all** series' mailing lists. So the model is
   role × capability × scope, where scope can vary per capability — not one scope per role.
+- **Short-term volunteers are ⬢ per-event-group** (decided 2026-07-14). The club recruits people for a
+  single event group — a double dance, "Thanksgiving 2026" — and they get "a more restricted scope of
+  activity". Per-event (◍) grants cannot express this cleanly, and per-series (⬤) would over-grant *and*
+  under-grant at once, since a group spans series.
+- **Group-scoped grants self-expire in effect.** Groups are named per instance ("Jane Austen Ball 2026",
+  "Pride Dance 2026"), so once a group's events are past, a grant scoped to it is inert without anyone
+  revoking it — a useful property for exactly the short-term case.
+- ⚠️ **…but authentication does not expire with it.** `contacts.is_volunteer` is cleared by the President
+  **only when a volunteer leaves** (decided 2026-07-14). So a short-term volunteer who helped at one
+  Thanksgiving retains the ability to **sign in indefinitely**, and with it the **Organizer base read** —
+  which includes the organizer report (attendance, Dance Net, average ticket). Their *scoped* grants go
+  inert; their *baseline* access does not. If that standing read is not wanted, the Organizer base itself
+  has to become scoped — a P3-2 decision, not a bug.
 - **Delegation chains.** President→Booker, Treasurer→FS, VP→{Webmaster, Mailing List Manager}. The
   club-wide officer hands a grant down to a per-series/operational delegate.
 - **Superset relationships.** Treasurer ⊇ FS (any series). **Super-user ⊇ everything** (writes any row).
@@ -240,15 +263,11 @@ The Treasurer may also edit membership records directly. The VP never edits them
 1. **Row 17 scope** — does the VP (via the Mailing List Manager) own the **whole** contact directory +
    dedup, or only the mailing-side (emails, consent topics, exports), with contact *records* owned
    elsewhere? *(still open)*
-1a. **A fourth scope granularity: per-event-group** *(surfaced 2026-07-14, feature 015 auth review)*. The
-   club distinguishes **long-term** volunteers (who receive `cdrochester.org` Workspace accounts) from
-   **short-term** ones recruited for **a particular event group** — e.g. a double dance — who use personal
-   email and are to have "a more restricted scope of activity". Our model has ⬤ per-series, ◍ per-event, and
-   ⬡ club-wide; an **event-group** scope sits between per-series and per-event and is not yet modeled.
-   P3-2 must decide whether to add it (`event_groups` already exists; a double dance is one). Note this is
-   purely an **authorization** concern — feature 015 treats short- and long-term volunteers identically
-   (`is_volunteer`), and deliberately does not enforce the Workspace domain, precisely so short-term
-   volunteers can sign in at all.
+*Resolved 2026-07-14 — **per-event-group (⬢) is a real, required scope**.* Short-term volunteers are
+   scoped to an event group; groups deliberately span series ("Thanksgiving 2026" = tnc + ecd), so ⬢ is
+   **orthogonal to ⬤**, not nested under it — see §1 and §4. Feature 015 is unaffected: it treats short- and
+   long-term volunteers identically (`is_volunteer`) and deliberately does not enforce the Workspace domain,
+   precisely so short-term volunteers on personal Google accounts can sign in at all.
 2. **Other officers/grants** — the four bylaws officers (President, VP, Secretary, Treasurer) and the
    Super-user are now modeled. Any further grants (e.g. a member-at-large, committee chairs) are not yet
    surfaced.
