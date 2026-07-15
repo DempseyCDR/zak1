@@ -171,16 +171,23 @@ authenticated roles inherit the Organizer base (read oversight). ⚠️ = inferr
    last name** (B33). Distinct from the directory search used to *find* people to check in.
 7. Add a **new contact** at check-in — enter **first + last name**; the display name is auto-concatenated
    ("first last") and **editable** by the Door Attendant (B34).
-8. **Family check-in** (community dance): one parent contact + a **count of children** (B35).
-9. **Open-band musician check-in** (community dance): note an **unpaid, non-leading** open-band musician;
-   they are **comp'd into the paired regular contra dance** in the same event group (B36).
+8. **Family check-in** (**all series**): one parent contact + a **count of children**; children **count as
+   paying** (B35).
+9. **Open-band musician check-in** (**community_dance series**): note an **unpaid, non-leading** open-band
+   musician; they are **comp'd into every event of the event group** and **count as attending** (B36).
 10. **Boundary:** no `/gate` access.
 
-> **Community dance** — an **event type** (B37) on a **tnc**-series event, paired (via `event_group`) with
-> a regular contra dance. Special check-in rules: families check in as one parent + a **children count**
-> (children **count as paying**) (B35); and it runs on a mix of **paid musicians** (booked) plus
-> **open-band musicians** (unpaid volunteers) who earn a cross-event comp into the paired contra dance and
-> **count as attending** (B36).
+> **Community dance** — its **own series** (`community_dance`), a peer of Thursday Night Contra (`tnc`),
+> already seeded as such. It is **not** an event type: B37 proposed one and was **retired 2026-07-14**, as
+> it rested on a misreading — the codebase was already right.
+>
+> What makes the series special is a **rule, not a shape**: it runs on a mix of **paid musicians** (booked)
+> plus **open-band musicians** (unpaid volunteers), and an open-band musician is **comp'd into all events of
+> the event group**, not merely the one they played (B36). ⚠️ Feature 014's `door_records.comp_count` is a
+> *single-event* counter and cannot express that — the comp model must become event-group-aware.
+>
+> Family check-in with a children count is **not** specific to this series; it applies to **every** series
+> (B35).
 
 ### 5.4 Treasurer (club-wide officer)
 
@@ -268,8 +275,8 @@ settings → **President**; venue data needs no dedicated role (**Treasurer + Bo
 | B32 | User authentication / login + session foundation (staff roles) — **prerequisite, spec first** |
 | B33 | Door Attendant checked-in roster view — sortable by first / last name |
 | B34 | Check-in new-contact capture — first + last name + editable display name |
-| B35 | Family check-in — one parent contact + a children count (community dance) |
-| B36 | Open-band musician check-in → comp into the paired event-group contra dance |
-| B37 | Community dance event type (drives B35/B36 rules) |
+| B35 | Family check-in — one parent contact + a children count (**all series**) |
+| B36 | Open-band musician check-in → comp'd into the whole event group (community_dance series rule) |
+| B37 | ~~Community dance event type~~ — **RETIRED**: community_dance is a series, already seeded |
 
 See [`../specs/BACKLOG.md`](../specs/BACKLOG.md) for full write-ups.
