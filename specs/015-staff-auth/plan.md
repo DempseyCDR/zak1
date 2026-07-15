@@ -16,9 +16,11 @@ authorization feature (P3-2) will read.
 **Technical approach** (see [research.md](research.md)): `arctic` for the Google authorization-code flow
 with PKCE, `jose` to verify the ID token against a JWKS, and a **DB-backed session table** in Drizzle
 (required by FR-011 — a stateless JWT could not be revoked when volunteer access is withdrawn). Enforcement
-lives in route-group layouts and a `withAuth` API wrapper rather than middleware, because Next.js 15.1.3
-middleware is edge-only and the `postgres` driver is not edge-compatible. This activates the dormant
-feature-001 substrate (`is_volunteer` / `is_login`) instead of building a parallel user model.
+lives in route-group layouts and a `withAuth` API wrapper rather than middleware — because Next.js 15.1.3
+middleware is edge-only and `postgres` is not edge-compatible, and, independently, because an authorization
+boundary belongs close to the data rather than at the request edge (research R5; the second reason survives
+a Next upgrade, the first does not). This activates the dormant feature-001 substrate (`is_volunteer` /
+`is_login`) instead of building a parallel user model.
 
 ## Technical Context
 
@@ -44,7 +46,9 @@ SC-001 (sign-in < 30s) is dominated by Google's redirect, not our code.
 
 **Constraints**:
 
-- Next.js 15.1.3 middleware is **edge-only** → session validation cannot live there (research R5).
+- Next.js 15.1.3 middleware is **edge-only** → session validation cannot live there. ⚠️ This constraint
+  **expires on upgrade** (Node middleware stabilised ~15.5); the decision nonetheless stands on
+  defence-in-depth grounds — see research R5.
 - FR-011 (revoke on withdrawal) rules out stateless JWT sessions (research R2).
 - `pnpm run db:seed` **TRUNCATEs `zak1_dev`** and must never be part of bootstrap (research R8) — the dev
   DB holds the user's live demo data (~1334 contacts).
@@ -69,8 +73,9 @@ matter, throughput does not.
 
 **Post-Phase-1 re-check: PASS.** The design added no new abstractions beyond the two tables and the single
 `verifyGoogleIdToken` seam. One deliberate note: enforcement via layouts + `withAuth` rather than
-middleware is a *constraint accommodation* (edge runtime), not added complexity — it reuses the wrapper
-pattern the codebase already employs for `withLogging`.
+middleware is not merely a *constraint accommodation* (edge runtime): it is also the safer placement —
+auth is checked close to the data rather than at the request edge (research R5, CVE-2025-29927). It reuses
+the wrapper pattern the codebase already employs for `withLogging`.
 
 ## Project Structure
 

@@ -115,10 +115,25 @@ settles the Google console configuration:
 layouts, plus a `withAuth` wrapper for API route handlers (mirroring the existing `withLogging`). Do
 **not** put session validation in `middleware.ts`.
 
-**Rationale** — a real constraint, not a preference: Next.js **15.1.3** middleware runs on the **edge
-runtime**, and the project's `postgres` driver is not edge-compatible. Session validation requires a DB
-lookup (R2), so it cannot live in middleware on this version. (Node.js middleware is a later,
-experimental Next.js capability we are not on.)
+**Two independent reasons.** The first expires on upgrade; the second does not. ⚠️ **Do not read reason 1
+alone and conclude that a Next upgrade makes middleware auth acceptable — it does not.**
+
+**Reason 1 — a hard constraint on this version (expires).** Next.js **15.1.3** middleware runs on the
+**edge runtime**, and the project's `postgres` driver is not edge-compatible. Session validation requires a
+DB lookup (R2), so it *cannot* live in middleware here. Node.js middleware arrived later
+(`experimental.nodeMiddleware` in 15.2, stabilised around 15.5, carried into 16.x), so **on a future Next
+this constraint simply disappears**.
+
+**Reason 2 — defence in depth (does not expire).** Middleware is the wrong *place* for an authorization
+boundary regardless of runtime. **CVE-2025-29927** (Next.js 11.x–15.x) let a crafted
+`x-middleware-subrequest` header **skip middleware execution entirely** — any app whose authorization lived
+only in middleware was bypassable. The guidance since is to check auth **close to the data**, not at the
+edge of the request.
+
+That is exactly what this design does: `requireStaff()` runs inside the protected layouts and `withAuth`
+runs inside each handler, both hitting the database on the request path. **It is structurally immune to
+that whole class of bug.** Moving auth into middleware after an upgrade would buy nothing and reintroduce
+the risk — so the decision stands on reason 2 even once reason 1 is obsolete.
 
 Layout-level enforcement fits the existing route groups cleanly: `(admin)` and `(door)` each get a layout
 that calls `requireStaff()`, covering every page in the group; `(public)` and `/` stay open.

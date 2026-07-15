@@ -189,8 +189,13 @@ There is deliberately **no `users` table**: the person *is* a `contact`.
   volunteer access is withdrawn; a JWT cannot be revoked. `readSession` joins live to
   `contacts.is_volunteer`, so clearing it locks the person out **on the next request**. Only a SHA-256
   **hash** of the cookie token is stored.
-- **Enforcement is route-group layouts + a `withAuth` wrapper, NOT middleware** — Next 15.1.3 middleware is
-  edge-only and the `postgres` driver isn't edge-compatible.
+- **Enforcement is route-group layouts + a `withAuth` wrapper, NOT middleware.** Two reasons, and the
+  second is the durable one. (1) Next 15.1.3 middleware is edge-only and `postgres` isn't edge-compatible
+  — ⚠️ **this expires on upgrade** (Node middleware stabilised ~15.5, carried into 16.x). (2) An
+  authorization boundary belongs **close to the data**, not at the request edge: **CVE-2025-29927** let a
+  crafted `x-middleware-subrequest` header skip Next middleware entirely, so anything relying on
+  middleware alone was bypassable. `requireStaff()`/`withAuth` hit the DB on the request path and are
+  structurally immune. **Do not move auth into middleware after a Next upgrade.**
 - **`arctic` + `jose` + own sessions, NOT Auth.js** — its adapter imposes a parallel user model that
   duplicates `contacts`.
 - **Google config is parsed separately** (`getAuthEnv()`), not in the core `envSchema`: the suite never
