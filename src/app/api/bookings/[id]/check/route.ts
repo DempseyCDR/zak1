@@ -2,12 +2,12 @@ import { NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
 import { db } from "@/server/db/client";
 import { bookings } from "@/server/db/schema";
-import { withLogging } from "@/server/lib/withLogging";
+import { withAuth } from "@/server/auth/withAuth";
 import { parseBody } from "@/server/lib/parseBody";
 import { errors } from "@/server/lib/apiError";
 import { checkNumberPatchSchema } from "@/server/validation/treasurer";
 
-export const PATCH = withLogging<{ id: string }>(async (req, ctx) => {
+export const PATCH = withAuth<{ id: string }>(async (req, ctx) => {
   const { id } = await ctx.params;
   const input = await parseBody(req, checkNumberPatchSchema);
   const [row] = await db

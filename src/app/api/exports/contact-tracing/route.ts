@@ -1,13 +1,13 @@
 import { NextResponse } from "next/server";
 import { db } from "@/server/db/client";
-import { withLogging } from "@/server/lib/withLogging";
+import { withAuth } from "@/server/auth/withAuth";
 import { errors } from "@/server/lib/apiError";
 import { eventIdSchema } from "@/server/validation/exports";
 import { buildContactTracingRows } from "@/server/domain/exports/contactTracingService";
 import { recordExportRun } from "@/server/domain/exports/exportAuditService";
 import { rowsToCsv } from "@/server/domain/exports/csv";
 
-export const GET = withLogging(async (req) => {
+export const GET = withAuth(async (req) => {
   const url = new URL(req.url);
   const parsed = eventIdSchema.safeParse(url.searchParams.get("eventId"));
   if (!parsed.success) throw errors.eventNotFound();

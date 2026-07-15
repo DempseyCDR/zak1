@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 import { db } from "@/server/db/client";
-import { withLogging } from "@/server/lib/withLogging";
+import { withAuth } from "@/server/auth/withAuth";
 import { assembleTreasurerReport } from "@/server/domain/treasurer/reportService";
 
-export const GET = withLogging<{ id: string }>(async (req, ctx) => {
+export const GET = withAuth<{ id: string }>(async (req, ctx) => {
   const { id } = await ctx.params;
   const actor = req.headers.get("x-actor") ?? "treasurer";
   const report = await assembleTreasurerReport(db, id, actor);

@@ -1,3 +1,4 @@
+import { eq } from "drizzle-orm";
 import { db } from "./db";
 import { createEvent } from "@/server/domain/events/eventService";
 import { createPerformer } from "@/server/domain/performers/performerService";
@@ -85,6 +86,34 @@ export async function makeContactWithEmail(opts: {
     .returning();
   if (!email) throw new Error("email insert failed");
   return { contactId: contact.id, emailId: email.id };
+}
+
+/**
+ * Create a volunteer contact with one active email — the shape staff sign-in requires (feature 015).
+ *
+ * Sign-in matches Google's verified email to an ACTIVE email on a contact with `is_volunteer`, so a
+ * plain `makeContactWithEmail` contact can never sign in. `isLogin` is left false: the sign-in path
+ * sets it on first success (FR-014).
+ */
+export async function makeVolunteerContact(opts: {
+  firstName?: string;
+  lastName?: string;
+  email: string;
+  emailStatus?: EmailStatus;
+  /** Set false to build a contact that matches by email but is NOT eligible (FR-013 refusal). */
+  isVolunteer?: boolean;
+}): Promise<{ contactId: string; emailId: string }> {
+  const { contactId, emailId } = await makeContactWithEmail({
+    firstName: opts.firstName ?? "Vol",
+    lastName: opts.lastName ?? "Unteer",
+    email: opts.email,
+    emailStatus: opts.emailStatus ?? "active",
+  });
+  await db
+    .update(contacts)
+    .set({ isVolunteer: opts.isVolunteer ?? true })
+    .where(eq(contacts.id, contactId));
+  return { contactId, emailId };
 }
 
 /** Create a door record for an event and optionally set gate sales (dollar amounts). */

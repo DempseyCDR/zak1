@@ -29,7 +29,13 @@ export type AuditEvent = {
     | "venue.created"
     | "venue.updated"
     | "venue_rent.created"
-    | "event.rent_set";
+    | "event.rent_set"
+    // Feature 015 — staff authentication.
+    | "auth.bootstrap.designated"
+    | "auth.identity.created"
+    | "auth.signin.succeeded"
+    | "auth.signin.refused"
+    | "auth.signout";
   actor: string | null;
   details: Record<string, unknown>;
 };

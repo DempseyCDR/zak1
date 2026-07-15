@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
 import { db } from "@/server/db/client";
-import { withLogging } from "@/server/lib/withLogging";
+import { withAuth } from "@/server/auth/withAuth";
 import { parseBody } from "@/server/lib/parseBody";
 import { bookBandSchema } from "@/server/validation/bands";
 import { bookBand } from "@/server/domain/bands/bookBand";
 
-export const POST = withLogging<{ id: string }>(async (req, ctx) => {
+export const POST = withAuth<{ id: string }>(async (req, ctx) => {
   const { id } = await ctx.params;
   const input = await parseBody(req, bookBandSchema);
   const actor = req.headers.get("x-actor") ?? "admin";

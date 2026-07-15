@@ -2,12 +2,12 @@ import { NextResponse } from "next/server";
 import { desc, eq } from "drizzle-orm";
 import { db } from "@/server/db/client";
 import { venueRents } from "@/server/db/schema";
-import { withLogging } from "@/server/lib/withLogging";
+import { withAuth } from "@/server/auth/withAuth";
 import { parseBody } from "@/server/lib/parseBody";
 import { venueRentCreateSchema } from "@/server/validation/venueRents";
 import { createVenueRent } from "@/server/domain/parameters/rentService";
 
-export const GET = withLogging(async (req) => {
+export const GET = withAuth(async (req) => {
   const url = new URL(req.url);
   const venueId = url.searchParams.get("venueId");
   if (!venueId) {
@@ -24,7 +24,7 @@ export const GET = withLogging(async (req) => {
   return NextResponse.json({ items });
 });
 
-export const POST = withLogging(async (req) => {
+export const POST = withAuth(async (req) => {
   const input = await parseBody(req, venueRentCreateSchema);
   const actor = req.headers.get("x-actor") ?? "admin";
   const row = await createVenueRent(db, input, actor);

@@ -24,7 +24,8 @@ export type ApiErrorCode =
   | "MAILING_LIST_NOT_FOUND"
   | "BAND_NOT_FOUND"
   | "VENUE_NOT_FOUND"
-  | "VALIDATION_ERROR";
+  | "VALIDATION_ERROR"
+  | "UNAUTHENTICATED";
 
 export class ApiError extends Error {
   readonly code: ApiErrorCode;
@@ -43,6 +44,9 @@ export class ApiError extends Error {
 }
 
 export const errors = {
+  /** Feature 015: no valid staff session. Deliberately says nothing about why. */
+  unauthenticated: () =>
+    new ApiError("UNAUTHENTICATED", 401, "Authentication required."),
   emailDuplicate: () =>
     new ApiError("EMAIL_DUPLICATE", 409, "Email already in use by an active or transition record."),
   contactNotFound: () => new ApiError("CONTACT_NOT_FOUND", 404, "Contact not found."),

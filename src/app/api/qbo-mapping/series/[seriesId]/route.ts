@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
 import { db } from "@/server/db/client";
-import { withLogging } from "@/server/lib/withLogging";
+import { withAuth } from "@/server/auth/withAuth";
 import { parseBody } from "@/server/lib/parseBody";
 import { seriesQboPutSchema } from "@/server/validation/treasurer";
 import { updateSeriesQbo } from "@/server/domain/treasurer/mappingService";
 
-export const PUT = withLogging<{ seriesId: string }>(async (req, ctx) => {
+export const PUT = withAuth<{ seriesId: string }>(async (req, ctx) => {
   const { seriesId } = await ctx.params;
   const input = await parseBody(req, seriesQboPutSchema);
   const actor = req.headers.get("x-actor") ?? "admin";

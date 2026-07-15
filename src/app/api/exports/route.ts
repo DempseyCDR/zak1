@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import { db } from "@/server/db/client";
-import { withLogging } from "@/server/lib/withLogging";
+import { withAuth } from "@/server/auth/withAuth";
 import { MAILING_LISTS } from "@/server/domain/exports/mailingLists";
 import { getLastExports } from "@/server/domain/exports/exportAuditService";
 
-export const GET = withLogging(async () => {
+export const GET = withAuth(async () => {
   const lastExports = await getLastExports(db);
 
   const items = MAILING_LISTS.map((def) => ({

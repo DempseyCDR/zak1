@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
 import { db } from "@/server/db/client";
 import { series } from "@/server/db/schema";
-import { withLogging } from "@/server/lib/withLogging";
+import { withAuth } from "@/server/auth/withAuth";
 import { parseBody } from "@/server/lib/parseBody";
 import { rateParameterCreateSchema } from "@/server/validation/performers";
 import {
@@ -10,14 +10,14 @@ import {
   resolveParameterCents,
 } from "@/server/domain/parameters/seriesParameterService";
 
-export const POST = withLogging(async (req) => {
+export const POST = withAuth(async (req) => {
   const input = await parseBody(req, rateParameterCreateSchema);
   const actor = req.headers.get("x-actor") ?? "admin";
   const row = await createRateParameter(db, input, actor);
   return NextResponse.json(row, { status: 201 });
 });
 
-export const GET = withLogging(async (req) => {
+export const GET = withAuth(async (req) => {
   const url = new URL(req.url);
   const seriesKey = url.searchParams.get("seriesKey");
   const kind = url.searchParams.get("kind");

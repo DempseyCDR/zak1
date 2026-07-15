@@ -14,6 +14,7 @@ import Link from "next/link";
 
 const uiRoutes: { path: string; label: string; feature: string }[] = [
   { path: "/", label: "Home", feature: "—" },
+  { path: "/login", label: "Staff sign-in (Google) — PUBLIC", feature: "015" },
   { path: "/contacts", label: "Contacts directory", feature: "001" },
   { path: "/dedup", label: "Duplicate review queue", feature: "001" },
   { path: "/checkin", label: "Door check-in", feature: "002" },
@@ -37,6 +38,10 @@ const uiRoutes: { path: string; label: string; feature: string }[] = [
 ];
 
 const apiRoutes: { methods: string; path: string; feature: string }[] = [
+  // Feature 015 — Staff authentication (PUBLIC: these are how one becomes authenticated)
+  { methods: "GET", path: "/api/auth/google", feature: "015" },
+  { methods: "GET", path: "/api/auth/google/callback", feature: "015" },
+  { methods: "POST", path: "/api/auth/signout", feature: "015" },
   // Feature 001 — Contacts & Membership
   { methods: "GET, POST", path: "/api/contacts", feature: "001" },
   { methods: "GET, PATCH", path: "/api/contacts/[id]", feature: "001" },

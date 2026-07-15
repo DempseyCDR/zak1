@@ -2,10 +2,10 @@ import { NextResponse } from "next/server";
 import { inArray } from "drizzle-orm";
 import { db } from "@/server/db/client";
 import { contactEmails } from "@/server/db/schema";
-import { withLogging } from "@/server/lib/withLogging";
+import { withAuth } from "@/server/auth/withAuth";
 import { searchContacts } from "@/server/domain/contacts/contactService";
 
-export const GET = withLogging(async (req) => {
+export const GET = withAuth(async (req) => {
   const url = new URL(req.url);
   const q = url.searchParams.get("q") ?? "";
   // Door roster: browse alphabetically by last name (feature 012, FR-007); a query ranks by similarity.

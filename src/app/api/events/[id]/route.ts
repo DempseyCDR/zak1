@@ -2,14 +2,14 @@ import { NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
 import { db } from "@/server/db/client";
 import { events } from "@/server/db/schema";
-import { withLogging } from "@/server/lib/withLogging";
+import { withAuth } from "@/server/auth/withAuth";
 import { parseBody } from "@/server/lib/parseBody";
 import { errors } from "@/server/lib/apiError";
 import { assignVenueSchema } from "@/server/validation/venues";
 import { assignVenueToEvent, setEventRent } from "@/server/domain/venues/venueService";
 import { updateEventDetails } from "@/server/domain/events/eventService";
 
-export const PATCH = withLogging<{ id: string }>(async (req, ctx) => {
+export const PATCH = withAuth<{ id: string }>(async (req, ctx) => {
   const { id } = await ctx.params;
   const input = await parseBody(req, assignVenueSchema);
   const actor = req.headers.get("x-actor") ?? "admin";

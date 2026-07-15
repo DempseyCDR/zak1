@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
 import { db } from "@/server/db/client";
-import { withLogging } from "@/server/lib/withLogging";
+import { withAuth } from "@/server/auth/withAuth";
 import { parseBody } from "@/server/lib/parseBody";
 import { bookingPatchSchema } from "@/server/validation/performers";
 import { deleteBooking, patchBooking } from "@/server/domain/bookings/bookingService";
 
-export const PATCH = withLogging<{ id: string }>(async (req, ctx) => {
+export const PATCH = withAuth<{ id: string }>(async (req, ctx) => {
   const { id } = await ctx.params;
   const input = await parseBody(req, bookingPatchSchema);
   const actor = req.headers.get("x-actor") ?? "admin";
@@ -13,7 +13,7 @@ export const PATCH = withLogging<{ id: string }>(async (req, ctx) => {
   return NextResponse.json(booking);
 });
 
-export const DELETE = withLogging<{ id: string }>(async (req, ctx) => {
+export const DELETE = withAuth<{ id: string }>(async (req, ctx) => {
   const { id } = await ctx.params;
   const actor = req.headers.get("x-actor") ?? "admin";
   await deleteBooking(db, id, actor);

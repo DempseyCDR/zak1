@@ -21,7 +21,13 @@ export default tseslint.config(
   },
   {
     // Tooling/scripts/jobs may log to the console (CLI entrypoints).
-    files: ["src/server/db/migrate.ts", "src/server/db/seed.ts", "src/jobs/**", "tests/**"],
+    files: [
+      "src/server/db/migrate.ts",
+      "src/server/db/seed.ts",
+      "src/server/db/bootstrapOfficer.ts",
+      "src/jobs/**",
+      "tests/**",
+    ],
     rules: { "no-console": "off" },
   },
 );

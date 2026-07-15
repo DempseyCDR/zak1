@@ -18,3 +18,4 @@ export * from "./seriesParameters";
 export * from "./venueRents";
 export * from "./miscExpenses";
 export * from "./mailingListExports";
+export * from "./auth";

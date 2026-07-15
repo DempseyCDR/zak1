@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 import { db } from "@/server/db/client";
-import { withLogging } from "@/server/lib/withLogging";
+import { withAuth } from "@/server/auth/withAuth";
 import { listSeries } from "@/server/domain/events/eventService";
 
-export const GET = withLogging(async () => {
+export const GET = withAuth(async () => {
   const items = await listSeries(db);
   return NextResponse.json({ items });
 });

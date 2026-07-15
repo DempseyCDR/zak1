@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/server/db/client";
-import { withLogging } from "@/server/lib/withLogging";
+import { withAuth } from "@/server/auth/withAuth";
 import { errors } from "@/server/lib/apiError";
 import { listIdSchema } from "@/server/validation/exports";
 import { getMailingListDef } from "@/server/domain/exports/mailingLists";
@@ -13,7 +13,7 @@ const COLUMNS: Record<string, string[]> = {
 };
 const DEFAULT_COLUMNS = ["email", "first_name", "last_name"];
 
-export const GET = withLogging<{ listId: string }>(async (_req, ctx) => {
+export const GET = withAuth<{ listId: string }>(async (_req, ctx) => {
   const { listId } = await ctx.params;
   const parsed = listIdSchema.safeParse(listId);
   if (!parsed.success) throw errors.mailingListNotFound();

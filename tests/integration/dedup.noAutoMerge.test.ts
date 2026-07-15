@@ -1,5 +1,5 @@
 import { beforeAll, beforeEach, afterAll, describe, expect, it } from "vitest";
-import { isNull } from "drizzle-orm";
+import { isNotNull, isNull } from "drizzle-orm";
 import { ensureSchema, resetDb, closeDb, db } from "./helpers/db";
 import { contacts, mergeAudit } from "@/server/db/schema";
 import { contactRow } from "./helpers/factories";
@@ -20,8 +20,14 @@ describe("dedup suggestions have no side effects", () => {
 
     await SUGGESTIONS(jsonReq("GET", "/api/dedup/suggestions"), ctx());
 
+    // Assert the intent directly — nothing was merged — rather than a total contact count, which
+    // also counts the harness's standing staff member (feature 015).
+    const merged = await db.select().from(contacts).where(isNotNull(contacts.mergedIntoId));
+    expect(merged).toHaveLength(0);
     const active = await db.select().from(contacts).where(isNull(contacts.mergedIntoId));
-    expect(active).toHaveLength(2);
+    expect(active.map((c) => c.displayName)).toEqual(
+      expect.arrayContaining(["Pat Doe", "Patt Doe"]),
+    );
     const audits = await db.select().from(mergeAudit);
     expect(audits).toHaveLength(0);
   });
