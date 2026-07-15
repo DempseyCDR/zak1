@@ -27,8 +27,30 @@ import type { EmailConsentTopic } from "@/server/db/schema";
  * validation and to exercise fuzzy-search performance (SC-005). Idempotent-ish:
  * truncates the feature tables first.
  */
-const FIRST = ["Ada", "Grace", "Alan", "Katherine", "Dorothy", "Edsger", "Donald", "Barbara", "Tim", "Margaret"];
-const LAST = ["Lovelace", "Hopper", "Turing", "Johnson", "Vaughan", "Dijkstra", "Knuth", "Liskov", "Berners-Lee", "Hamilton"];
+const FIRST = [
+  "Ada",
+  "Grace",
+  "Alan",
+  "Katherine",
+  "Dorothy",
+  "Edsger",
+  "Donald",
+  "Barbara",
+  "Tim",
+  "Margaret",
+];
+const LAST = [
+  "Lovelace",
+  "Hopper",
+  "Turing",
+  "Johnson",
+  "Vaughan",
+  "Dijkstra",
+  "Knuth",
+  "Liskov",
+  "Berners-Lee",
+  "Hamilton",
+];
 
 async function main() {
   await sql`TRUNCATE mailing_list_exports, misc_expenses, series_parameters, series_parameter_audit, venue_rents, venue_rent_audit, band_members, bands, door_record_audit, gate_sales, door_records, attendance, quarterly_attendance_counts, events, event_groups, venues, merge_audit, status_change_audit, memberships, payers, contact_emails, contacts RESTART IDENTITY CASCADE`;
@@ -79,7 +101,12 @@ async function main() {
   // A sample venue (feature 007) for the public site.
   const [venue] = await db
     .insert(venues)
-    .values({ name: "German House", address: "315 Gregory St, Rochester, NY", latitude: 43.1417, longitude: -77.6062 })
+    .values({
+      name: "German House",
+      address: "315 Gregory St, Rochester, NY",
+      latitude: 43.1417,
+      longitude: -77.6062,
+    })
     .returning();
 
   // A sample event + door record for manual validation, assigned the sample venue.
@@ -106,10 +133,24 @@ async function main() {
       .returning();
     if (doubleDance) {
       await db.insert(events).values([
-        { seriesId: tnc.id, eventDate: "2026-06-27", chargesAdmission: true, venueId: venue?.id ?? null,
-          groupId: doubleDance.id, label: "Afternoon", startTime: "14:00" },
-        { seriesId: tnc.id, eventDate: "2026-06-27", chargesAdmission: true, venueId: venue?.id ?? null,
-          groupId: doubleDance.id, label: "Evening", startTime: "19:30" },
+        {
+          seriesId: tnc.id,
+          eventDate: "2026-06-27",
+          chargesAdmission: true,
+          venueId: venue?.id ?? null,
+          groupId: doubleDance.id,
+          label: "Afternoon",
+          startTime: "14:00",
+        },
+        {
+          seriesId: tnc.id,
+          eventDate: "2026-06-27",
+          chargesAdmission: true,
+          venueId: venue?.id ?? null,
+          groupId: doubleDance.id,
+          label: "Evening",
+          startTime: "19:30",
+        },
       ]);
     }
   }
@@ -119,7 +160,11 @@ async function main() {
     { name: "Contra Fan", email: "contra.fan@example.com", topics: ["contra"] },
     { name: "English Fan", email: "english.fan@example.com", topics: ["english"] },
     { name: "Openband Fan", email: "openband.fan@example.com", topics: ["openband"] },
-    { name: "Special Events Fan", email: "specialevents.fan@example.com", topics: ["special_events"] },
+    {
+      name: "Special Events Fan",
+      email: "specialevents.fan@example.com",
+      topics: ["special_events"],
+    },
     { name: "Jane Austen Fan", email: "jab.fan@example.com", topics: ["jane_austen_ball"] },
     { name: "Tracing Willing", email: "tracing.willing@example.com", topics: ["contact_tracing"] },
     { name: "Opted Out", email: "opted.out@example.com", topics: ["do_not_contact"] },
@@ -146,7 +191,11 @@ async function main() {
       lastName: "Frost",
       displayNameOverride: "Bob Frost",
       pronouns: "he/him",
-      ...deriveContactNames({ firstName: "Robert", lastName: "Frost", displayNameOverride: "Bob Frost" }),
+      ...deriveContactNames({
+        firstName: "Robert",
+        lastName: "Frost",
+        displayNameOverride: "Bob Frost",
+      }),
     },
     { firstName: "Cher", pronouns: "she/her", ...deriveContactNames({ firstName: "Cher" }) },
   ]);
@@ -157,21 +206,32 @@ async function main() {
     .values({ name: "Jane Austen Ball 2026", kind: "jane austen ball" })
     .returning();
   if (jabGroup && tnc) {
-    await db
-      .insert(events)
-      .values({ seriesId: tnc.id, eventDate: "2026-03-14", chargesAdmission: true, groupId: jabGroup.id });
+    await db.insert(events).values({
+      seriesId: tnc.id,
+      eventDate: "2026-03-14",
+      chargesAdmission: true,
+      groupId: jabGroup.id,
+    });
   }
 
   // QBO account/class mapping (chart of accounts) + gate customers per series.
   await db
     .insert(accountMapping)
     .values([
-      { lineKey: "admission", accountCode: "4210", accountName: "Program Service Revenue:Dance Gate" },
+      {
+        lineKey: "admission",
+        accountCode: "4210",
+        accountName: "Program Service Revenue:Dance Gate",
+      },
       { lineKey: "merchandise", accountCode: "4700", accountName: "Sales of Inventory" },
       { lineKey: "donation", accountCode: "4100", accountName: "Voluntary Contributions" },
       { lineKey: "future_event", accountCode: "4200", accountName: "Program Service Revenue" },
       { lineKey: "membership", accountCode: "4300", accountName: "Membership Dues" },
-      { lineKey: "gift_card", accountCode: "2201", accountName: "Prepaid Services:Pre-paid Gift Card" },
+      {
+        lineKey: "gift_card",
+        accountCode: "2201",
+        accountName: "Prepaid Services:Pre-paid Gift Card",
+      },
       { lineKey: "misc_sales", accountCode: "4900", accountName: "Uncategorized Income" },
       { lineKey: "caller", accountCode: "5320", accountName: "Program Staff:Callers" },
       { lineKey: "lead_musician", accountCode: "5310", accountName: "Program Staff:Bands" },
@@ -180,7 +240,11 @@ async function main() {
       { lineKey: "rent", accountCode: "5420", accountName: "Facilities:Rent" },
       { lineKey: "fees", accountCode: "5810", accountName: "Bank Charges & Fees:PayPal Fees" },
       { lineKey: "deposit", accountCode: "1021", accountName: "ESL Checking" },
-      { lineKey: "non_dance_income", accountCode: "4910", accountName: "Other Miscellaneous Revenue" },
+      {
+        lineKey: "non_dance_income",
+        accountCode: "4910",
+        accountName: "Other Miscellaneous Revenue",
+      },
     ])
     .onConflictDoNothing({ target: accountMapping.lineKey });
 
@@ -197,10 +261,12 @@ async function main() {
   }
 
   // Performers.
-  await db.insert(performers).values([
-    { displayName: "Sample Caller", bio: "Calls contras." },
-    { displayName: "Sample Sound Tech" },
-  ]);
+  await db
+    .insert(performers)
+    .values([
+      { displayName: "Sample Caller", bio: "Calls contras." },
+      { displayName: "Sample Sound Tech" },
+    ]);
 
   // Sample bands (feature 008) from a few musician performers.
   const bandPerformers = await db
@@ -230,11 +296,43 @@ async function main() {
   // multi-charge model (feature 011).
   for (const srow of allSeries) {
     await db.insert(seriesParameters).values([
-      { category: "rate", seriesId: srow.id, kind: "caller", amountCents: 15000, effectiveDate: "2026-01-01" },
-      { category: "rate", seriesId: srow.id, kind: "sound_tech", amountCents: 10000, effectiveDate: "2026-01-01" },
-      { category: "rate", seriesId: srow.id, kind: "musician", amountCents: 7500, effectiveDate: "2026-01-01" },
-      { category: "expense", seriesId: srow.id, kind: "ongoing", amountCents: 1500, label: "Supplies/insurance", effectiveDate: "2026-01-01" },
-      { category: "expense", seriesId: srow.id, kind: "ongoing", amountCents: 5000, label: "Equipment loan", effectiveDate: "2026-01-01" },
+      {
+        category: "rate",
+        seriesId: srow.id,
+        kind: "caller",
+        amountCents: 15000,
+        effectiveDate: "2026-01-01",
+      },
+      {
+        category: "rate",
+        seriesId: srow.id,
+        kind: "sound_tech",
+        amountCents: 10000,
+        effectiveDate: "2026-01-01",
+      },
+      {
+        category: "rate",
+        seriesId: srow.id,
+        kind: "musician",
+        amountCents: 7500,
+        effectiveDate: "2026-01-01",
+      },
+      {
+        category: "expense",
+        seriesId: srow.id,
+        kind: "ongoing",
+        amountCents: 1500,
+        label: "Supplies/insurance",
+        effectiveDate: "2026-01-01",
+      },
+      {
+        category: "expense",
+        seriesId: srow.id,
+        kind: "ongoing",
+        amountCents: 5000,
+        label: "Equipment loan",
+        effectiveDate: "2026-01-01",
+      },
     ]);
   }
 
@@ -242,7 +340,16 @@ async function main() {
   if (venue) {
     await db.insert(venueRents).values([
       { venueId: venue.id, seriesId: null, amountCents: 8000, effectiveDate: "2026-01-01" },
-      ...(tnc ? [{ venueId: venue.id, seriesId: tnc.id, amountCents: 7500, effectiveDate: "2026-01-01" }] : []),
+      ...(tnc
+        ? [
+            {
+              venueId: venue.id,
+              seriesId: tnc.id,
+              amountCents: 7500,
+              effectiveDate: "2026-01-01",
+            },
+          ]
+        : []),
     ]);
   }
 

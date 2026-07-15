@@ -56,10 +56,7 @@ describe("OAuth callback state validation (CSRF)", () => {
   });
 
   it("refuses when the verifier cookie is missing", async () => {
-    const res = await CALLBACK(
-      callbackReq("?code=abc&state=s", { [STATE_COOKIE]: "s" }),
-      ctx(),
-    );
+    const res = await CALLBACK(callbackReq("?code=abc&state=s", { [STATE_COOKIE]: "s" }), ctx());
     await expectRefused(res);
   });
 

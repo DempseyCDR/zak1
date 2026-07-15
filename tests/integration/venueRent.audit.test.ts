@@ -13,7 +13,11 @@ describe("POST /api/venue-rents — audit parity", () => {
   it("writes a venue_rent_audit row with the actor populated", async () => {
     const [venue] = await db.insert(venues).values({ name: "Hall", address: "1 St" }).returning();
     const res = await CREATE_VENUE_RENT(
-      jsonReq("POST", "/api/venue-rents", { venueId: venue!.id, amount: 80, effectiveDate: "2026-01-01" }),
+      jsonReq("POST", "/api/venue-rents", {
+        venueId: venue!.id,
+        amount: 80,
+        effectiveDate: "2026-01-01",
+      }),
       ctx(),
     );
     expect(res.status).toBe(201);

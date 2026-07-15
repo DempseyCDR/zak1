@@ -2,10 +2,21 @@
 
 import { use, useCallback, useEffect, useState } from "react";
 
-type Line = { category: string; account: string; class: string; cash: number; card: number; total: number };
+type Line = {
+  category: string;
+  account: string;
+  class: string;
+  cash: number;
+  card: number;
+  total: number;
+};
 type Report = {
   event: { id: string; date: string; seriesKey: string };
-  gateSalesSummary: { customer: string; posVerification: { gross: number; fee: number }; lines: Line[] };
+  gateSalesSummary: {
+    customer: string;
+    posVerification: { gross: number; fee: number };
+    lines: Line[];
+  };
   namedCustomerReceipts: {
     kind: string;
     contact: string;
@@ -14,10 +25,20 @@ type Report = {
     class: string;
     amount: number;
   }[];
-  performerPayments: { payee: string; amount: number; account: string; class: string; checkNumber: string | null }[];
+  performerPayments: {
+    payee: string;
+    amount: number;
+    account: string;
+    class: string;
+    checkNumber: string | null;
+  }[];
   deposit: { account: string; amount: number };
   fees: { account: string; doorFee: number; onlineFee: number; total: number };
-  nonDanceIncome: { account: string; lines: { description: string; amount: number; date: string }[]; total: number };
+  nonDanceIncome: {
+    account: string;
+    lines: { description: string; amount: number; date: string }[];
+    total: number;
+  };
 };
 
 const money = (n: number) => `$${n.toFixed(2)}`;
@@ -63,17 +84,35 @@ export default function TreasurerReportPage({ params }: { params: Promise<{ even
 
   return (
     <main style={{ padding: 24, maxWidth: 820 }}>
-      <h1>Treasurer Report — {report.event.date} ({report.event.seriesKey})</h1>
+      <h1>
+        Treasurer Report — {report.event.date} ({report.event.seriesKey})
+      </h1>
 
       <h2>Gate Sales Summary — {report.gateSalesSummary.customer}</h2>
-      <p>Card verification: gross {money(report.gateSalesSummary.posVerification.gross)} · fee {money(report.gateSalesSummary.posVerification.fee)}</p>
+      <p>
+        Card verification: gross {money(report.gateSalesSummary.posVerification.gross)} · fee{" "}
+        {money(report.gateSalesSummary.posVerification.fee)}
+      </p>
       <table>
-        <thead><tr><th>Category</th><th>Account</th><th>Class</th><th>Cash</th><th>Card</th><th>Total</th></tr></thead>
+        <thead>
+          <tr>
+            <th>Category</th>
+            <th>Account</th>
+            <th>Class</th>
+            <th>Cash</th>
+            <th>Card</th>
+            <th>Total</th>
+          </tr>
+        </thead>
         <tbody>
           {report.gateSalesSummary.lines.map((l) => (
             <tr key={l.category}>
-              <td>{l.category}</td><td>{l.account}</td><td>{l.class}</td>
-              <td>{money(l.cash)}</td><td>{money(l.card)}</td><td>{money(l.total)}</td>
+              <td>{l.category}</td>
+              <td>{l.account}</td>
+              <td>{l.class}</td>
+              <td>{money(l.cash)}</td>
+              <td>{money(l.card)}</td>
+              <td>{money(l.total)}</td>
             </tr>
           ))}
         </tbody>
@@ -91,11 +130,22 @@ export default function TreasurerReportPage({ params }: { params: Promise<{ even
 
       <h2>Performer Payments</h2>
       <table>
-        <thead><tr><th>Payee</th><th>Amount</th><th>Account</th><th>Class</th><th>Check #</th></tr></thead>
+        <thead>
+          <tr>
+            <th>Payee</th>
+            <th>Amount</th>
+            <th>Account</th>
+            <th>Class</th>
+            <th>Check #</th>
+          </tr>
+        </thead>
         <tbody>
           {report.performerPayments.map((p, i) => (
             <tr key={i}>
-              <td>{p.payee}</td><td>{money(p.amount)}</td><td>{p.account}</td><td>{p.class}</td>
+              <td>{p.payee}</td>
+              <td>{money(p.amount)}</td>
+              <td>{p.account}</td>
+              <td>{p.class}</td>
               <td>{p.checkNumber ?? "—"}</td>
             </tr>
           ))}
@@ -103,27 +153,50 @@ export default function TreasurerReportPage({ params }: { params: Promise<{ even
       </table>
 
       <h2>Deposit</h2>
-      <p>{money(report.deposit.amount)} → {report.deposit.account} (ESL Checking)</p>
+      <p>
+        {money(report.deposit.amount)} → {report.deposit.account} (ESL Checking)
+      </p>
 
       <h2>Fees (informational)</h2>
-      <p>Door {money(report.fees.doorFee)} · Online {money(report.fees.onlineFee)} · Total {money(report.fees.total)} → {report.fees.account}</p>
+      <p>
+        Door {money(report.fees.doorFee)} · Online {money(report.fees.onlineFee)} · Total{" "}
+        {money(report.fees.total)} → {report.fees.account}
+      </p>
 
       <h2>Non-Dance Income</h2>
       <ul>
         {report.nonDanceIncome.lines.map((l, i) => (
-          <li key={i}>{l.date} — {l.description}: {money(l.amount)}</li>
+          <li key={i}>
+            {l.date} — {l.description}: {money(l.amount)}
+          </li>
         ))}
         {report.nonDanceIncome.lines.length === 0 && <li style={{ color: "#888" }}>None</li>}
       </ul>
-      <p>Total non-dance income: {money(report.nonDanceIncome.total)} → {report.nonDanceIncome.account}</p>
+      <p>
+        Total non-dance income: {money(report.nonDanceIncome.total)} →{" "}
+        {report.nonDanceIncome.account}
+      </p>
       <form onSubmit={addNonDanceIncome} style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-        <input placeholder="Description" value={ndiDesc} onChange={(e) => setNdiDesc(e.target.value)} />
-        <input placeholder="Amount" value={ndiAmount} onChange={(e) => setNdiAmount(e.target.value)} style={{ width: 90 }} />
+        <input
+          placeholder="Description"
+          value={ndiDesc}
+          onChange={(e) => setNdiDesc(e.target.value)}
+        />
+        <input
+          placeholder="Amount"
+          value={ndiAmount}
+          onChange={(e) => setNdiAmount(e.target.value)}
+          style={{ width: 90 }}
+        />
         <input type="date" value={ndiDate} onChange={(e) => setNdiDate(e.target.value)} />
-        <button type="submit" disabled={!ndiDesc || !ndiAmount || !ndiDate}>Add non-dance income</button>
+        <button type="submit" disabled={!ndiDesc || !ndiAmount || !ndiDate}>
+          Add non-dance income
+        </button>
       </form>
 
-      <button onClick={() => window.print()} style={{ marginTop: 16 }}>Print</button>
+      <button onClick={() => window.print()} style={{ marginTop: 16 }}>
+        Print
+      </button>
     </main>
   );
 }

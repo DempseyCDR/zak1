@@ -22,7 +22,10 @@ describe("GET /api/contacts/:id/membership-status", () => {
 
   it("returns 'never'/listMember=false for a contact with no membership", async () => {
     const id = await createContact("No Member", "nm@example.com");
-    const res = await GET_STATUS(jsonReq("GET", `/api/contacts/${id}/membership-status`), ctx({ id }));
+    const res = await GET_STATUS(
+      jsonReq("GET", `/api/contacts/${id}/membership-status`),
+      ctx({ id }),
+    );
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.status).toBe("never");
@@ -33,10 +36,17 @@ describe("GET /api/contacts/:id/membership-status", () => {
     const id = await createContact("Has Member", "hm@example.com");
     const payer = await createPayer(db, { name: "Has Member", contactId: id });
     await CREATE_MEMBERSHIP(
-      jsonReq("POST", "/api/memberships", { contactId: id, payerId: payer.id, expiryDate: "2030-01-01" }),
+      jsonReq("POST", "/api/memberships", {
+        contactId: id,
+        payerId: payer.id,
+        expiryDate: "2030-01-01",
+      }),
       ctx(),
     );
-    const res = await GET_STATUS(jsonReq("GET", `/api/contacts/${id}/membership-status`), ctx({ id }));
+    const res = await GET_STATUS(
+      jsonReq("GET", `/api/contacts/${id}/membership-status`),
+      ctx({ id }),
+    );
     const body = await res.json();
     expect(body.status).toBe("current");
     expect(body.listMember).toBe(true);

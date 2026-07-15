@@ -111,7 +111,10 @@ export async function resolveSignIn(db: Db, claims: VerifiedClaims): Promise<Sig
       .update(contactEmails)
       .set({ isLogin: false })
       .where(and(eq(contactEmails.contactId, match.contact.id), eq(contactEmails.isLogin, true)));
-    await tx.update(contactEmails).set({ isLogin: true }).where(eq(contactEmails.id, match.emailId));
+    await tx
+      .update(contactEmails)
+      .set({ isLogin: true })
+      .where(eq(contactEmails.id, match.emailId));
 
     writeAudit({
       kind: "auth.identity.created",

@@ -18,7 +18,10 @@ describe("getPublicSchedule", () => {
     const soon = await makeEvent({ seriesKey: "tnc", eventDate: "2026-06-18" });
     const later = await makeEvent({ seriesKey: "ecd", eventDate: "2026-07-05" });
 
-    const [v] = await db.insert(venues).values({ name: "German House", address: "315 Gregory St" }).returning();
+    const [v] = await db
+      .insert(venues)
+      .values({ name: "German House", address: "315 Gregory St" })
+      .returning();
     await db.update(events).set({ venueId: v!.id }).where(eq(events.id, soon.id));
 
     const schedule = await getPublicSchedule(db, cutoff);
@@ -34,7 +37,11 @@ describe("getPublicSchedule", () => {
   });
 
   it("includes a free event (chargesAdmission = false) in the schedule", async () => {
-    const free = await makeEvent({ seriesKey: "community_dance", eventDate: "2026-06-20", chargesAdmission: false });
+    const free = await makeEvent({
+      seriesKey: "community_dance",
+      eventDate: "2026-06-20",
+      chargesAdmission: false,
+    });
     const schedule = await getPublicSchedule(db, cutoff);
     expect(schedule.map((s) => s.eventId)).toContain(free.id);
   });

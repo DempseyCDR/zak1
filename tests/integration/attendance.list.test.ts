@@ -35,10 +35,14 @@ describe("GET /api/events/:id/attendance (attendee list)", () => {
     const body = await res.json();
     expect(body.count).toBe(2);
 
-    const matched = body.attendees.find((a: { contactId: string | null }) => a.contactId === contactId);
+    const matched = body.attendees.find(
+      (a: { contactId: string | null }) => a.contactId === contactId,
+    );
     expect(matched.displayName).toBe("Ada Lovelace");
 
-    const unmatched = body.attendees.find((a: { contactId: string | null }) => a.contactId === null);
+    const unmatched = body.attendees.find(
+      (a: { contactId: string | null }) => a.contactId === null,
+    );
     expect(unmatched.displayName).toBeNull();
   });
 

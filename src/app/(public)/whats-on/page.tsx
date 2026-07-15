@@ -13,7 +13,10 @@ export default async function WhatsOnPage() {
       <ul style={{ listStyle: "none", padding: 0 }}>
         {schedule.map((s) => (
           <li key={s.eventId} style={{ padding: "8px 0", borderBottom: "1px solid #eee" }}>
-            <Link href={`/whats-on/${s.eventId}`} style={{ textDecoration: "none", color: "inherit" }}>
+            <Link
+              href={`/whats-on/${s.eventId}`}
+              style={{ textDecoration: "none", color: "inherit" }}
+            >
               <strong>{s.date}</strong>
               {s.startTime ? ` ${s.startTime}` : ""} — {s.activity}
               {s.label ? ` · ${s.label}` : ""}

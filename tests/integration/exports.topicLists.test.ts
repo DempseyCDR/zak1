@@ -25,7 +25,11 @@ describe("buildListRows — topic lists", () => {
 
   // FR-009, SC-003 — First/Last come from the structured fields; a blank last name → blank cell.
   it("emits a blank Last Name for a contact with no last name", async () => {
-    await makeContactWithEmail({ firstName: "Cher", email: "cher@example.com", consentTopics: ["contra"] });
+    await makeContactWithEmail({
+      firstName: "Cher",
+      email: "cher@example.com",
+      consentTopics: ["contra"],
+    });
     const rows = await buildListRows(db, "contra");
     const cher = rows.find((r) => r.email === "cher@example.com");
     expect(cher?.first_name).toBe("Cher");

@@ -48,7 +48,14 @@ export default function QboMappingPage() {
 
       <h2>Accounts</h2>
       <table>
-        <thead><tr><th>Line</th><th>Account code</th><th>Account name</th><th /></tr></thead>
+        <thead>
+          <tr>
+            <th>Line</th>
+            <th>Account code</th>
+            <th>Account name</th>
+            <th />
+          </tr>
+        </thead>
         <tbody>
           {accounts.map((a, i) => (
             <tr key={a.lineKey}>
@@ -74,7 +81,9 @@ export default function QboMappingPage() {
                   style={{ width: 280 }}
                 />
               </td>
-              <td><button onClick={() => saveAccount(a)}>Save</button></td>
+              <td>
+                <button onClick={() => saveAccount(a)}>Save</button>
+              </td>
             </tr>
           ))}
         </tbody>
@@ -82,7 +91,14 @@ export default function QboMappingPage() {
 
       <h2>Series → gate customer / class</h2>
       <table>
-        <thead><tr><th>Series</th><th>Gate customer</th><th>Class</th><th /></tr></thead>
+        <thead>
+          <tr>
+            <th>Series</th>
+            <th>Gate customer</th>
+            <th>Class</th>
+            <th />
+          </tr>
+        </thead>
         <tbody>
           {seriesRows.map((s, i) => (
             <tr key={s.seriesId}>
@@ -107,7 +123,9 @@ export default function QboMappingPage() {
                   }}
                 />
               </td>
-              <td><button onClick={() => saveSeries(s)}>Save</button></td>
+              <td>
+                <button onClick={() => saveSeries(s)}>Save</button>
+              </td>
             </tr>
           ))}
         </tbody>

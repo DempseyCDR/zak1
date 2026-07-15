@@ -86,7 +86,11 @@ export default function ExportsPage() {
                   : "never"}
               </td>
               <td style={{ padding: 8 }}>
-                <a href={`/api/exports/${item.listId}`} download onClick={() => setTimeout(load, 500)}>
+                <a
+                  href={`/api/exports/${item.listId}`}
+                  download
+                  onClick={() => setTimeout(load, 500)}
+                >
                   Download
                 </a>
               </td>

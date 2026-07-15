@@ -24,6 +24,9 @@ describe("buildListRows — multiple qualifying emails per contact", () => {
     });
     const rows = await buildListRows(db, "contra");
     expect(rows).toHaveLength(2);
-    expect(rows.map((r) => r.email).sort()).toEqual(["ada.home@example.com", "ada.work@example.com"]);
+    expect(rows.map((r) => r.email).sort()).toEqual([
+      "ada.home@example.com",
+      "ada.work@example.com",
+    ]);
   });
 });

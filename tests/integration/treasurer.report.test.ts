@@ -15,22 +15,27 @@ describe("GET /api/events/:id/treasurer-report", () => {
   afterAll(closeDb);
 
   async function report(eventId: string) {
-    const res = await REPORT(jsonReq("GET", `/api/events/${eventId}/treasurer-report`), ctx({ id: eventId }));
+    const res = await REPORT(
+      jsonReq("GET", `/api/events/${eventId}/treasurer-report`),
+      ctx({ id: eventId }),
+    );
     return { status: res.status, body: await res.json() };
   }
 
   it("assembles all sections with mapping, named-customer split, and gift-card liability", async () => {
     const evt = await makeEvent({ seriesKey: "tnc" });
-    const [buyer] = await db
-      .insert(contacts)
-      .values(contactRow("Member Buyer"))
-      .returning();
+    const [buyer] = await db.insert(contacts).values(contactRow("Member Buyer")).returning();
     const drId = await makeDoorRecord(evt.id, [
       { category: "gift_card", paymentMethod: "card", amount: 25 },
       { category: "membership", paymentMethod: "card", amount: 40, contactId: buyer!.id },
     ]);
     // Gross cash 120, PC gross 145; admission derived: cash 120, card 145−(25+40)=80 → total 200.
-    await updateDoorRecord(db, drId, { grossCash: 120, pcGross: 145, seedFloat: 0, posTransactionCount: 10 });
+    await updateDoorRecord(db, drId, {
+      grossCash: 120,
+      pcGross: 145,
+      seedFloat: 0,
+      posTransactionCount: 10,
+    });
     const caller = await makePerformer("Pat Caller");
     await createBooking(db, evt.id, { performerId: caller.id, performerType: "caller", pay: 150 });
 
@@ -39,13 +44,19 @@ describe("GET /api/events/:id/treasurer-report", () => {
 
     // Gate summary: anonymous customer, admission mapped to 4210, gift_card to 2201 liability
     expect(body.gateSalesSummary.customer).toBe("Contra Gate");
-    const adm = body.gateSalesSummary.lines.find((l: { category: string }) => l.category === "admission");
+    const adm = body.gateSalesSummary.lines.find(
+      (l: { category: string }) => l.category === "admission",
+    );
     expect(adm.account).toBe("4210");
     expect(adm.total).toBe(200);
-    const gc = body.gateSalesSummary.lines.find((l: { category: string }) => l.category === "gift_card");
+    const gc = body.gateSalesSummary.lines.find(
+      (l: { category: string }) => l.category === "gift_card",
+    );
     expect(gc.account).toBe("2201");
     // membership is NOT on the gate receipt
-    expect(body.gateSalesSummary.lines.find((l: { category: string }) => l.category === "membership")).toBeUndefined();
+    expect(
+      body.gateSalesSummary.lines.find((l: { category: string }) => l.category === "membership"),
+    ).toBeUndefined();
 
     // Named-customer receipt for membership → 4300
     const mem = body.namedCustomerReceipts.find((r: { kind: string }) => r.kind === "membership");
@@ -73,19 +84,12 @@ describe("GET /api/events/:id/treasurer-report", () => {
     expect(body.deposit.account).toBe("1021");
     expect(body.deposit.amount).toBe(185); // gross cash 200 − seed 15
     expect(body.gateSalesSummary.posVerification.gross).toBe(100); // PC gross (entered)
-
   });
 
   it("derives admission from gross cash/PC gross minus all non-admission (anon + named) lines", async () => {
     const evt = await makeEvent({ seriesKey: "tnc" });
-    const [a] = await db
-      .insert(contacts)
-      .values(contactRow("Donor A"))
-      .returning();
-    const [b] = await db
-      .insert(contacts)
-      .values(contactRow("Member B"))
-      .returning();
+    const [a] = await db.insert(contacts).values(contactRow("Donor A")).returning();
+    const [b] = await db.insert(contacts).values(contactRow("Member B")).returning();
     const drId = await makeDoorRecord(evt.id, [
       { category: "merchandise", paymentMethod: "cash", amount: 30 },
       { category: "merchandise", paymentMethod: "card", amount: 20 },
@@ -98,17 +102,25 @@ describe("GET /api/events/:id/treasurer-report", () => {
     await updateDoorRecord(db, drId, { grossCash: 300, pcGross: 200, seedFloat: 15 });
 
     const { body } = await report(evt.id);
-    const adm = body.gateSalesSummary.lines.find((l: { category: string }) => l.category === "admission");
+    const adm = body.gateSalesSummary.lines.find(
+      (l: { category: string }) => l.category === "admission",
+    );
     // cash: 300 − 15 − (30+10+5+25)=70 → 215 ; card: 200 − (20+40)=60 → 140
     expect(adm.cash).toBe(215);
     expect(adm.card).toBe(140);
     expect(adm.total).toBe(355);
 
     // anonymous income items are reported
-    const merch = body.gateSalesSummary.lines.find((l: { category: string }) => l.category === "merchandise");
+    const merch = body.gateSalesSummary.lines.find(
+      (l: { category: string }) => l.category === "merchandise",
+    );
     expect(merch.total).toBe(50);
-    expect(body.gateSalesSummary.lines.some((l: { category: string }) => l.category === "gift_card")).toBe(true);
-    expect(body.gateSalesSummary.lines.some((l: { category: string }) => l.category === "misc_sales")).toBe(true);
+    expect(
+      body.gateSalesSummary.lines.some((l: { category: string }) => l.category === "gift_card"),
+    ).toBe(true);
+    expect(
+      body.gateSalesSummary.lines.some((l: { category: string }) => l.category === "misc_sales"),
+    ).toBe(true);
 
     // named-customer receipts grouped by contact
     const don = body.namedCustomerReceipts.find((r: { kind: string }) => r.kind === "donation");

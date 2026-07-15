@@ -32,9 +32,16 @@ describe("buildListRows — member", () => {
       listMember: true,
       membershipStatus: "long_lapsed",
     });
-    await makeContactWithEmail({ email: "never@example.com", listMember: false, membershipStatus: "never" });
+    await makeContactWithEmail({
+      email: "never@example.com",
+      listMember: false,
+      membershipStatus: "never",
+    });
     const rows = await buildListRows(db, "member");
-    expect(rows.map((r) => r.email).sort()).toEqual(["lapsed@example.com", "long-lapsed@example.com"]);
+    expect(rows.map((r) => r.email).sort()).toEqual([
+      "lapsed@example.com",
+      "long-lapsed@example.com",
+    ]);
   });
 
   it("excludes an email explicitly carrying Do Not Contact even though list_member is true", async () => {

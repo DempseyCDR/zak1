@@ -7,9 +7,7 @@ import { z } from "zod";
 const envSchema = z.object({
   DATABASE_URL: z.string().url(),
   TEST_DATABASE_URL: z.string().url().optional(),
-  LOG_LEVEL: z
-    .enum(["fatal", "error", "warn", "info", "debug", "trace", "silent"])
-    .default("info"),
+  LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace", "silent"]).default("info"),
   // Staff session idle window (feature 015). Defaulted so the suite needs no auth config.
   SESSION_IDLE_TTL_HOURS: z.coerce.number().int().positive().default(8),
 });

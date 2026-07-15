@@ -63,10 +63,26 @@ export default function PerformersPage() {
       </ul>
       <h2>Add performer</h2>
       <form onSubmit={create} style={{ display: "grid", gap: 6, maxWidth: 420 }}>
-        <input placeholder="Name" value={displayName} onChange={(e) => setDisplayName(e.target.value)} />
-        <input placeholder="Email (optional)" value={email} onChange={(e) => setEmail(e.target.value)} />
-        <input placeholder="Phone (optional)" value={phone} onChange={(e) => setPhone(e.target.value)} />
-        <textarea placeholder="Bio (optional)" value={bio} onChange={(e) => setBio(e.target.value)} />
+        <input
+          placeholder="Name"
+          value={displayName}
+          onChange={(e) => setDisplayName(e.target.value)}
+        />
+        <input
+          placeholder="Email (optional)"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+        />
+        <input
+          placeholder="Phone (optional)"
+          value={phone}
+          onChange={(e) => setPhone(e.target.value)}
+        />
+        <textarea
+          placeholder="Bio (optional)"
+          value={bio}
+          onChange={(e) => setBio(e.target.value)}
+        />
         <button type="submit">Create</button>
         {error && <p style={{ color: "crimson" }}>{error}</p>}
         {warning && <p style={{ color: "#a15c00" }}>{warning}</p>}

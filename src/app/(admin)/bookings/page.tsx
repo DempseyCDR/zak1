@@ -68,12 +68,18 @@ export default function BookingsPage() {
   }, [includeOlder, loadEvents]);
 
   useEffect(() => {
-    void fetch("/api/performers").then((r) => r.json()).then((d) => setPerformers(d.items ?? []));
-    void fetch("/api/series").then((r) => r.json()).then((d) => {
-      setSeries(d.items ?? []);
-      if (d.items?.[0]) setNewSeriesKey(d.items[0].key);
-    });
-    void fetch("/api/bands").then((r) => r.json()).then((d) => setBands(d.items ?? []));
+    void fetch("/api/performers")
+      .then((r) => r.json())
+      .then((d) => setPerformers(d.items ?? []));
+    void fetch("/api/series")
+      .then((r) => r.json())
+      .then((d) => {
+        setSeries(d.items ?? []);
+        if (d.items?.[0]) setNewSeriesKey(d.items[0].key);
+      });
+    void fetch("/api/bands")
+      .then((r) => r.json())
+      .then((d) => setBands(d.items ?? []));
   }, []);
 
   async function createInlineEvent() {
@@ -167,7 +173,9 @@ export default function BookingsPage() {
         <select value={eventId} onChange={(e) => setEventId(e.target.value)}>
           <option value="">— select —</option>
           {events.map((e) => (
-            <option key={e.id} value={e.id}>{e.eventDate}</option>
+            <option key={e.id} value={e.id}>
+              {e.eventDate}
+            </option>
           ))}
         </select>
       </label>
@@ -184,11 +192,15 @@ export default function BookingsPage() {
         <legend>New event</legend>
         <select value={newSeriesKey} onChange={(e) => setNewSeriesKey(e.target.value)}>
           {series.map((s) => (
-            <option key={s.id} value={s.key}>{s.name}</option>
+            <option key={s.id} value={s.key}>
+              {s.name}
+            </option>
           ))}
         </select>{" "}
         <input type="date" value={newDate} onChange={(e) => setNewDate(e.target.value)} />{" "}
-        <button onClick={createInlineEvent} disabled={!newSeriesKey || !newDate}>Create + select</button>
+        <button onClick={createInlineEvent} disabled={!newSeriesKey || !newDate}>
+          Create + select
+        </button>
       </fieldset>
 
       <fieldset style={{ marginTop: 12, maxWidth: 420 }}>
@@ -196,10 +208,14 @@ export default function BookingsPage() {
         <select value={bandId} onChange={(e) => setBandId(e.target.value)}>
           <option value="">— band —</option>
           {bands.map((b) => (
-            <option key={b.id} value={b.id}>{b.name}</option>
+            <option key={b.id} value={b.id}>
+              {b.name}
+            </option>
           ))}
         </select>{" "}
-        <button onClick={bookWholeBand} disabled={!eventId || !bandId}>Book whole band</button>
+        <button onClick={bookWholeBand} disabled={!eventId || !bandId}>
+          Book whole band
+        </button>
         {bandMessage && <p style={{ color: "#333" }}>{bandMessage}</p>}
       </fieldset>
 
@@ -212,26 +228,43 @@ export default function BookingsPage() {
           </li>
         ))}
       </ul>
-      <p><strong>Performer total:</strong> ${total.toFixed(2)}</p>
+      <p>
+        <strong>Performer total:</strong> ${total.toFixed(2)}
+      </p>
 
       <h2>Add booking</h2>
       <form onSubmit={book} style={{ display: "grid", gap: 6, maxWidth: 420 }}>
         <select value={performerId} onChange={(e) => setPerformerId(e.target.value)}>
           <option value="">— performer —</option>
           {performers.map((p) => (
-            <option key={p.id} value={p.id}>{p.displayName}</option>
+            <option key={p.id} value={p.id}>
+              {p.displayName}
+            </option>
           ))}
         </select>
         <select value={performerType} onChange={(e) => setPerformerType(e.target.value)}>
           {TYPES.map((t) => (
-            <option key={t} value={t}>{t}</option>
+            <option key={t} value={t}>
+              {t}
+            </option>
           ))}
         </select>
-        <input placeholder="Pay (blank = standard rate)" value={pay} onChange={(e) => setPay(e.target.value)} />
+        <input
+          placeholder="Pay (blank = standard rate)"
+          value={pay}
+          onChange={(e) => setPay(e.target.value)}
+        />
         <label>
-          <input type="checkbox" checked={isDonated} onChange={(e) => setIsDonated(e.target.checked)} /> Donated
+          <input
+            type="checkbox"
+            checked={isDonated}
+            onChange={(e) => setIsDonated(e.target.checked)}
+          />{" "}
+          Donated
         </label>
-        <button type="submit" disabled={!eventId || !performerId}>Book</button>
+        <button type="submit" disabled={!eventId || !performerId}>
+          Book
+        </button>
         {error && <p style={{ color: "crimson" }}>{error}</p>}
       </form>
     </main>

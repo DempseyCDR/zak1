@@ -31,7 +31,11 @@ describe("groupEventBookingsForDisplay", () => {
 
     const grouped = await groupEventBookingsForDisplay(db, evt.id);
     expect(grouped.bandBlocks).toHaveLength(1);
-    expect(grouped.bandBlocks[0]).toMatchObject({ name: "The Band", bio: "band bio", photoUrl: "https://example.com/band.jpg" });
+    expect(grouped.bandBlocks[0]).toMatchObject({
+      name: "The Band",
+      bio: "band bio",
+      photoUrl: "https://example.com/band.jpg",
+    });
     // The band block does not enumerate individual members.
     expect(grouped.bandBlocks[0]).not.toHaveProperty("members");
     expect(grouped.adHoc.map((b) => b.performerName)).toEqual(["Solo Caller"]);
@@ -39,7 +43,10 @@ describe("groupEventBookingsForDisplay", () => {
 
   it("reflects the band's CURRENT name/photo (live read) after an edit", async () => {
     const lead = await makePerformer("Lead");
-    const band = await createBand(db, { name: "Old Name", members: [{ performerId: lead.id, isLead: true }] });
+    const band = await createBand(db, {
+      name: "Old Name",
+      members: [{ performerId: lead.id, isLead: true }],
+    });
     const evt = await makeEvent();
     await bookBand(db, evt.id, band.id);
 
@@ -53,8 +60,14 @@ describe("groupEventBookingsForDisplay", () => {
   it("shows two separate blocks for two different bands on one event", async () => {
     const a1 = await makePerformer("A1");
     const b1 = await makePerformer("B1");
-    const bandA = await createBand(db, { name: "Opener", members: [{ performerId: a1.id, isLead: true }] });
-    const bandB = await createBand(db, { name: "Headliner", members: [{ performerId: b1.id, isLead: true }] });
+    const bandA = await createBand(db, {
+      name: "Opener",
+      members: [{ performerId: a1.id, isLead: true }],
+    });
+    const bandB = await createBand(db, {
+      name: "Headliner",
+      members: [{ performerId: b1.id, isLead: true }],
+    });
     const evt = await makeEvent();
     await bookBand(db, evt.id, bandA.id);
     await bookBand(db, evt.id, bandB.id);

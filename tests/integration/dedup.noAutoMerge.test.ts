@@ -13,10 +13,7 @@ describe("dedup suggestions have no side effects", () => {
   afterAll(closeDb);
 
   it("does not merge or retire any contact when suggestions are generated", async () => {
-    await db.insert(contacts).values([
-      contactRow("Pat Doe"),
-      contactRow("Patt Doe"),
-    ]);
+    await db.insert(contacts).values([contactRow("Pat Doe"), contactRow("Patt Doe")]);
 
     await SUGGESTIONS(jsonReq("GET", "/api/dedup/suggestions"), ctx());
 

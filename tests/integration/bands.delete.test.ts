@@ -16,7 +16,10 @@ describe("band soft-delete", () => {
 
   it("archives the band (drops from list, row persists, performer untouched), idempotently", async () => {
     const lead = await makePerformer("Lead");
-    const band = await createBand(db, { name: "Doomed", members: [{ performerId: lead.id, isLead: true }] });
+    const band = await createBand(db, {
+      name: "Doomed",
+      members: [{ performerId: lead.id, isLead: true }],
+    });
 
     const res = await DELETE(jsonReq("DELETE", `/api/bands/${band.id}`), ctx({ id: band.id }));
     expect(res.status).toBe(204);

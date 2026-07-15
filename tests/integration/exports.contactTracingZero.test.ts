@@ -13,7 +13,10 @@ describe("GET /api/exports/contact-tracing", () => {
 
   it("returns { count: 0 } (not a CSV) for a selectable event with zero recorded attendance, no audit row", async () => {
     const evt = await makeEvent();
-    const res = await CONTACT_TRACING(jsonReq("GET", `/api/exports/contact-tracing?eventId=${evt.id}`), ctx());
+    const res = await CONTACT_TRACING(
+      jsonReq("GET", `/api/exports/contact-tracing?eventId=${evt.id}`),
+      ctx(),
+    );
     expect(res.status).toBe(200);
     expect(res.headers.get("content-type")).toContain("application/json");
     const body = await res.json();

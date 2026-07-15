@@ -29,10 +29,7 @@ describe("free events", () => {
     const evt = await makeEvent({ chargesAdmission: false });
     const drRes = await CREATE_DR(jsonReq("POST", "/api/door-records", { eventId: evt.id }), ctx());
     const drId = (await drRes.json()).id as string;
-    const [donor] = await db
-      .insert(contacts)
-      .values(contactRow("Donor"))
-      .returning();
+    const [donor] = await db.insert(contacts).values(contactRow("Donor")).returning();
     const res = await PUT_GATE(
       jsonReq("PUT", `/api/door-records/${drId}/gate-sales`, {
         sales: [{ category: "donation", paymentMethod: "cash", amount: 40, contactId: donor!.id }],

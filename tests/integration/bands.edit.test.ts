@@ -40,16 +40,23 @@ describe("band edit", () => {
     );
     expect(res.status).toBe(200);
 
-    const detail = await (await GET_ONE(jsonReq("GET", `/api/bands/${band.id}`), ctx({ id: band.id }))).json();
+    const detail = await (
+      await GET_ONE(jsonReq("GET", `/api/bands/${band.id}`), ctx({ id: band.id }))
+    ).json();
     expect(detail.name).toBe("New Name");
     expect(detail.members).toHaveLength(2);
     expect(detail.members.find((m: { isLead: boolean }) => m.isLead).performerId).toBe(p2.id);
-    expect(detail.members.map((m: { performerId: string }) => m.performerId).sort()).toEqual([p2.id, p3.id].sort());
+    expect(detail.members.map((m: { performerId: string }) => m.performerId).sort()).toEqual(
+      [p2.id, p3.id].sort(),
+    );
   });
 
   it("does not touch a member's own performer bio/photo", async () => {
     const lead = await makePerformer("Lead With Bio");
-    await db.update(performers).set({ bio: "personal bio", photoUrl: "https://example.com/me.jpg" }).where(eq(performers.id, lead.id));
+    await db
+      .update(performers)
+      .set({ bio: "personal bio", photoUrl: "https://example.com/me.jpg" })
+      .where(eq(performers.id, lead.id));
     const band = await createBand(db, {
       name: "Band",
       bio: "band bio",

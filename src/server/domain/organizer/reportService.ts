@@ -7,12 +7,7 @@ import { computeEventGate } from "@/server/domain/gate/eventMoney";
 import { getBookingsForEvent } from "@/server/domain/bookings/bookingService";
 import { resolveOngoingTotalCents } from "@/server/domain/parameters/seriesParameterService";
 import { resolveEventRentCents } from "@/server/domain/parameters/rentService";
-import {
-  avgTicketCents,
-  breakEvenDancers,
-  danceNetCents,
-  payingDancers,
-} from "./danceResult";
+import { avgTicketCents, breakEvenDancers, danceNetCents, payingDancers } from "./danceResult";
 import { quarterlySummary, type QuarterlyRow } from "./quarterly";
 import { buildTrend, type TrendPoint } from "./trend";
 

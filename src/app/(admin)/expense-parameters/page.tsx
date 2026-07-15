@@ -27,7 +27,9 @@ export default function ExpenseParametersPage() {
 
   const loadResolved = useCallback(async () => {
     if (!seriesKey) return;
-    const r = await fetch(`/api/expense-parameters?seriesKey=${seriesKey}&kind=ongoing&on=${effectiveDate}`);
+    const r = await fetch(
+      `/api/expense-parameters?seriesKey=${seriesKey}&kind=ongoing&on=${effectiveDate}`,
+    );
     const d = await r.json();
     setResolved(d.resolved);
   }, [seriesKey, effectiveDate]);
@@ -42,7 +44,13 @@ export default function ExpenseParametersPage() {
     const res = await fetch("/api/expense-parameters", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ seriesKey, kind: "ongoing", amount: Number(amount), label: label.trim(), effectiveDate }),
+      body: JSON.stringify({
+        seriesKey,
+        kind: "ongoing",
+        amount: Number(amount),
+        label: label.trim(),
+        effectiveDate,
+      }),
     });
     if (res.ok) {
       setMessage("Saved.");
@@ -58,9 +66,10 @@ export default function ExpenseParametersPage() {
     <main style={{ padding: 24, maxWidth: 640 }}>
       <h1>Ongoing series charges</h1>
       <p style={{ color: "#555" }}>
-        Effective-dated recurring charges (e.g. supplies/insurance, an equipment loan) applied to every
-        dance in a series. A series can carry several at once; end one by entering a $0 amount on its stop
-        date. A new entry for the same label supersedes earlier ones. (Venue rent lives under Venue rents.)
+        Effective-dated recurring charges (e.g. supplies/insurance, an equipment loan) applied to
+        every dance in a series. A series can carry several at once; end one by entering a $0 amount
+        on its stop date. A new entry for the same label supersedes earlier ones. (Venue rent lives
+        under Venue rents.)
       </p>
 
       <form onSubmit={submit} style={{ display: "grid", gap: 10, maxWidth: 360 }}>
@@ -83,12 +92,23 @@ export default function ExpenseParametersPage() {
         <label>
           Amount ($)
           <br />
-          <input type="number" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} required />
+          <input
+            type="number"
+            step="0.01"
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+            required
+          />
         </label>
         <label>
           Effective date
           <br />
-          <input type="date" value={effectiveDate} onChange={(e) => setEffectiveDate(e.target.value)} required />
+          <input
+            type="date"
+            value={effectiveDate}
+            onChange={(e) => setEffectiveDate(e.target.value)}
+            required
+          />
         </label>
         <button type="submit">Save charge</button>
       </form>

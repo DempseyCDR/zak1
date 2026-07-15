@@ -13,12 +13,20 @@ describe("Musician rate booking default", () => {
   it("defaults to $0 when no Musician rate is set for the series", async () => {
     const evt = await makeEvent({ seriesKey: "tnc", eventDate: "2026-06-18" });
     const musician = await makePerformer("No Rate Musician");
-    const booking = await createBooking(db, evt.id, { performerId: musician.id, performerType: "musician" });
+    const booking = await createBooking(db, evt.id, {
+      performerId: musician.id,
+      performerType: "musician",
+    });
     expect(booking.payCents).toBe(0);
   });
 
   it("defaults both Musician and Lead Musician bookings to the series' Musician rate, overridable", async () => {
-    await createRateParameter(db, { seriesKey: "tnc", kind: "musician", amount: 75, effectiveDate: "2026-01-01" });
+    await createRateParameter(db, {
+      seriesKey: "tnc",
+      kind: "musician",
+      amount: 75,
+      effectiveDate: "2026-01-01",
+    });
     const evt = await makeEvent({ seriesKey: "tnc", eventDate: "2026-06-18" });
 
     const musician = await makePerformer("Rate Musician");

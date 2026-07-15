@@ -25,13 +25,19 @@ describe("non-dance income section", () => {
       ctx({ id: evt.id }),
     );
 
-    const res = await REPORT(jsonReq("GET", `/api/events/${evt.id}/treasurer-report`), ctx({ id: evt.id }));
+    const res = await REPORT(
+      jsonReq("GET", `/api/events/${evt.id}/treasurer-report`),
+      ctx({ id: evt.id }),
+    );
     const body = await res.json();
     expect(body.nonDanceIncome.account).toBe("4910");
     expect(body.nonDanceIncome.total).toBe(12.5);
     expect(body.nonDanceIncome.lines[0].description).toBe("ESL bank interest");
     // not part of the gate summary
-    const gateTotal = body.gateSalesSummary.lines.reduce((a: number, l: { total: number }) => a + l.total, 0);
+    const gateTotal = body.gateSalesSummary.lines.reduce(
+      (a: number, l: { total: number }) => a + l.total,
+      0,
+    );
     expect(gateTotal).toBe(100);
   });
 });

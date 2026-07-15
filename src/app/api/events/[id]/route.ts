@@ -16,7 +16,11 @@ export const PATCH = withAuth<{ id: string }>(async (req, ctx) => {
   // Apply only the fields provided (011: rentCents override; 013: label/start time/description). null clears.
   if (input.venueId !== undefined) await assignVenueToEvent(db, id, input.venueId);
   if (input.rentCents !== undefined) await setEventRent(db, id, input.rentCents, actor);
-  if (input.label !== undefined || input.startTime !== undefined || input.description !== undefined) {
+  if (
+    input.label !== undefined ||
+    input.startTime !== undefined ||
+    input.description !== undefined
+  ) {
     await updateEventDetails(db, id, {
       label: input.label,
       startTime: input.startTime,

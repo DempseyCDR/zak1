@@ -14,7 +14,12 @@ describe("venueMapUrl", () => {
   });
 
   it("returns a plain maps link when no key is configured", () => {
-    const url = venueMapUrl({ name: "German House", address: "315 Gregory St", latitude: null, longitude: null });
+    const url = venueMapUrl({
+      name: "German House",
+      address: "315 Gregory St",
+      latitude: null,
+      longitude: null,
+    });
     expect(url).toContain("google.com/maps");
     expect(url).not.toContain("staticmap");
     expect(url).toContain(encodeURIComponent("315 Gregory St"));
@@ -22,7 +27,12 @@ describe("venueMapUrl", () => {
 
   it("returns a static-image URL when a key is configured", () => {
     process.env[KEY_ENV] = "test-key";
-    const url = venueMapUrl({ name: "German House", address: "315 Gregory St", latitude: null, longitude: null });
+    const url = venueMapUrl({
+      name: "German House",
+      address: "315 Gregory St",
+      latitude: null,
+      longitude: null,
+    });
     expect(url).toContain("staticmap");
     expect(url).toContain("test-key");
   });

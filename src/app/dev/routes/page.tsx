@@ -32,7 +32,11 @@ const uiRoutes: { path: string; label: string; feature: string }[] = [
   { path: "/venue-rents", label: "Venue rents (default + series-at-venue)", feature: "011" },
   { path: "/exports", label: "Mailing list + contact-tracing exports", feature: "006" },
   { path: "/whats-on", label: "Public schedule (browse)", feature: "007" },
-  { path: "/whats-on/<eventId>", label: "Public event detail (venue + performers)", feature: "007" },
+  {
+    path: "/whats-on/<eventId>",
+    label: "Public event detail (venue + performers)",
+    feature: "007",
+  },
   { path: "/venues", label: "Venue management", feature: "007" },
   { path: "/dev/routes", label: "Dev route index (this page)", feature: "dev" },
 ];
@@ -107,19 +111,25 @@ export default function DevRoutesPage() {
         }}
       >
         <strong>⚠️ Temporary development page.</strong> Route index for review before a real UI
-        exists. <em>Requirement (provisional):</em> update the lists below whenever a route is added or
-        removed. This requirement will be replaced when the UI is designed.
+        exists. <em>Requirement (provisional):</em> update the lists below whenever a route is added
+        or removed. This requirement will be replaced when the UI is designed.
       </div>
 
       <h1>UI pages</h1>
       <table>
         <thead>
-          <tr><th align="left">Route</th><th align="left">Label</th><th align="left">Feature</th></tr>
+          <tr>
+            <th align="left">Route</th>
+            <th align="left">Label</th>
+            <th align="left">Feature</th>
+          </tr>
         </thead>
         <tbody>
           {uiRoutes.map((r) => (
             <tr key={r.path}>
-              <td><Link href={r.path}>{r.path}</Link></td>
+              <td>
+                <Link href={r.path}>{r.path}</Link>
+              </td>
               <td>{r.label}</td>
               <td>{r.feature}</td>
             </tr>
@@ -130,13 +140,21 @@ export default function DevRoutesPage() {
       <h1 style={{ marginTop: 24 }}>API endpoints</h1>
       <table>
         <thead>
-          <tr><th align="left">Methods</th><th align="left">Path</th><th align="left">Feature</th></tr>
+          <tr>
+            <th align="left">Methods</th>
+            <th align="left">Path</th>
+            <th align="left">Feature</th>
+          </tr>
         </thead>
         <tbody>
           {apiRoutes.map((r) => (
             <tr key={r.path}>
-              <td><code>{r.methods}</code></td>
-              <td><code>{r.path}</code></td>
+              <td>
+                <code>{r.methods}</code>
+              </td>
+              <td>
+                <code>{r.path}</code>
+              </td>
               <td>{r.feature}</td>
             </tr>
           ))}

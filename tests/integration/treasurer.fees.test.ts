@@ -15,15 +15,25 @@ describe("treasurer report fees", () => {
     const evt = await makeEvent();
     const drId = await makeDoorRecord(evt.id);
     // PC gross $100, gross cash = seed float so admission card = 100; 10 txns → fee 90c+229c=319c
-    await updateDoorRecord(db, drId, { grossCash: 15, pcGross: 100, seedFloat: 15, posTransactionCount: 10 });
+    await updateDoorRecord(db, drId, {
+      grossCash: 15,
+      pcGross: 100,
+      seedFloat: 15,
+      posTransactionCount: 10,
+    });
 
-    const res = await REPORT(jsonReq("GET", `/api/events/${evt.id}/treasurer-report`), ctx({ id: evt.id }));
+    const res = await REPORT(
+      jsonReq("GET", `/api/events/${evt.id}/treasurer-report`),
+      ctx({ id: evt.id }),
+    );
     const body = await res.json();
 
     expect(body.fees.doorFee).toBe(3.19);
     expect(body.fees.onlineFee).toBe(0);
     // revenue line reported at gross (not reduced by the fee)
-    const adm = body.gateSalesSummary.lines.find((l: { category: string }) => l.category === "admission");
+    const adm = body.gateSalesSummary.lines.find(
+      (l: { category: string }) => l.category === "admission",
+    );
     expect(adm.total).toBe(100);
   });
 });

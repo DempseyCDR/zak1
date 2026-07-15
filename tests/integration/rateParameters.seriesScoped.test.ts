@@ -38,7 +38,12 @@ describe("rate-parameters route: series scoping", () => {
       ctx(),
     );
     const body = await res.json();
-    expect(body.resolved).toEqual({ seriesKey: "tnc", kind: "caller", amount: 150, effectiveDate: "2026-06-18" });
+    expect(body.resolved).toEqual({
+      seriesKey: "tnc",
+      kind: "caller",
+      amount: 150,
+      effectiveDate: "2026-06-18",
+    });
 
     const other = await GET_RATE(
       jsonReq("GET", "/api/rate-parameters?seriesKey=ecd&kind=caller&on=2026-06-18"),

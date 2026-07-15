@@ -2,7 +2,13 @@
  * Rolling trend series (pure). Charts render only when 12 ≤ weeks ≤ 53 (window capped at the most
  * recent 53 weeks); below 12 weeks the trend is null (FR-011/012).
  */
-export type TrendPoint = { date: string; danceNet: number; dancers: number; caller: string; band: string };
+export type TrendPoint = {
+  date: string;
+  danceNet: number;
+  dancers: number;
+  caller: string;
+  band: string;
+};
 
 export type Trend = {
   weeks: number;

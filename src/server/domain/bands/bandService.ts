@@ -24,13 +24,22 @@ async function insertRoster(
   bandId: string,
   members: { performerId: string; isLead: boolean }[],
 ): Promise<void> {
-  await assertPerformersExist(tx, members.map((m) => m.performerId));
-  await tx.insert(bandMembers).values(members.map((m) => ({ bandId, performerId: m.performerId, isLead: m.isLead })));
+  await assertPerformersExist(
+    tx,
+    members.map((m) => m.performerId),
+  );
+  await tx
+    .insert(bandMembers)
+    .values(members.map((m) => ({ bandId, performerId: m.performerId, isLead: m.isLead })));
 }
 
 async function loadRoster(db: Db, bandId: string): Promise<BandMemberView[]> {
   const rows = await db
-    .select({ performerId: bandMembers.performerId, performerName: performers.displayName, isLead: bandMembers.isLead })
+    .select({
+      performerId: bandMembers.performerId,
+      performerName: performers.displayName,
+      isLead: bandMembers.isLead,
+    })
     .from(bandMembers)
     .innerJoin(performers, eq(performers.id, bandMembers.performerId))
     .where(eq(bandMembers.bandId, bandId));
@@ -55,7 +64,12 @@ export async function createBand(
   return { ...band, members: await loadRoster(db, band.id) };
 }
 
-export type BandSummary = { id: string; name: string; memberCount: number; leadPerformerName: string | null };
+export type BandSummary = {
+  id: string;
+  name: string;
+  memberCount: number;
+  leadPerformerName: string | null;
+};
 
 /** Active (non-archived) bands with a small summary for the directory/pick list. */
 export async function listBands(db: Db): Promise<BandSummary[]> {
@@ -115,13 +129,19 @@ export async function archiveBand(db: Db, id: string, actor: string | null = nul
   const existing = await db.query.bands.findFirst({ where: eq(bands.id, id) });
   if (!existing) throw errors.bandNotFound();
   if (!existing.archivedAt) {
-    await db.update(bands).set({ archivedAt: new Date(), updatedAt: new Date() }).where(eq(bands.id, id));
+    await db
+      .update(bands)
+      .set({ archivedAt: new Date(), updatedAt: new Date() })
+      .where(eq(bands.id, id));
     writeAudit({ kind: "band.deleted", actor, details: { bandId: id } });
   }
 }
 
 /** Current roster (performerId + isLead) for booking — active or not (past events can re-book). */
-export async function getRoster(db: Db, bandId: string): Promise<{ performerId: string; isLead: boolean }[]> {
+export async function getRoster(
+  db: Db,
+  bandId: string,
+): Promise<{ performerId: string; isLead: boolean }[]> {
   return db
     .select({ performerId: bandMembers.performerId, isLead: bandMembers.isLead })
     .from(bandMembers)

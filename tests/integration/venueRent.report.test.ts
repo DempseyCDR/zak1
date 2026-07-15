@@ -29,7 +29,10 @@ describe("organizer report — event rent freeze", () => {
   it("a later venue rent does not change an event that has a per-event rent (freeze holds)", async () => {
     const evt = await makeEvent({ seriesKey: "tnc", eventDate: "2026-06-18" });
     const [venue] = await db.insert(venues).values({ name: "Hall", address: "1 St" }).returning();
-    await db.update(events).set({ venueId: venue!.id, rentCents: 8000 }).where(eq(events.id, evt.id));
+    await db
+      .update(events)
+      .set({ venueId: venue!.id, rentCents: 8000 })
+      .where(eq(events.id, evt.id));
     await createVenueRent(db, { venueId: venue!.id, amount: 50000, effectiveDate: "2026-01-01" });
 
     const report = await assembleOrganizerReport(db, "tnc", 2026);

@@ -2,7 +2,12 @@ import type { Db } from "@/server/db/client";
 import { getBookingsForEvent, type BookingView } from "@/server/domain/bookings/bookingService";
 import { getBand } from "./bandService";
 
-export type BandBlock = { bandId: string; name: string; bio: string | null; photoUrl: string | null };
+export type BandBlock = {
+  bandId: string;
+  name: string;
+  bio: string | null;
+  photoUrl: string | null;
+};
 export type EventPublicPerformers = { bandBlocks: BandBlock[]; adHoc: BookingView[] };
 
 /**
@@ -10,11 +15,16 @@ export type EventPublicPerformers = { bandBlocks: BandBlock[]; adHoc: BookingVie
  * (its CURRENT identity — live read), plus ad-hoc (non-band) bookings listed individually.
  * A read model for feature 007 to consume; band identity is not snapshotted.
  */
-export async function groupEventBookingsForDisplay(db: Db, eventId: string): Promise<EventPublicPerformers> {
+export async function groupEventBookingsForDisplay(
+  db: Db,
+  eventId: string,
+): Promise<EventPublicPerformers> {
   const { bookings } = await getBookingsForEvent(db, eventId);
 
   const adHoc = bookings.filter((b) => b.bandId === null);
-  const bandIds = [...new Set(bookings.filter((b) => b.bandId !== null).map((b) => b.bandId as string))];
+  const bandIds = [
+    ...new Set(bookings.filter((b) => b.bandId !== null).map((b) => b.bandId as string)),
+  ];
 
   const bandBlocks: BandBlock[] = [];
   for (const bandId of bandIds) {

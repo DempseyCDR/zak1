@@ -60,10 +60,12 @@ export default function EventsPage() {
   }, []);
 
   useEffect(() => {
-    void fetch("/api/series").then((r) => r.json()).then((d) => {
-      setSeries(d.items ?? []);
-      if (d.items?.[0]) setSeriesKey(d.items[0].key);
-    });
+    void fetch("/api/series")
+      .then((r) => r.json())
+      .then((d) => {
+        setSeries(d.items ?? []);
+        if (d.items?.[0]) setSeriesKey(d.items[0].key);
+      });
     void loadGroups();
     void loadEvents();
   }, [loadEvents, loadGroups]);
@@ -102,7 +104,10 @@ export default function EventsPage() {
     const res = await fetch("/api/event-groups", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: groupName, ...(groupKind.trim() ? { kind: groupKind.trim() } : {}) }),
+      body: JSON.stringify({
+        name: groupName,
+        ...(groupKind.trim() ? { kind: groupKind.trim() } : {}),
+      }),
     });
     if (res.ok) {
       const g = await res.json();
@@ -123,7 +128,9 @@ export default function EventsPage() {
             {ev.startTime ? ` ${formatWallClock(ev.startTime)}` : ""} — {seriesKeyById(ev.seriesId)}
             {ev.label ? ` · ${ev.label}` : ""}
             {ev.chargesAdmission ? "" : " (free)"}
-            {ev.groupId ? ` · group ${groups.find((g) => g.id === ev.groupId)?.name ?? ev.groupId}` : ""}
+            {ev.groupId
+              ? ` · group ${groups.find((g) => g.id === ev.groupId)?.name ?? ev.groupId}`
+              : ""}
             {ev.rentCents != null ? ` · rent $${(ev.rentCents / 100).toFixed(2)}` : ""}
           </li>
         ))}
@@ -134,14 +141,12 @@ export default function EventsPage() {
       <form onSubmit={createEvent} style={{ display: "grid", gap: 6, maxWidth: 420 }}>
         <select value={seriesKey} onChange={(e) => setSeriesKey(e.target.value)}>
           {series.map((s) => (
-            <option key={s.id} value={s.key}>{s.name}</option>
+            <option key={s.id} value={s.key}>
+              {s.name}
+            </option>
           ))}
         </select>
-        <input
-          type="date"
-          value={eventDate}
-          onChange={(e) => setEventDate(e.target.value)}
-        />
+        <input type="date" value={eventDate} onChange={(e) => setEventDate(e.target.value)} />
         <input
           placeholder="Label (optional, e.g. Afternoon)"
           value={label}
@@ -169,16 +174,24 @@ export default function EventsPage() {
         <select value={groupId} onChange={(e) => setGroupId(e.target.value)}>
           <option value="">— no group —</option>
           {groups.map((g) => (
-            <option key={g.id} value={g.id}>{g.name}</option>
+            <option key={g.id} value={g.id}>
+              {g.name}
+            </option>
           ))}
         </select>
-        <button type="submit" disabled={!seriesKey || !eventDate}>Create event</button>
+        <button type="submit" disabled={!seriesKey || !eventDate}>
+          Create event
+        </button>
         {error && <p style={{ color: "crimson" }}>{error}</p>}
       </form>
 
       <h2>New event group</h2>
       <div style={{ display: "grid", gap: 6, maxWidth: 420 }}>
-        <input placeholder="Group name" value={groupName} onChange={(e) => setGroupName(e.target.value)} />
+        <input
+          placeholder="Group name"
+          value={groupName}
+          onChange={(e) => setGroupName(e.target.value)}
+        />
         <input
           placeholder="Category (optional)"
           value={groupKind}

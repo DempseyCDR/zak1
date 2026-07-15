@@ -16,14 +16,21 @@ describe("performer payments with check numbers", () => {
     const evt = await makeEvent();
     await makeDoorRecord(evt.id);
     const p = await makePerformer("Check Caller");
-    const booking = await createBooking(db, evt.id, { performerId: p.id, performerType: "caller", pay: 150 });
+    const booking = await createBooking(db, evt.id, {
+      performerId: p.id,
+      performerType: "caller",
+      pay: 150,
+    });
 
     await SET_CHECK(
       jsonReq("PATCH", `/api/bookings/${booking.id}/check`, { checkNumber: "1042" }),
       ctx({ id: booking.id }),
     );
 
-    const res = await REPORT(jsonReq("GET", `/api/events/${evt.id}/treasurer-report`), ctx({ id: evt.id }));
+    const res = await REPORT(
+      jsonReq("GET", `/api/events/${evt.id}/treasurer-report`),
+      ctx({ id: evt.id }),
+    );
     const body = await res.json();
     expect(body.performerPayments[0].payee).toBe("Check Caller");
     expect(body.performerPayments[0].checkNumber).toBe("1042");

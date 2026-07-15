@@ -71,9 +71,7 @@ function Sparkline({
   const span = max - min || 1;
   const y = (v: number) => height - ((v - min) / span) * height;
   const bw = w / Math.max(bars.length, 1);
-  const linePts = line
-    .map((l, i) => `${i * bw + bw / 2},${y(l.value)}`)
-    .join(" ");
+  const linePts = line.map((l, i) => `${i * bw + bw / 2},${y(l.value)}`).join(" ");
   return (
     <svg width={w} height={height} style={{ display: "block" }}>
       <line x1={0} y1={y(0)} x2={w} y2={y(0)} stroke="#ccc" />
@@ -158,7 +156,10 @@ export default function OrganizerReportPage({
               "Avg ticket",
               "Break-even",
             ].map((h) => (
-              <th key={h} style={{ borderBottom: "1px solid #999", textAlign: "right", padding: "4px 6px" }}>
+              <th
+                key={h}
+                style={{ borderBottom: "1px solid #999", textAlign: "right", padding: "4px 6px" }}
+              >
                 {h}
               </th>
             ))}
@@ -179,8 +180,12 @@ export default function OrganizerReportPage({
                 <td style={{ textAlign: "right", padding: "4px 6px" }}>{money(r.grossGate)}</td>
                 <td style={{ textAlign: "right", padding: "4px 6px" }}>{money(r.merchandise)}</td>
                 <td style={{ textAlign: "right", padding: "4px 6px" }}>{money(r.rent)}</td>
-                <td style={{ textAlign: "right", padding: "4px 6px" }}>{money(r.performerTotal)}</td>
-                <td style={{ textAlign: "right", padding: "4px 6px" }}>{money(r.ongoingExpense)}</td>
+                <td style={{ textAlign: "right", padding: "4px 6px" }}>
+                  {money(r.performerTotal)}
+                </td>
+                <td style={{ textAlign: "right", padding: "4px 6px" }}>
+                  {money(r.ongoingExpense)}
+                </td>
                 <td style={{ textAlign: "right", padding: "4px 6px" }}>{money(r.miscExpenses)}</td>
                 <td
                   style={{
@@ -207,9 +212,9 @@ export default function OrganizerReportPage({
                           .map((p) => `${p.name} (${p.type}, ${money(p.amount)})`)
                           .join(", ")}
                     <br />
-                    <strong>FYI (pass-through):</strong> donations {money(r.fyi.donations)}, memberships{" "}
-                    {money(r.fyi.memberships)}, future event {money(r.fyi.futureEvent)}, gift cards{" "}
-                    {money(r.fyi.giftCards)}, misc sales {money(r.fyi.miscSales)}
+                    <strong>FYI (pass-through):</strong> donations {money(r.fyi.donations)},
+                    memberships {money(r.fyi.memberships)}, future event {money(r.fyi.futureEvent)},
+                    gift cards {money(r.fyi.giftCards)}, misc sales {money(r.fyi.miscSales)}
                   </td>
                 </tr>
               )}
@@ -222,11 +227,20 @@ export default function OrganizerReportPage({
       <table style={{ borderCollapse: "collapse", fontSize: 13 }}>
         <thead>
           <tr>
-            {["Bucket", "Dances", "Avg dancers", "Avg gross", "Avg Dance Net", "Avg ticket"].map((h) => (
-              <th key={h} style={{ borderBottom: "1px solid #999", padding: "4px 10px", textAlign: "right" }}>
-                {h}
-              </th>
-            ))}
+            {["Bucket", "Dances", "Avg dancers", "Avg gross", "Avg Dance Net", "Avg ticket"].map(
+              (h) => (
+                <th
+                  key={h}
+                  style={{
+                    borderBottom: "1px solid #999",
+                    padding: "4px 10px",
+                    textAlign: "right",
+                  }}
+                >
+                  {h}
+                </th>
+              ),
+            )}
           </tr>
         </thead>
         <tbody>

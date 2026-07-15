@@ -52,7 +52,10 @@ describe("API route inventory: default-deny (FR-004, SC-002)", () => {
   it("every non-auth route exports at least one HTTP method", () => {
     for (const file of protectedRoutes) {
       const methods = exportedMethods(readFileSync(file, "utf8"));
-      expect(methods.length, `${relative(process.cwd(), file)} exports no HTTP method`).toBeGreaterThan(0);
+      expect(
+        methods.length,
+        `${relative(process.cwd(), file)} exports no HTTP method`,
+      ).toBeGreaterThan(0);
     }
   });
 
@@ -71,9 +74,10 @@ describe("API route inventory: default-deny (FR-004, SC-002)", () => {
   it("auth routes stay PUBLIC — requiring a session there would deadlock sign-in", () => {
     for (const file of authRoutes) {
       for (const { method, wrapper } of exportedMethods(readFileSync(file, "utf8"))) {
-        expect(wrapper, `${relative(process.cwd(), file)} → ${method} must not require auth`).not.toBe(
-          "withAuth",
-        );
+        expect(
+          wrapper,
+          `${relative(process.cwd(), file)} → ${method} must not require auth`,
+        ).not.toBe("withAuth");
       }
     }
   });

@@ -22,7 +22,11 @@ describe("check-in roster sort", () => {
   });
 
   it("labels a roster entry with the effective display name (override wins)", async () => {
-    await createContact(db, { firstName: "Robert", lastName: "Frost", displayNameOverride: "Bob Frost" });
+    await createContact(db, {
+      firstName: "Robert",
+      lastName: "Frost",
+      displayNameOverride: "Bob Frost",
+    });
     const roster = await searchContacts(db, "", 20, { orderBy: "name" });
     expect(roster.map((r) => r.displayName)).toContain("Bob Frost");
   });

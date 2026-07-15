@@ -14,9 +14,16 @@ describe("DELETE /api/bookings/:id", () => {
   it("removes a booking so a replacement can be booked", async () => {
     const evt = await makeEvent();
     const p = await makePerformer("Cancelling Caller");
-    const booking = await createBooking(db, evt.id, { performerId: p.id, performerType: "caller", pay: 150 });
+    const booking = await createBooking(db, evt.id, {
+      performerId: p.id,
+      performerType: "caller",
+      pay: 150,
+    });
 
-    const res = await DELETE_BOOKING(jsonReq("DELETE", `/api/bookings/${booking.id}`), ctx({ id: booking.id }));
+    const res = await DELETE_BOOKING(
+      jsonReq("DELETE", `/api/bookings/${booking.id}`),
+      ctx({ id: booking.id }),
+    );
     expect(res.status).toBe(200);
 
     const view = await getBookingsForEvent(db, evt.id);

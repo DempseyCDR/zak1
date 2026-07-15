@@ -11,7 +11,10 @@ export type ContactTracingResult = { count: number; rows: Record<string, string>
  * caller uses it to short-circuit CSV generation when zero (FR-006c); `rows` is the
  * consent-qualified subset (may legitimately be smaller than `count`).
  */
-export async function buildContactTracingRows(db: Db, eventId: string): Promise<ContactTracingResult> {
+export async function buildContactTracingRows(
+  db: Db,
+  eventId: string,
+): Promise<ContactTracingResult> {
   const event = await db.query.events.findFirst({ where: eq(events.id, eventId) });
   if (!event) throw errors.eventNotFound();
 
@@ -19,7 +22,11 @@ export async function buildContactTracingRows(db: Db, eventId: string): Promise<
   if (count === 0) return { count: 0, rows: [] };
 
   const qualifying = await db
-    .select({ email: contactEmails.email, firstName: contacts.firstName, lastName: contacts.lastName })
+    .select({
+      email: contactEmails.email,
+      firstName: contacts.firstName,
+      lastName: contacts.lastName,
+    })
     .from(attendance)
     .innerJoin(contacts, eq(contacts.id, attendance.contactId))
     .innerJoin(contactEmails, eq(contactEmails.contactId, contacts.id))

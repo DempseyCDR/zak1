@@ -56,7 +56,9 @@ export async function recordAttendance(
           .insert(contactEmails)
           .values({ contactId: created.id, email: input.newContact.email });
       } catch (err) {
-        if (!(typeof err === "object" && err && (err as { code?: string }).code === UNIQUE_VIOLATION)) {
+        if (
+          !(typeof err === "object" && err && (err as { code?: string }).code === UNIQUE_VIOLATION)
+        ) {
           throw err;
         }
       }
@@ -91,10 +93,7 @@ export type EventAttendanceView = {
  * with their display name plus unmatched placeholders. After the 90-day purge
  * (FR-011) there are no attendance rows, so this returns count 0 / empty list.
  */
-export async function listEventAttendance(
-  db: Db,
-  eventId: string,
-): Promise<EventAttendanceView> {
+export async function listEventAttendance(db: Db, eventId: string): Promise<EventAttendanceView> {
   const rows = await db
     .select({
       id: attendance.id,

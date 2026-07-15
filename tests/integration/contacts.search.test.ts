@@ -12,7 +12,16 @@ describe("fuzzy name search", () => {
 
   async function seed(n: number) {
     const first = ["Ada", "Grace", "Alan", "Katherine", "Dorothy", "Edsger", "Donald", "Barbara"];
-    const last = ["Lovelace", "Hopper", "Turing", "Johnson", "Vaughan", "Dijkstra", "Knuth", "Liskov"];
+    const last = [
+      "Lovelace",
+      "Hopper",
+      "Turing",
+      "Johnson",
+      "Vaughan",
+      "Dijkstra",
+      "Knuth",
+      "Liskov",
+    ];
     const rows = Array.from({ length: n }, (_, i) => {
       const name = `${first[i % first.length]} ${last[(i * 3) % last.length]} ${i}`;
       return contactRow(name);
@@ -24,11 +33,9 @@ describe("fuzzy name search", () => {
   }
 
   it("returns ranked matches for a partial name", async () => {
-    await db.insert(contacts).values([
-      contactRow("Ada Lovelace"),
-      contactRow("Adam Smith"),
-      contactRow("Grace Hopper"),
-    ]);
+    await db
+      .insert(contacts)
+      .values([contactRow("Ada Lovelace"), contactRow("Adam Smith"), contactRow("Grace Hopper")]);
     const results = await searchContacts(db, "ada lovelace");
     expect(results.length).toBeGreaterThan(0);
     expect(results[0]?.displayName).toBe("Ada Lovelace");
@@ -36,7 +43,11 @@ describe("fuzzy name search", () => {
 
   // FR-006, SC-006 — search matches the effective display name, so a nickname override is findable.
   it("finds a contact by its display-name override", async () => {
-    await createContact(db, { firstName: "Robert", lastName: "Frost", displayNameOverride: "Bob Frost" });
+    await createContact(db, {
+      firstName: "Robert",
+      lastName: "Frost",
+      displayNameOverride: "Bob Frost",
+    });
     const results = await searchContacts(db, "Bob");
     expect(results.some((r) => r.displayName === "Bob Frost")).toBe(true);
   });

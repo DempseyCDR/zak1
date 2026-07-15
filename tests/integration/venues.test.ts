@@ -49,7 +49,9 @@ describe("venue CRUD + event assignment", () => {
   it("404s VENUE_NOT_FOUND when assigning an unknown venue", async () => {
     const evt = await makeEvent();
     const res = await PATCH_EVENT(
-      jsonReq("PATCH", `/api/events/${evt.id}`, { venueId: "00000000-0000-0000-0000-000000000009" }),
+      jsonReq("PATCH", `/api/events/${evt.id}`, {
+        venueId: "00000000-0000-0000-0000-000000000009",
+      }),
       ctx({ id: evt.id }),
     );
     expect(res.status).toBe(404);

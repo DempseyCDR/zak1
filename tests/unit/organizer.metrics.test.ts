@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { avgTicketCents, breakEvenDancers, payingDancers } from "@/server/domain/organizer/danceResult";
+import {
+  avgTicketCents,
+  breakEvenDancers,
+  payingDancers,
+} from "@/server/domain/organizer/danceResult";
 
 // FR-005, FR-006, FR-013
 describe("organizer metrics", () => {

@@ -1,12 +1,6 @@
 import { eq, sql } from "drizzle-orm";
 import type { Db, DbOrTx } from "@/server/db/client";
-import {
-  clubSettings,
-  contacts,
-  memberships,
-  payers,
-  statusChangeAudit,
-} from "@/server/db/schema";
+import { clubSettings, contacts, memberships, payers, statusChangeAudit } from "@/server/db/schema";
 import type { MembershipRow, MembershipStatus, PayerRow } from "@/server/db/schema";
 import { errors } from "@/server/lib/apiError";
 import { writeAudit } from "@/server/lib/audit";
@@ -134,9 +128,7 @@ export async function getMembershipStatus(
 }
 
 /** Recompute every contact's status (daily job). Returns scanned/changed counts. */
-export async function refreshAllStatuses(
-  db: Db,
-): Promise<{ scanned: number; changed: number }> {
+export async function refreshAllStatuses(db: Db): Promise<{ scanned: number; changed: number }> {
   const ids = await db.select({ id: contacts.id }).from(contacts);
   let changed = 0;
   for (const { id } of ids) {

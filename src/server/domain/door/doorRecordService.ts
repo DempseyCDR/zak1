@@ -124,9 +124,12 @@ export async function updateDoorRecord(
     .returning();
   if (!row) throw errors.doorRecordNotFound();
 
-  await db
-    .insert(doorRecordAudit)
-    .values({ doorRecordId: id, action: "updated", actor, details: { fields: Object.keys(input) } });
+  await db.insert(doorRecordAudit).values({
+    doorRecordId: id,
+    action: "updated",
+    actor,
+    details: { fields: Object.keys(input) },
+  });
   writeAudit({
     kind: "door_record.updated",
     actor,

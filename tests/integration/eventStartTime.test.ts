@@ -11,10 +11,15 @@ describe("event start time (public)", () => {
 
   it("shows the formatted start time on the schedule and detail; null when unset", async () => {
     const withTime = await createEvent(db, {
-      seriesKey: "tnc", eventDate: "2026-06-18", chargesAdmission: true, startTime: "19:30",
+      seriesKey: "tnc",
+      eventDate: "2026-06-18",
+      chargesAdmission: true,
+      startTime: "19:30",
     });
     const noTime = await createEvent(db, {
-      seriesKey: "tnc", eventDate: "2026-06-19", chargesAdmission: true,
+      seriesKey: "tnc",
+      eventDate: "2026-06-19",
+      chargesAdmission: true,
     });
 
     const sched = await getPublicSchedule(db, "2026-01-01");

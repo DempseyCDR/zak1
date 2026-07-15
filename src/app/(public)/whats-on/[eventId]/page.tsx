@@ -2,7 +2,11 @@ import { notFound } from "next/navigation";
 import { db } from "@/server/db/client";
 import { getPublicEventDetail } from "@/server/domain/public/publicSchedule";
 
-export default async function PublicEventPage({ params }: { params: Promise<{ eventId: string }> }) {
+export default async function PublicEventPage({
+  params,
+}: {
+  params: Promise<{ eventId: string }>;
+}) {
   const { eventId } = await params;
   const detail = await getPublicEventDetail(db, eventId);
   if (!detail) notFound();

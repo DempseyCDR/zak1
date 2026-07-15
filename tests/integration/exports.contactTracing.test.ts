@@ -28,10 +28,7 @@ describe("buildContactTracingRows", () => {
       consentTopics: ["contact_tracing"],
       emailStatus: "transition",
     });
-    const [noEmailContact] = await db
-      .insert(contacts)
-      .values(contactRow("No Email"))
-      .returning();
+    const [noEmailContact] = await db.insert(contacts).values(contactRow("No Email")).returning();
 
     await db.insert(attendance).values([
       { eventId: evt.id, contactId: consented.contactId },

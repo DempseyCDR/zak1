@@ -10,9 +10,7 @@ const RETENTION_DAYS = 90;
  * rows — in one transaction. Idempotent: only still-present, >90-day rows are
  * counted, and they are deleted in the same transaction, so a re-run is a no-op.
  */
-export async function purgeOldAttendance(
-  db: Db,
-): Promise<{ rolledUp: number; purged: number }> {
+export async function purgeOldAttendance(db: Db): Promise<{ rolledUp: number; purged: number }> {
   return db.transaction(async (tx) => {
     const cutoff = sql`now() - interval '${sql.raw(String(RETENTION_DAYS))} days'`;
 
@@ -27,7 +25,11 @@ export async function purgeOldAttendance(
       .from(attendance)
       .innerJoin(events, sql`${events.id} = ${attendance.eventId}`)
       .where(sql`${attendance.createdAt} < ${cutoff}`)
-      .groupBy(events.seriesId, sql`extract(year from ${events.eventDate})`, sql`extract(quarter from ${events.eventDate})`);
+      .groupBy(
+        events.seriesId,
+        sql`extract(year from ${events.eventDate})`,
+        sql`extract(quarter from ${events.eventDate})`,
+      );
 
     let rolledUp = 0;
     for (const g of groups) {

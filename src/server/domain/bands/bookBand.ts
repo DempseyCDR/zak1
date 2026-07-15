@@ -65,5 +65,9 @@ export async function bookBand(
     actor,
     details: { bandId, eventId, createdCount: result.created.length, skippedCount: result.skipped },
   });
-  return { createdCount: result.created.length, skippedCount: result.skipped, bookings: result.created };
+  return {
+    createdCount: result.created.length,
+    skippedCount: result.skipped,
+    bookings: result.created,
+  };
 }

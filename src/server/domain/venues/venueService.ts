@@ -60,7 +60,11 @@ export async function patchVenue(
 }
 
 /** Assign (or clear, with null) a venue on an event. 404s on unknown event or venue. */
-export async function assignVenueToEvent(db: Db, eventId: string, venueId: string | null): Promise<void> {
+export async function assignVenueToEvent(
+  db: Db,
+  eventId: string,
+  venueId: string | null,
+): Promise<void> {
   const event = await db.query.events.findFirst({ where: eq(events.id, eventId) });
   if (!event) throw errors.eventNotFound();
   if (venueId !== null) {

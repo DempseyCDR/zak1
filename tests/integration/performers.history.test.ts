@@ -18,11 +18,19 @@ describe("performer appearance history + YTD earnings", () => {
     const p = await makePerformer("History Caller");
 
     await BOOK(
-      jsonReq("POST", `/api/events/${paidEvent.id}/bookings`, { performerId: p.id, performerType: "caller", pay: 150 }),
+      jsonReq("POST", `/api/events/${paidEvent.id}/bookings`, {
+        performerId: p.id,
+        performerType: "caller",
+        pay: 150,
+      }),
       ctx({ id: paidEvent.id }),
     );
     await BOOK(
-      jsonReq("POST", `/api/events/${donatedEvent.id}/bookings`, { performerId: p.id, performerType: "caller", isDonated: true }),
+      jsonReq("POST", `/api/events/${donatedEvent.id}/bookings`, {
+        performerId: p.id,
+        performerType: "caller",
+        isDonated: true,
+      }),
       ctx({ id: donatedEvent.id }),
     );
 

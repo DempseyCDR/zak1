@@ -38,7 +38,10 @@ function today(): string {
  * for deterministic tests), ascending, with activity (series name) + venue name. Public-safe — no
  * money/attendance/contacts. Free (chargesAdmission = false) events are included like any other.
  */
-export async function getPublicSchedule(db: Db, from: string = today()): Promise<PublicScheduleItem[]> {
+export async function getPublicSchedule(
+  db: Db,
+  from: string = today(),
+): Promise<PublicScheduleItem[]> {
   const rows = await db
     .select({
       eventId: events.id,
@@ -57,7 +60,10 @@ export async function getPublicSchedule(db: Db, from: string = today()): Promise
 }
 
 /** Public event detail (FR-002/FR-003): venue + map + public performer/band display. Null if unknown. */
-export async function getPublicEventDetail(db: Db, eventId: string): Promise<PublicEventDetail | null> {
+export async function getPublicEventDetail(
+  db: Db,
+  eventId: string,
+): Promise<PublicEventDetail | null> {
   const [row] = await db
     .select({
       eventId: events.id,

@@ -30,10 +30,7 @@ describe("POST /api/dedup/merge", () => {
       ctx({ id: mergedId }),
     );
 
-    const res = await MERGE(
-      jsonReq("POST", "/api/dedup/merge", { canonicalId, mergedId }),
-      ctx(),
-    );
+    const res = await MERGE(jsonReq("POST", "/api/dedup/merge", { canonicalId, mergedId }), ctx());
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.canonicalId).toBe(canonicalId);
@@ -51,7 +48,10 @@ describe("POST /api/dedup/merge", () => {
     expect(emails).toHaveLength(3);
 
     // audit written
-    const audits = await db.select().from(mergeAudit).where(eq(mergeAudit.canonicalId, canonicalId));
+    const audits = await db
+      .select()
+      .from(mergeAudit)
+      .where(eq(mergeAudit.canonicalId, canonicalId));
     expect(audits).toHaveLength(1);
     expect(audits[0]?.actor).toBeTruthy();
   });

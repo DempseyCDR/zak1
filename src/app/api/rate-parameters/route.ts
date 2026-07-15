@@ -24,13 +24,23 @@ export const GET = withAuth(async (req) => {
   const on = url.searchParams.get("on") ?? new Date().toISOString().slice(0, 10);
   if (!seriesKey || (kind !== "caller" && kind !== "sound_tech" && kind !== "musician")) {
     return NextResponse.json(
-      { error: { code: "VALIDATION_ERROR", message: "seriesKey and kind (caller|sound_tech|musician) required" } },
+      {
+        error: {
+          code: "VALIDATION_ERROR",
+          message: "seriesKey and kind (caller|sound_tech|musician) required",
+        },
+      },
       { status: 422 },
     );
   }
   const s = await db.query.series.findFirst({ where: eq(series.key, seriesKey) });
   if (!s) return NextResponse.json({ resolved: null });
-  const cents = await resolveParameterCents(db, { category: "rate", kind, seriesId: s.id, onDate: on });
+  const cents = await resolveParameterCents(db, {
+    category: "rate",
+    kind,
+    seriesId: s.id,
+    onDate: on,
+  });
   return NextResponse.json({
     resolved: cents === 0 ? null : { seriesKey, kind, amount: cents / 100, effectiveDate: on },
   });

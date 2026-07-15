@@ -2,7 +2,12 @@
 
 import { useCallback, useEffect, useState } from "react";
 
-type BandSummary = { id: string; name: string; memberCount: number; leadPerformerName: string | null };
+type BandSummary = {
+  id: string;
+  name: string;
+  memberCount: number;
+  leadPerformerName: string | null;
+};
 type Performer = { id: string; displayName: string };
 type RosterEntry = { performerId: string; isLead: boolean };
 
@@ -23,7 +28,9 @@ export default function BandsPage() {
 
   useEffect(() => {
     void load();
-    void fetch("/api/performers").then((r) => r.json()).then((d) => setPerformers(d.items ?? []));
+    void fetch("/api/performers")
+      .then((r) => r.json())
+      .then((d) => setPerformers(d.items ?? []));
   }, [load]);
 
   function resetForm() {
@@ -41,7 +48,9 @@ export default function BandsPage() {
     setName(b.name);
     setBio(b.bio ?? "");
     setPhotoUrl(b.photoUrl ?? "");
-    setRoster(b.members.map((m: RosterEntry) => ({ performerId: m.performerId, isLead: m.isLead })));
+    setRoster(
+      b.members.map((m: RosterEntry) => ({ performerId: m.performerId, isLead: m.isLead })),
+    );
   }
 
   function toggleMember(performerId: string) {
@@ -66,7 +75,10 @@ export default function BandsPage() {
       body: JSON.stringify(body),
     });
     if (!res.ok) {
-      setMessage((await res.json().catch(() => null))?.error?.message ?? "Failed (need a name and exactly one lead)");
+      setMessage(
+        (await res.json().catch(() => null))?.error?.message ??
+          "Failed (need a name and exactly one lead)",
+      );
       return;
     }
     resetForm();
@@ -96,8 +108,16 @@ export default function BandsPage() {
       <h2>{editingId ? "Edit band" : "New band"}</h2>
       <form onSubmit={save} style={{ display: "grid", gap: 6, maxWidth: 420 }}>
         <input placeholder="Band name" value={name} onChange={(e) => setName(e.target.value)} />
-        <textarea placeholder="Bio (optional)" value={bio} onChange={(e) => setBio(e.target.value)} />
-        <input placeholder="Photo URL (optional)" value={photoUrl} onChange={(e) => setPhotoUrl(e.target.value)} />
+        <textarea
+          placeholder="Bio (optional)"
+          value={bio}
+          onChange={(e) => setBio(e.target.value)}
+        />
+        <input
+          placeholder="Photo URL (optional)"
+          value={photoUrl}
+          onChange={(e) => setPhotoUrl(e.target.value)}
+        />
         <fieldset>
           <legend>Roster (check members, pick one lead)</legend>
           {performers.map((p) => {
@@ -105,11 +125,18 @@ export default function BandsPage() {
             return (
               <div key={p.id}>
                 <label>
-                  <input type="checkbox" checked={!!entry} onChange={() => toggleMember(p.id)} /> {p.displayName}
+                  <input type="checkbox" checked={!!entry} onChange={() => toggleMember(p.id)} />{" "}
+                  {p.displayName}
                 </label>
                 {entry && (
                   <label style={{ marginLeft: 8 }}>
-                    <input type="radio" name="lead" checked={entry.isLead} onChange={() => setLead(p.id)} /> lead
+                    <input
+                      type="radio"
+                      name="lead"
+                      checked={entry.isLead}
+                      onChange={() => setLead(p.id)}
+                    />{" "}
+                    lead
                   </label>
                 )}
               </div>
@@ -118,7 +145,11 @@ export default function BandsPage() {
         </fieldset>
         <div>
           <button type="submit">{editingId ? "Save changes" : "Create band"}</button>{" "}
-          {editingId && <button type="button" onClick={resetForm}>Cancel</button>}
+          {editingId && (
+            <button type="button" onClick={resetForm}>
+              Cancel
+            </button>
+          )}
         </div>
         {message && <p style={{ color: "crimson" }}>{message}</p>}
       </form>

@@ -25,7 +25,12 @@ describe("venue rent precedence", () => {
     await createVenueRent(db, { venueId: venue!.id, amount: 80, effectiveDate: "2026-01-01" });
     expect(await resolveEventRentCents(db, await eventRow(evt.id))).toBe(8000); // venue default
 
-    await createVenueRent(db, { venueId: venue!.id, seriesKey: "tnc", amount: 60, effectiveDate: "2026-01-01" });
+    await createVenueRent(db, {
+      venueId: venue!.id,
+      seriesKey: "tnc",
+      amount: 60,
+      effectiveDate: "2026-01-01",
+    });
     expect(await resolveEventRentCents(db, await eventRow(evt.id))).toBe(6000); // series-at-venue wins
 
     await db.update(events).set({ rentCents: 10000 }).where(eq(events.id, evt.id));

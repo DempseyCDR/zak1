@@ -60,10 +60,7 @@ export async function createContact(
 export async function getContact(db: Db, id: string): Promise<ContactWithEmails> {
   const contact = await db.query.contacts.findFirst({ where: eq(contacts.id, id) });
   if (!contact) throw errors.contactNotFound();
-  const emails = await db
-    .select()
-    .from(contactEmails)
-    .where(eq(contactEmails.contactId, id));
+  const emails = await db.select().from(contactEmails).where(eq(contactEmails.contactId, id));
   return { ...contact, emails };
 }
 
@@ -165,12 +162,7 @@ export async function searchContacts(
   return db
     .select(cols)
     .from(contacts)
-    .where(
-      and(
-        isNull(contacts.mergedIntoId),
-        sql`${contacts.nameNormalized} % ${needle}`,
-      ),
-    )
+    .where(and(isNull(contacts.mergedIntoId), sql`${contacts.nameNormalized} % ${needle}`))
     .orderBy(sql`similarity(${contacts.nameNormalized}, ${needle}) DESC`)
     .limit(limit);
 }

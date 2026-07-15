@@ -37,11 +37,18 @@ export type Bucket = {
 };
 
 const round2 = (n: number) => Math.round(n * 100) / 100;
-const zeroFyi = (): Fyi => ({ donations: 0, memberships: 0, futureEvent: 0, giftCards: 0, miscSales: 0 });
+const zeroFyi = (): Fyi => ({
+  donations: 0,
+  memberships: 0,
+  futureEvent: 0,
+  giftCards: 0,
+  miscSales: 0,
+});
 
 function bucket(rows: QuarterlyRow[]): Bucket {
   const n = rows.length;
-  const avg = (sel: (r: QuarterlyRow) => number) => (n === 0 ? 0 : round2(rows.reduce((a, r) => a + sel(r), 0) / n));
+  const avg = (sel: (r: QuarterlyRow) => number) =>
+    n === 0 ? 0 : round2(rows.reduce((a, r) => a + sel(r), 0) / n);
   const fyi = zeroFyi();
   for (const r of rows) {
     fyi.donations += r.fyi.donations;
@@ -61,7 +68,13 @@ function bucket(rows: QuarterlyRow[]): Bucket {
     avgMisc: avg((r) => r.misc),
     avgDanceNet: avg((r) => r.danceNet),
     avgTicket: avg((r) => r.avgTicket),
-    fyi: { donations: round2(fyi.donations), memberships: round2(fyi.memberships), futureEvent: round2(fyi.futureEvent), giftCards: round2(fyi.giftCards), miscSales: round2(fyi.miscSales) },
+    fyi: {
+      donations: round2(fyi.donations),
+      memberships: round2(fyi.memberships),
+      futureEvent: round2(fyi.futureEvent),
+      giftCards: round2(fyi.giftCards),
+      miscSales: round2(fyi.miscSales),
+    },
   };
 }
 

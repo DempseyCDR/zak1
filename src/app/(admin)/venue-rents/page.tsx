@@ -4,7 +4,13 @@ import { useCallback, useEffect, useState } from "react";
 
 type Venue = { id: string; name: string };
 type Series = { id: string; key: string; name: string };
-type VenueRent = { id: string; venueId: string; seriesId: string | null; amountCents: number; effectiveDate: string };
+type VenueRent = {
+  id: string;
+  venueId: string;
+  seriesId: string | null;
+  amountCents: number;
+  effectiveDate: string;
+};
 
 // Feature 011: venue rent = default (no series) + series-at-venue overrides, effective-dated.
 // Resolution precedence for an event: per-event override → series-at-venue → venue default → 0.
@@ -42,7 +48,7 @@ export default function VenueRentsPage() {
   }, [loadRents]);
 
   const seriesName = (id: string | null) =>
-    id === null ? "— venue default —" : seriesList.find((s) => s.id === id)?.name ?? id;
+    id === null ? "— venue default —" : (seriesList.find((s) => s.id === id)?.name ?? id);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -70,9 +76,10 @@ export default function VenueRentsPage() {
     <main style={{ padding: 24, maxWidth: 720 }}>
       <h1>Venue rents</h1>
       <p style={{ color: "#555" }}>
-        Effective-dated rent per venue. Leave the series as “venue default” for the venue’s base rate, or
-        pick a series for a series-at-venue override. An event resolves: per-event override → series-at-venue
-        → venue default → 0. A new entry supersedes earlier ones from its effective date.
+        Effective-dated rent per venue. Leave the series as “venue default” for the venue’s base
+        rate, or pick a series for a series-at-venue override. An event resolves: per-event override
+        → series-at-venue → venue default → 0. A new entry supersedes earlier ones from its
+        effective date.
       </p>
 
       <form onSubmit={submit} style={{ display: "grid", gap: 10, maxWidth: 360 }}>
@@ -102,12 +109,23 @@ export default function VenueRentsPage() {
         <label>
           Amount ($)
           <br />
-          <input type="number" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} required />
+          <input
+            type="number"
+            step="0.01"
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+            required
+          />
         </label>
         <label>
           Effective date
           <br />
-          <input type="date" value={effectiveDate} onChange={(e) => setEffectiveDate(e.target.value)} required />
+          <input
+            type="date"
+            value={effectiveDate}
+            onChange={(e) => setEffectiveDate(e.target.value)}
+            required
+          />
         </label>
         <button type="submit">Save rent</button>
       </form>

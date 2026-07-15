@@ -1,7 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { classifyMembership, isListMember } from "@/server/domain/membership/classify";
 
-const base = { longLapseCycles: 3, cycleDefinition: "1 year", now: new Date("2026-06-19T12:00:00Z") };
+const base = {
+  longLapseCycles: 3,
+  cycleDefinition: "1 year",
+  now: new Date("2026-06-19T12:00:00Z"),
+};
 
 // FR-007, FR-008
 describe("classifyMembership", () => {
@@ -28,7 +32,11 @@ describe("classifyMembership", () => {
 
   it("respects a non-default cycle definition", () => {
     // 1 cycle of 6 months -> boundary 6 months after expiry
-    const cfg = { now: new Date("2026-06-19T00:00:00Z"), longLapseCycles: 1, cycleDefinition: "6 months" };
+    const cfg = {
+      now: new Date("2026-06-19T00:00:00Z"),
+      longLapseCycles: 1,
+      cycleDefinition: "6 months",
+    };
     expect(classifyMembership({ ...cfg, mostRecentExpiry: "2026-03-01" })).toBe("lapsed");
     expect(classifyMembership({ ...cfg, mostRecentExpiry: "2025-01-01" })).toBe("long_lapsed");
   });

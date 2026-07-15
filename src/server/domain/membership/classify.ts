@@ -12,7 +12,10 @@ export type ClassifyInput = {
 type Unit = "year" | "month" | "week" | "day";
 
 function parseCycle(def: string): { value: number; unit: Unit } {
-  const m = def.trim().toLowerCase().match(/^(\d+)\s*(year|month|week|day)s?$/);
+  const m = def
+    .trim()
+    .toLowerCase()
+    .match(/^(\d+)\s*(year|month|week|day)s?$/);
   if (!m) return { value: 1, unit: "year" };
   return { value: Number(m[1]), unit: m[2] as Unit };
 }

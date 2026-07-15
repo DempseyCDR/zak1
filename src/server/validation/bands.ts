@@ -8,12 +8,18 @@ const memberSchema = z.object({
 /** A roster must have ≥1 member and exactly one lead. */
 function exactlyOneLead(members: { isLead: boolean }[], ctx: z.RefinementCtx) {
   if (members.length < 1) {
-    ctx.addIssue({ code: z.ZodIssueCode.custom, message: "a band needs at least one member (the lead)" });
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "a band needs at least one member (the lead)",
+    });
     return;
   }
   const leads = members.filter((m) => m.isLead).length;
   if (leads !== 1) {
-    ctx.addIssue({ code: z.ZodIssueCode.custom, message: "a band must have exactly one lead musician" });
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "a band must have exactly one lead musician",
+    });
   }
 }
 
@@ -33,7 +39,9 @@ export const bandPatchSchema = z.object({
 
 export const bookBandSchema = z.object({
   bandId: z.string().uuid(),
-  memberPay: z.array(z.object({ performerId: z.string().uuid(), amount: z.number().min(0) })).optional(),
+  memberPay: z
+    .array(z.object({ performerId: z.string().uuid(), amount: z.number().min(0) }))
+    .optional(),
 });
 
 export type BandCreateInput = z.infer<typeof bandCreateSchema>;

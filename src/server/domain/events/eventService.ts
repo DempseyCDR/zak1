@@ -73,6 +73,9 @@ export async function listEvents(db: Db, from?: string, to?: string): Promise<Ev
   if (from) conds.push(gte(events.eventDate, from));
   if (to) conds.push(lte(events.eventDate, to));
   return conds.length
-    ? db.select().from(events).where(and(...conds))
+    ? db
+        .select()
+        .from(events)
+        .where(and(...conds))
     : db.select().from(events);
 }

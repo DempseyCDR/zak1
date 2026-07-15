@@ -18,7 +18,9 @@ const NAMED_CATEGORIES = ["donation", "future_event", "membership"] as const;
 type PaymentMethod = "cash" | "card";
 
 type AnonAmounts = Record<string, { cash: string; card: string }>;
-const emptyAnon: AnonAmounts = Object.fromEntries(ANON_CATEGORIES.map((c) => [c, { cash: "", card: "" }]));
+const emptyAnon: AnonAmounts = Object.fromEntries(
+  ANON_CATEGORIES.map((c) => [c, { cash: "", card: "" }]),
+);
 
 type NamedLine = {
   category: (typeof NAMED_CATEGORIES)[number];
@@ -53,12 +55,15 @@ export default function GatePage() {
   const [checkInputs, setCheckInputs] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    void fetch("/api/events").then((r) => r.json()).then((d) => setEvents(d.items ?? []));
+    void fetch("/api/events")
+      .then((r) => r.json())
+      .then((d) => setEvents(d.items ?? []));
     void fetch("/api/performers")
       .then((r) => r.json())
       .then((d) => {
         const m: Record<string, string> = {};
-        for (const p of (d.items ?? []) as { id: string; displayName: string }[]) m[p.id] = p.displayName;
+        for (const p of (d.items ?? []) as { id: string; displayName: string }[])
+          m[p.id] = p.displayName;
         setPerformerNames(m);
       });
   }, []);
@@ -112,7 +117,13 @@ export default function GatePage() {
   function addNamedLine(c: Candidate) {
     setNamed((lines) => [
       ...lines,
-      { category: newCategory, contactId: c.id, contactName: c.displayName, amount: "", paymentMethod: "card" },
+      {
+        category: newCategory,
+        contactId: c.id,
+        contactName: c.displayName,
+        amount: "",
+        paymentMethod: "card",
+      },
     ]);
     setSearch("");
     setCandidates([]);
@@ -134,7 +145,14 @@ export default function GatePage() {
       ...named.flatMap((l) => {
         const v = Number(l.amount);
         return v > 0
-          ? [{ category: l.category, paymentMethod: l.paymentMethod, amount: v, contactId: l.contactId }]
+          ? [
+              {
+                category: l.category,
+                paymentMethod: l.paymentMethod,
+                amount: v,
+                contactId: l.contactId,
+              },
+            ]
           : [];
       }),
     ];
@@ -175,21 +193,41 @@ export default function GatePage() {
         <select value={eventId} onChange={(e) => void openDoorRecord(e.target.value)}>
           <option value="">— select —</option>
           {events.map((e) => (
-            <option key={e.id} value={e.id}>{e.eventDate}</option>
+            <option key={e.id} value={e.id}>
+              {e.eventDate}
+            </option>
           ))}
         </select>
       </label>
-      {doorRecordId && <p style={{ color: "#666" }}>Door record open ({doorRecordId.slice(0, 8)}…)</p>}
+      {doorRecordId && (
+        <p style={{ color: "#666" }}>Door record open ({doorRecordId.slice(0, 8)}…)</p>
+      )}
 
       <h2>Anonymous gate sales</h2>
       <table>
-        <thead><tr><th>Category</th><th>Cash</th><th>Card</th></tr></thead>
+        <thead>
+          <tr>
+            <th>Category</th>
+            <th>Cash</th>
+            <th>Card</th>
+          </tr>
+        </thead>
         <tbody>
           {ANON_CATEGORIES.map((c) => (
             <tr key={c}>
               <td>{c}</td>
-              <td><input value={anon[c]!.cash} onChange={(e) => setAnonAmt(c, "cash", e.target.value)} /></td>
-              <td><input value={anon[c]!.card} onChange={(e) => setAnonAmt(c, "card", e.target.value)} /></td>
+              <td>
+                <input
+                  value={anon[c]!.cash}
+                  onChange={(e) => setAnonAmt(c, "cash", e.target.value)}
+                />
+              </td>
+              <td>
+                <input
+                  value={anon[c]!.card}
+                  onChange={(e) => setAnonAmt(c, "card", e.target.value)}
+                />
+              </td>
             </tr>
           ))}
         </tbody>
@@ -197,12 +235,21 @@ export default function GatePage() {
 
       <h2>Named-customer sales (donation / future event / membership)</h2>
       <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-        <select value={newCategory} onChange={(e) => setNewCategory(e.target.value as typeof newCategory)}>
+        <select
+          value={newCategory}
+          onChange={(e) => setNewCategory(e.target.value as typeof newCategory)}
+        >
           {NAMED_CATEGORIES.map((c) => (
-            <option key={c} value={c}>{c}</option>
+            <option key={c} value={c}>
+              {c}
+            </option>
           ))}
         </select>
-        <input placeholder="Find contact…" value={search} onChange={(e) => setSearch(e.target.value)} />
+        <input
+          placeholder="Find contact…"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
       </div>
       {candidates.length > 0 && (
         <ul>
@@ -230,7 +277,9 @@ export default function GatePage() {
               <option value="cash">cash</option>
               <option value="card">card</option>
             </select>{" "}
-            <button onClick={() => setNamed((lines) => lines.filter((_, idx) => idx !== i))}>remove</button>
+            <button onClick={() => setNamed((lines) => lines.filter((_, idx) => idx !== i))}>
+              remove
+            </button>
           </li>
         ))}
       </ul>
@@ -256,19 +305,47 @@ export default function GatePage() {
       )}
 
       <h2>Cash &amp; card reconciliation</h2>
-      <p style={{ color: "#666" }}>Admission is derived: gross cash − seed float − non-admission cash, and Card gross − non-admission card.</p>
+      <p style={{ color: "#666" }}>
+        Admission is derived: gross cash − seed float − non-admission cash, and Card gross −
+        non-admission card.
+      </p>
       <div style={{ display: "grid", gap: 6, maxWidth: 360 }}>
-        <label>Gross cash (total counted) <input value={grossCash} onChange={(e) => setGrossCash(e.target.value)} /></label>
-        <label>Card gross (total card) <input value={pcGross} onChange={(e) => setPcGross(e.target.value)} /></label>
-        <label>Card transactions <input value={posTxns} onChange={(e) => setPosTxns(e.target.value)} /></label>
-        <label>Seed float <input value={seedFloat} onChange={(e) => setSeedFloat(e.target.value)} /></label>
-        <label>Cash paid out <input value={cashPaidOut} onChange={(e) => setCashPaidOut(e.target.value)} /></label>
-        <label>Payout reason <input value={cashPaidOutReason} onChange={(e) => setCashPaidOutReason(e.target.value)} /></label>
-        <label>Comps (admitted free) <input value={compCount} onChange={(e) => setCompCount(e.target.value)} /></label>
-        <button onClick={save} disabled={!doorRecordId}>Save</button>
+        <label>
+          Gross cash (total counted){" "}
+          <input value={grossCash} onChange={(e) => setGrossCash(e.target.value)} />
+        </label>
+        <label>
+          Card gross (total card){" "}
+          <input value={pcGross} onChange={(e) => setPcGross(e.target.value)} />
+        </label>
+        <label>
+          Card transactions <input value={posTxns} onChange={(e) => setPosTxns(e.target.value)} />
+        </label>
+        <label>
+          Seed float <input value={seedFloat} onChange={(e) => setSeedFloat(e.target.value)} />
+        </label>
+        <label>
+          Cash paid out{" "}
+          <input value={cashPaidOut} onChange={(e) => setCashPaidOut(e.target.value)} />
+        </label>
+        <label>
+          Payout reason{" "}
+          <input value={cashPaidOutReason} onChange={(e) => setCashPaidOutReason(e.target.value)} />
+        </label>
+        <label>
+          Comps (admitted free){" "}
+          <input value={compCount} onChange={(e) => setCompCount(e.target.value)} />
+        </label>
+        <button onClick={save} disabled={!doorRecordId}>
+          Save
+        </button>
       </div>
 
-      {deposit !== null && <p><strong>Deposit:</strong> ${deposit.toFixed(2)}</p>}
+      {deposit !== null && (
+        <p>
+          <strong>Deposit:</strong> ${deposit.toFixed(2)}
+        </p>
+      )}
       {message && <p>{message}</p>}
     </main>
   );

@@ -20,7 +20,11 @@ export const assignVenueSchema = z.object({
   venueId: z.string().uuid().nullable().optional(),
   rentCents: z.number().int().min(0).nullable().optional(),
   label: z.string().trim().min(1).nullable().optional(),
-  startTime: z.string().regex(/^\d{2}:\d{2}$/, "startTime must be HH:MM").nullable().optional(),
+  startTime: z
+    .string()
+    .regex(/^\d{2}:\d{2}$/, "startTime must be HH:MM")
+    .nullable()
+    .optional(),
   description: z.string().trim().min(1).nullable().optional(),
 });
 

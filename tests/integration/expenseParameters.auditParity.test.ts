@@ -27,7 +27,9 @@ describe("POST /api/expense-parameters — audit parity", () => {
     const audits = await db
       .select()
       .from(seriesParameterAudit)
-      .where(and(eq(seriesParameterAudit.category, "expense"), eq(seriesParameterAudit.kind, "ongoing")));
+      .where(
+        and(eq(seriesParameterAudit.category, "expense"), eq(seriesParameterAudit.kind, "ongoing")),
+      );
     expect(audits).toHaveLength(1);
     expect(audits[0]?.amountCents).toBe(1500);
     expect(audits[0]?.label).toBe("Supplies/insurance");

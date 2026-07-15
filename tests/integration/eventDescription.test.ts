@@ -11,14 +11,20 @@ describe("event description (public detail)", () => {
 
   it("returns the description when set, and null when absent", async () => {
     const withDesc = await createEvent(db, {
-      seriesKey: "tnc", eventDate: "2026-06-18", chargesAdmission: true,
+      seriesKey: "tnc",
+      eventDate: "2026-06-18",
+      chargesAdmission: true,
       description: "Contra with the Wednesday Band.",
     });
     const noDesc = await createEvent(db, {
-      seriesKey: "tnc", eventDate: "2026-06-19", chargesAdmission: true,
+      seriesKey: "tnc",
+      eventDate: "2026-06-19",
+      chargesAdmission: true,
     });
 
-    expect((await getPublicEventDetail(db, withDesc.id))?.description).toBe("Contra with the Wednesday Band.");
+    expect((await getPublicEventDetail(db, withDesc.id))?.description).toBe(
+      "Contra with the Wednesday Band.",
+    );
     expect((await getPublicEventDetail(db, noDesc.id))?.description).toBeNull();
   });
 });

@@ -87,7 +87,9 @@ describe("one login email per contact (FR-015)", () => {
     await db.update(contacts).set({ isVolunteer: true }).where(eq(contacts.id, b));
     await db.update(contactEmails).set({ isLogin: true }).where(eq(contactEmails.contactId, b));
 
-    const rows = (await db.select().from(contactEmails)).filter((r) => r.email !== TEST_STAFF_EMAIL);
+    const rows = (await db.select().from(contactEmails)).filter(
+      (r) => r.email !== TEST_STAFF_EMAIL,
+    );
     expect(rows.filter((r) => r.isLogin)).toHaveLength(2);
     expect(a).not.toEqual(b);
   });

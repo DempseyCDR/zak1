@@ -66,7 +66,11 @@ export async function mergeContacts(
     };
 
     await tx.insert(mergeAudit).values({ canonicalId, mergedId, actor, relinkedCounts });
-    writeAudit({ kind: "contact.merge", actor, details: { canonicalId, mergedId, relinkedCounts } });
+    writeAudit({
+      kind: "contact.merge",
+      actor,
+      details: { canonicalId, mergedId, relinkedCounts },
+    });
 
     return { canonicalId, relinkedCounts };
   });

@@ -18,14 +18,27 @@ describe("superseding a parameter does not rewrite history", () => {
   afterAll(closeDb);
 
   it("a booking's stored payCents is unaffected by a later-effective-dated rate change", async () => {
-    await createRateParameter(db, { seriesKey: "tnc", kind: "caller", amount: 150, effectiveDate: "2026-01-01" });
+    await createRateParameter(db, {
+      seriesKey: "tnc",
+      kind: "caller",
+      amount: 150,
+      effectiveDate: "2026-01-01",
+    });
     const evt = await makeEvent({ seriesKey: "tnc", eventDate: "2026-03-01" });
     const performer = await makePerformer("Historical Caller");
-    const booking = await createBooking(db, evt.id, { performerId: performer.id, performerType: "caller" });
+    const booking = await createBooking(db, evt.id, {
+      performerId: performer.id,
+      performerType: "caller",
+    });
     expect(booking.payCents).toBe(15000);
 
     // Supersede the rate with a new entry effective *after* the booking's event date.
-    await createRateParameter(db, { seriesKey: "tnc", kind: "caller", amount: 300, effectiveDate: "2026-06-01" });
+    await createRateParameter(db, {
+      seriesKey: "tnc",
+      kind: "caller",
+      amount: 300,
+      effectiveDate: "2026-06-01",
+    });
 
     const stored = await db.query.bookings.findFirst({ where: eq(bookings.id, booking.id) });
     expect(stored?.payCents).toBe(15000); // unchanged, not re-resolved to the new rate
@@ -33,7 +46,10 @@ describe("superseding a parameter does not rewrite history", () => {
 
   it("an Organizer Report for a past event keeps resolving the venue rent in effect on that event's date", async () => {
     const evt = await makeEvent({ seriesKey: "tnc", eventDate: "2026-03-01" });
-    const [venue] = await db.insert(venues).values({ name: "Grange", address: "1 Main St" }).returning();
+    const [venue] = await db
+      .insert(venues)
+      .values({ name: "Grange", address: "1 Main St" })
+      .returning();
     await db.update(events).set({ venueId: venue!.id }).where(eq(events.id, evt.id));
     const drId = await makeDoorRecord(evt.id);
     await updateDoorRecord(db, drId, { grossCash: 300, seedFloat: 0 });

@@ -6,7 +6,11 @@ import { throughYear } from "./throughYear";
 import type { ListId } from "@/server/validation/exports";
 
 // First/Last come straight from the structured contact fields (feature 012); blank last → blank cell.
-function baseRow(email: string, firstName: string, lastName: string | null): Record<string, string> {
+function baseRow(
+  email: string,
+  firstName: string,
+  lastName: string | null,
+): Record<string, string> {
   return { email, first_name: firstName, last_name: lastName ?? "" };
 }
 
@@ -16,7 +20,11 @@ export async function buildListRows(db: DbOrTx, listId: ListId): Promise<Record<
 
   if (def.kind === "topic") {
     const rows = await db
-      .select({ email: contactEmails.email, firstName: contacts.firstName, lastName: contacts.lastName })
+      .select({
+        email: contactEmails.email,
+        firstName: contacts.firstName,
+        lastName: contacts.lastName,
+      })
       .from(contactEmails)
       .innerJoin(contacts, eq(contacts.id, contactEmails.contactId))
       .where(
@@ -35,7 +43,9 @@ export async function buildListRows(db: DbOrTx, listId: ListId): Promise<Record<
         firstName: contacts.firstName,
         lastName: contacts.lastName,
         membershipStatus: contacts.membershipStatus,
-        maxExpiry: sql<string | null>`(SELECT MAX(${memberships.expiryDate}) FROM ${memberships} WHERE ${memberships.contactId} = ${contacts.id})`,
+        maxExpiry: sql<
+          string | null
+        >`(SELECT MAX(${memberships.expiryDate}) FROM ${memberships} WHERE ${memberships.contactId} = ${contacts.id})`,
       })
       .from(contactEmails)
       .innerJoin(contacts, eq(contacts.id, contactEmails.contactId))
@@ -58,7 +68,11 @@ export async function buildListRows(db: DbOrTx, listId: ListId): Promise<Record<
 
   // performer — selectDistinct guards against a contact linked to more than one performers row
   const rows = await db
-    .selectDistinct({ email: contactEmails.email, firstName: contacts.firstName, lastName: contacts.lastName })
+    .selectDistinct({
+      email: contactEmails.email,
+      firstName: contacts.firstName,
+      lastName: contacts.lastName,
+    })
     .from(contactEmails)
     .innerJoin(contacts, eq(contacts.id, contactEmails.contactId))
     .innerJoin(performers, eq(performers.contactId, contacts.id))

@@ -3,7 +3,10 @@ import { db } from "@/server/db/client";
 import { withAuth } from "@/server/auth/withAuth";
 import { parseBody } from "@/server/lib/parseBody";
 import { attendanceSchema } from "@/server/validation/attendance";
-import { listEventAttendance, recordAttendance } from "@/server/domain/attendance/attendanceService";
+import {
+  listEventAttendance,
+  recordAttendance,
+} from "@/server/domain/attendance/attendanceService";
 
 export const POST = withAuth<{ id: string }>(async (req, ctx) => {
   const { id } = await ctx.params;

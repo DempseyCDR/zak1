@@ -26,7 +26,10 @@ describe("book-band per-member pay default", () => {
     });
     const evt = await makeEvent({ eventDate: "2026-06-18" }); // series "tnc"
     const res = await BOOK_BAND(
-      jsonReq("POST", `/api/events/${evt.id}/book-band`, { bandId: band.id, ...(memberPay ? { memberPay } : {}) }),
+      jsonReq("POST", `/api/events/${evt.id}/book-band`, {
+        bandId: band.id,
+        ...(memberPay ? { memberPay } : {}),
+      }),
       ctx({ id: evt.id }),
     );
     const rows = await db.select().from(bookings).where(eq(bookings.eventId, evt.id));
@@ -34,7 +37,12 @@ describe("book-band per-member pay default", () => {
   }
 
   it("defaults every member to the series musician rate when one is set", async () => {
-    await createRateParameter(db, { seriesKey: "tnc", kind: "musician", amount: 75, effectiveDate: "2026-01-01" });
+    await createRateParameter(db, {
+      seriesKey: "tnc",
+      kind: "musician",
+      amount: 75,
+      effectiveDate: "2026-01-01",
+    });
     const { rows } = await bookDuo("Rate Band");
     expect(rows.every((r) => r.payCents === 7500)).toBe(true); // both lead and musician default to the musician rate
   });
@@ -45,7 +53,12 @@ describe("book-band per-member pay default", () => {
   });
 
   it("honors an explicit per-member override", async () => {
-    await createRateParameter(db, { seriesKey: "tnc", kind: "musician", amount: 75, effectiveDate: "2026-01-01" });
+    await createRateParameter(db, {
+      seriesKey: "tnc",
+      kind: "musician",
+      amount: 75,
+      effectiveDate: "2026-01-01",
+    });
     const lead = await makePerformer("Ovr Lead");
     const m1 = await makePerformer("Ovr M1");
     const band = await createBand(db, {

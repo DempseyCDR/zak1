@@ -18,8 +18,7 @@ describe("duplicate detection on structured names", () => {
     });
     const suggestions = await getMergeSuggestions(db);
     const pair = suggestions.find(
-      (s) =>
-        (s.a.id === a.id && s.b.id === b.id) || (s.a.id === b.id && s.b.id === a.id),
+      (s) => (s.a.id === a.id && s.b.id === b.id) || (s.a.id === b.id && s.b.id === a.id),
     );
     expect(pair).toBeDefined();
   });

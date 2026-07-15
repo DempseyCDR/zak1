@@ -47,7 +47,9 @@ export async function updateAccountMapping(
     .where(eq(accountMapping.lineKey, lineKey))
     .returning();
   if (!row) throw errors.mappingKeyNotFound();
-  await db.insert(mappingAudit).values({ mappingKind: "account", key: lineKey, details: input, actor });
+  await db
+    .insert(mappingAudit)
+    .values({ mappingKind: "account", key: lineKey, details: input, actor });
   writeAudit({ kind: "qbo_mapping.updated", actor, details: { kind: "account", lineKey } });
   return row;
 }

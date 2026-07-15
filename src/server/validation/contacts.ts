@@ -17,7 +17,11 @@ const volunteerRole = z.enum(["door_attendant", "administrator"]);
 const noProviderFields = (obj: Record<string, unknown>, ctx: z.RefinementCtx) => {
   for (const key of Object.keys(obj)) {
     if (key.startsWith("provider")) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, message: `read-only field: ${key}`, path: [key] });
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `read-only field: ${key}`,
+        path: [key],
+      });
     }
   }
 };

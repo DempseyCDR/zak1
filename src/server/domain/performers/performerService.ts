@@ -14,10 +14,7 @@ import type { PerformerCreateInput, PerformerPatchInput } from "@/server/validat
  * the given email/phone. Neither is required — missing both flags the contact
  * for admin follow-up rather than blocking performer creation.
  */
-export async function createPerformer(
-  db: Db,
-  input: PerformerCreateInput,
-): Promise<PerformerRow> {
+export async function createPerformer(db: Db, input: PerformerCreateInput): Promise<PerformerRow> {
   return db.transaction(async (tx) => {
     let contactId = input.contactId ?? null;
     if (!contactId) {

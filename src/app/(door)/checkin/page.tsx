@@ -37,7 +37,9 @@ export default function CheckinPage() {
     const res = await fetch(`/api/events/${eventId}/door-record`, { method: "POST" });
     if (!res.ok) return setMessage("Could not open door record");
     const data = await res.json();
-    setMessage(`Door record open for this event (${data.doorRecord.id.slice(0, 8)}…) — use the Gate page to enter money`);
+    setMessage(
+      `Door record open for this event (${data.doorRecord.id.slice(0, 8)}…) — use the Gate page to enter money`,
+    );
   }
 
   async function record(body: unknown, label: string, successNote?: string) {
@@ -94,7 +96,9 @@ export default function CheckinPage() {
       </label>
 
       <p>
-        <button onClick={openDoorRecord} disabled={!eventId}>Open door record for this event</button>
+        <button onClick={openDoorRecord} disabled={!eventId}>
+          Open door record for this event
+        </button>
       </p>
 
       {message && <p>{message}</p>}
@@ -129,7 +133,9 @@ export default function CheckinPage() {
           onChange={(e) => setNewPhone(e.target.value)}
         />
         <button onClick={recordNewContact}>Create + check in</button>
-        <button onClick={() => record({ unmatched: true }, "unmatched")}>Declined / unmatched</button>
+        <button onClick={() => record({ unmatched: true }, "unmatched")}>
+          Declined / unmatched
+        </button>
       </div>
     </main>
   );

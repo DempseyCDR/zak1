@@ -15,11 +15,19 @@ describe("performer total", () => {
     const caller = await makePerformer("Caller");
     const musician = await makePerformer("Musician");
     await BOOK(
-      jsonReq("POST", `/api/events/${evt.id}/bookings`, { performerId: caller.id, performerType: "caller", pay: 150 }),
+      jsonReq("POST", `/api/events/${evt.id}/bookings`, {
+        performerId: caller.id,
+        performerType: "caller",
+        pay: 150,
+      }),
       ctx({ id: evt.id }),
     );
     await BOOK(
-      jsonReq("POST", `/api/events/${evt.id}/bookings`, { performerId: musician.id, performerType: "lead_musician", pay: 100 }),
+      jsonReq("POST", `/api/events/${evt.id}/bookings`, {
+        performerId: musician.id,
+        performerType: "lead_musician",
+        pay: 100,
+      }),
       ctx({ id: evt.id }),
     );
 

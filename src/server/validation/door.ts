@@ -13,7 +13,10 @@ export const eventCreateSchema = z.object({
   groupId: z.string().uuid().optional(),
   // Feature 013: optional label, venue-local wall-clock start time (HH:MM), and public description.
   label: z.string().trim().min(1).optional(),
-  startTime: z.string().regex(/^\d{2}:\d{2}$/, "startTime must be HH:MM").optional(),
+  startTime: z
+    .string()
+    .regex(/^\d{2}:\d{2}$/, "startTime must be HH:MM")
+    .optional(),
   description: z.string().trim().min(1).optional(),
 });
 

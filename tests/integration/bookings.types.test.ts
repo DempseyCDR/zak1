@@ -13,7 +13,11 @@ describe("booking type rules", () => {
   async function book(eventId: string, performerType: string, extra: object = {}) {
     const p = await makePerformer(`${performerType} performer`);
     const res = await BOOK(
-      jsonReq("POST", `/api/events/${eventId}/bookings`, { performerId: p.id, performerType, ...extra }),
+      jsonReq("POST", `/api/events/${eventId}/bookings`, {
+        performerId: p.id,
+        performerType,
+        ...extra,
+      }),
       ctx({ id: eventId }),
     );
     return res;

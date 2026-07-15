@@ -15,13 +15,19 @@ describe("POST /api/events/:id/door-record", () => {
   it("creates the door record on first open and returns the same one thereafter", async () => {
     const evt = await makeEvent();
 
-    const first = await OPEN(jsonReq("POST", `/api/events/${evt.id}/door-record`), ctx({ id: evt.id }));
+    const first = await OPEN(
+      jsonReq("POST", `/api/events/${evt.id}/door-record`),
+      ctx({ id: evt.id }),
+    );
     expect(first.status).toBe(200);
     const firstBody = await first.json();
     expect(firstBody.doorRecord.id).toBeTruthy();
     expect(firstBody.gateSales).toEqual([]);
 
-    const second = await OPEN(jsonReq("POST", `/api/events/${evt.id}/door-record`), ctx({ id: evt.id }));
+    const second = await OPEN(
+      jsonReq("POST", `/api/events/${evt.id}/door-record`),
+      ctx({ id: evt.id }),
+    );
     const secondBody = await second.json();
     expect(secondBody.doorRecord.id).toBe(firstBody.doorRecord.id);
 

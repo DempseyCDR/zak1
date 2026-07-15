@@ -19,10 +19,18 @@ describe("multiple ongoing charges", () => {
 
   it("sums concurrent labeled charges and ends one independently via a $0 entry", async () => {
     await createExpenseParameter(db, {
-      seriesKey: "tnc", kind: "ongoing", label: "Supplies/insurance", amount: 15, effectiveDate: "2026-01-01",
+      seriesKey: "tnc",
+      kind: "ongoing",
+      label: "Supplies/insurance",
+      amount: 15,
+      effectiveDate: "2026-01-01",
     });
     await createExpenseParameter(db, {
-      seriesKey: "tnc", kind: "ongoing", label: "Equipment loan", amount: 25, effectiveDate: "2026-01-01",
+      seriesKey: "tnc",
+      kind: "ongoing",
+      label: "Equipment loan",
+      amount: 25,
+      effectiveDate: "2026-01-01",
     });
     const sid = await seriesId("tnc");
 
@@ -31,7 +39,11 @@ describe("multiple ongoing charges", () => {
 
     // end the equipment loan with a $0 entry effective 2026-07-01
     await createExpenseParameter(db, {
-      seriesKey: "tnc", kind: "ongoing", label: "Equipment loan", amount: 0, effectiveDate: "2026-07-01",
+      seriesKey: "tnc",
+      kind: "ongoing",
+      label: "Equipment loan",
+      amount: 0,
+      effectiveDate: "2026-07-01",
     });
 
     // before the stop date: still $40 (both charges)

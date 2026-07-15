@@ -13,11 +13,11 @@ describe("refreshAllStatuses (daily job)", () => {
 
   async function seedExpiredMembershipContact(expiry: string) {
     // Insert membership directly (bypassing recompute) so the contact starts 'never'.
-    const [contact] = await db
-      .insert(contacts)
-      .values(contactRow("Lapsed Person"))
+    const [contact] = await db.insert(contacts).values(contactRow("Lapsed Person")).returning();
+    const [payer] = await db
+      .insert(payers)
+      .values({ name: "Payer", contactId: contact!.id })
       .returning();
-    const [payer] = await db.insert(payers).values({ name: "Payer", contactId: contact!.id }).returning();
     await db
       .insert(memberships)
       .values({ contactId: contact!.id, payerId: payer!.id, expiryDate: expiry });

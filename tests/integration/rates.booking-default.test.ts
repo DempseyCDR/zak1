@@ -16,14 +16,29 @@ describe("booking defaults to the in-effect series-scoped rate", () => {
     const evt = await makeEvent({ eventDate: "2026-06-18" }); // defaults to seriesKey "tnc"
     const tnc = await db.query.series.findFirst({ where: eq(series.key, "tnc") });
     await db.insert(seriesParameters).values([
-      { category: "rate", kind: "caller", seriesId: tnc!.id, amountCents: 12000, effectiveDate: "2026-01-01" },
-      { category: "rate", kind: "caller", seriesId: tnc!.id, amountCents: 15000, effectiveDate: "2026-06-01" },
+      {
+        category: "rate",
+        kind: "caller",
+        seriesId: tnc!.id,
+        amountCents: 12000,
+        effectiveDate: "2026-01-01",
+      },
+      {
+        category: "rate",
+        kind: "caller",
+        seriesId: tnc!.id,
+        amountCents: 15000,
+        effectiveDate: "2026-06-01",
+      },
     ]);
     const p1 = await makePerformer("Default Caller");
     const p2 = await makePerformer("Override Caller");
 
     const def = await BOOK(
-      jsonReq("POST", `/api/events/${evt.id}/bookings`, { performerId: p1.id, performerType: "caller" }),
+      jsonReq("POST", `/api/events/${evt.id}/bookings`, {
+        performerId: p1.id,
+        performerType: "caller",
+      }),
       ctx({ id: evt.id }),
     );
     const defBody = await def.json();
@@ -31,7 +46,11 @@ describe("booking defaults to the in-effect series-scoped rate", () => {
     expect(defBody.isOverridden).toBe(false);
 
     const ovr = await BOOK(
-      jsonReq("POST", `/api/events/${evt.id}/bookings`, { performerId: p2.id, performerType: "caller", pay: 200 }),
+      jsonReq("POST", `/api/events/${evt.id}/bookings`, {
+        performerId: p2.id,
+        performerType: "caller",
+        pay: 200,
+      }),
       ctx({ id: evt.id }),
     );
     const ovrBody = await ovr.json();

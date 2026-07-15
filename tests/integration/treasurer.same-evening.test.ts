@@ -11,7 +11,10 @@ describe("same-evening events", () => {
   afterAll(closeDb);
 
   async function reportCustomer(eventId: string) {
-    const res = await REPORT(jsonReq("GET", `/api/events/${eventId}/treasurer-report`), ctx({ id: eventId }));
+    const res = await REPORT(
+      jsonReq("GET", `/api/events/${eventId}/treasurer-report`),
+      ctx({ id: eventId }),
+    );
     return (await res.json()).gateSalesSummary.customer;
   }
 

@@ -68,7 +68,9 @@ export async function readSession(db: Db, token: string | undefined): Promise<Cu
     .from(staffSessions)
     .innerJoin(staffIdentities, eq(staffIdentities.id, staffSessions.staffIdentityId))
     .innerJoin(contacts, eq(contacts.id, staffIdentities.contactId))
-    .where(and(eq(staffSessions.tokenHash, hashToken(token)), gt(staffSessions.expiresAt, new Date())));
+    .where(
+      and(eq(staffSessions.tokenHash, hashToken(token)), gt(staffSessions.expiresAt, new Date())),
+    );
 
   if (!row) return null;
   // Access withdrawn since sign-in: refuse immediately (FR-011).

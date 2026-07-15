@@ -29,7 +29,14 @@ export type TreasurerReport = {
   gateSalesSummary: {
     customer: string;
     posVerification: { gross: number; fee: number };
-    lines: { category: string; account: string; class: string; cash: number; card: number; total: number }[];
+    lines: {
+      category: string;
+      account: string;
+      class: string;
+      cash: number;
+      card: number;
+      total: number;
+    }[];
   };
   namedCustomerReceipts: {
     kind: string;

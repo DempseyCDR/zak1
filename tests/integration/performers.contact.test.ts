@@ -39,15 +39,14 @@ describe("performer → contact", () => {
     });
     const contact = await db.query.contacts.findFirst({ where: eq(contacts.id, p.contactId!) });
     expect(contact?.needsReview).toBe(false);
-    const emails = await db.query.contactEmails.findFirst({ where: eq(contactEmails.contactId, p.contactId!) });
+    const emails = await db.query.contactEmails.findFirst({
+      where: eq(contactEmails.contactId, p.contactId!),
+    });
     expect(emails?.email).toBe("email-fiddle@example.com");
   });
 
   it("reuses an existing contact when one is provided", async () => {
-    const [existing] = await db
-      .insert(contacts)
-      .values(contactRow("Existing"))
-      .returning();
+    const [existing] = await db.insert(contacts).values(contactRow("Existing")).returning();
     const p = await createPerformer(db, { displayName: "Existing", contactId: existing!.id });
     expect(p.contactId).toBe(existing!.id);
     const all = await db.select().from(performers).where(eq(performers.id, p.id));

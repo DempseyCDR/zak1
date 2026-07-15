@@ -27,13 +27,19 @@ describe("GET /api/exports/:listId", () => {
     expect(text).toContain("email,first_name,last_name");
     expect(text).toContain("ada@example.com,Ada,Lovelace");
 
-    const audits = await db.select().from(mailingListExports).where(eq(mailingListExports.listId, "contra"));
+    const audits = await db
+      .select()
+      .from(mailingListExports)
+      .where(eq(mailingListExports.listId, "contra"));
     expect(audits).toHaveLength(1);
     expect(audits[0]?.rowCount).toBe(1);
   });
 
   it("404s MAILING_LIST_NOT_FOUND for an unknown list id", async () => {
-    const res = await DOWNLOAD(jsonReq("GET", "/api/exports/not-a-list"), ctx({ listId: "not-a-list" }));
+    const res = await DOWNLOAD(
+      jsonReq("GET", "/api/exports/not-a-list"),
+      ctx({ listId: "not-a-list" }),
+    );
     expect(res.status).toBe(404);
     expect((await res.json()).error.code).toBe("MAILING_LIST_NOT_FOUND");
   });

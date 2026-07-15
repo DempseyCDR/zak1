@@ -45,8 +45,7 @@ export class ApiError extends Error {
 
 export const errors = {
   /** Feature 015: no valid staff session. Deliberately says nothing about why. */
-  unauthenticated: () =>
-    new ApiError("UNAUTHENTICATED", 401, "Authentication required."),
+  unauthenticated: () => new ApiError("UNAUTHENTICATED", 401, "Authentication required."),
   emailDuplicate: () =>
     new ApiError("EMAIL_DUPLICATE", 409, "Email already in use by an active or transition record."),
   contactNotFound: () => new ApiError("CONTACT_NOT_FOUND", 404, "Contact not found."),
@@ -87,11 +86,14 @@ export const errors = {
   performerNotFound: () => new ApiError("PERFORMER_NOT_FOUND", 404, "Performer not found."),
   bookingNotFound: () => new ApiError("BOOKING_NOT_FOUND", 404, "Booking not found."),
   soundTechNotAllowed: () =>
-    new ApiError("SOUND_TECH_NOT_ALLOWED", 422, "Sound Tech is not allowed for this event's series."),
+    new ApiError(
+      "SOUND_TECH_NOT_ALLOWED",
+      422,
+      "Sound Tech is not allowed for this event's series.",
+    ),
   mappingKeyNotFound: () =>
     new ApiError("MAPPING_KEY_NOT_FOUND", 404, "Unknown account-mapping line key."),
-  mailingListNotFound: () =>
-    new ApiError("MAILING_LIST_NOT_FOUND", 404, "Unknown mailing list."),
+  mailingListNotFound: () => new ApiError("MAILING_LIST_NOT_FOUND", 404, "Unknown mailing list."),
   bandNotFound: () => new ApiError("BAND_NOT_FOUND", 404, "Band not found."),
   venueNotFound: () => new ApiError("VENUE_NOT_FOUND", 404, "Venue not found."),
 };

@@ -33,6 +33,7 @@ export const GET = withAuth(async (req) => {
   // Sum of all ongoing charges in effect on `on` (feature 011: multiple concurrent labeled charges).
   const cents = await resolveOngoingTotalCents(db, s.id, on);
   return NextResponse.json({
-    resolved: cents === 0 ? null : { seriesKey, kind: "ongoing", amount: cents / 100, effectiveDate: on },
+    resolved:
+      cents === 0 ? null : { seriesKey, kind: "ongoing", amount: cents / 100, effectiveDate: on },
   });
 });

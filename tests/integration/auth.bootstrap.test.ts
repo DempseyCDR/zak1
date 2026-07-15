@@ -65,7 +65,9 @@ describe("operator bootstrap (FR-017)", () => {
   });
 
   it("refuses when the email matches no contact", async () => {
-    await expect(bootstrapOfficer({ email: "nobody@cdrochester.org" })).rejects.toThrow(/no contact/i);
+    await expect(bootstrapOfficer({ email: "nobody@cdrochester.org" })).rejects.toThrow(
+      /no contact/i,
+    );
   });
 
   it("refuses an ambiguous email matching multiple contacts", async () => {

@@ -48,7 +48,9 @@ describe("organizer report", () => {
     await makeEvent({ seriesKey: "tnc", eventDate: "2026-06-18" });
     await makeEvent({ seriesKey: "community_dance", eventDate: "2026-06-18" });
     const report = await assembleOrganizerReport(db, "tnc", year);
-    const seriesInRows = new Set((report.perDanceRows as { series: string }[]).map((r) => r.series));
+    const seriesInRows = new Set(
+      (report.perDanceRows as { series: string }[]).map((r) => r.series),
+    );
     expect(seriesInRows.has("tnc")).toBe(true);
     expect(seriesInRows.has("community_dance")).toBe(true);
   });
@@ -57,7 +59,10 @@ describe("organizer report", () => {
     const evt = await makeEvent({ seriesKey: "tnc", eventDate: "2026-06-18" });
     for (let i = 0; i < 30; i++) await recordAttendance(db, evt.id, { unmatched: true });
     // age attendance rows and purge
-    await db.update(attendance).set({ createdAt: sql`now() - interval '100 days'` }).where(eq(attendance.eventId, evt.id));
+    await db
+      .update(attendance)
+      .set({ createdAt: sql`now() - interval '100 days'` })
+      .where(eq(attendance.eventId, evt.id));
     await purgeOldAttendance(db);
 
     const after = await db.query.events.findFirst({ where: eq(events.id, evt.id) });
@@ -94,7 +99,11 @@ describe("organizer report", () => {
       ]);
       await updateDoorRecord(db, drId, { grossCash: 300, seedFloat: 0 });
       const caller = await makePerformer(`Caller ${w}`);
-      await createBooking(db, evt.id, { performerId: caller.id, performerType: "caller", pay: 120 });
+      await createBooking(db, evt.id, {
+        performerId: caller.id,
+        performerType: "caller",
+        pay: 120,
+      });
     }
     const start = performance.now();
     const report = await assembleOrganizerReport(db, "tnc", year);

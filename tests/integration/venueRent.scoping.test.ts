@@ -29,7 +29,12 @@ describe("venue rent scoping", () => {
     const evtB = await makeEvent({ seriesKey: "tnc", eventDate: "2026-06-02" });
     await db.update(events).set({ venueId: a!.id }).where(eq(events.id, evtA.id));
     await db.update(events).set({ venueId: b!.id }).where(eq(events.id, evtB.id));
-    await createVenueRent(db, { venueId: a!.id, seriesKey: "tnc", amount: 60, effectiveDate: "2026-01-01" });
+    await createVenueRent(db, {
+      venueId: a!.id,
+      seriesKey: "tnc",
+      amount: 60,
+      effectiveDate: "2026-01-01",
+    });
     expect(await resolveEventRentCents(db, await eventRow(evtA.id))).toBe(6000);
     expect(await resolveEventRentCents(db, await eventRow(evtB.id))).toBe(0); // venue B has no rent
   });

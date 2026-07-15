@@ -14,7 +14,10 @@ export type PublicPerformer =
  * PERFORMER_RULES.publicDisplay. `hidden` performers (Sound Tech) are dropped entirely — they never
  * appear in any public output. Only public-safe fields are returned (never pay/contact/etc.).
  */
-export async function mapPublicPerformers(db: Db, adHocBookings: BookingView[]): Promise<PublicPerformer[]> {
+export async function mapPublicPerformers(
+  db: Db,
+  adHocBookings: BookingView[],
+): Promise<PublicPerformer[]> {
   // Bio/photo for the full_bio entries, fetched once.
   const performerIds = [...new Set(adHocBookings.map((b) => b.performerId))];
   const bioById = new Map<string, { bio: string | null; photoUrl: string | null }>();
@@ -32,7 +35,12 @@ export async function mapPublicPerformers(db: Db, adHocBookings: BookingView[]):
     switch (rule) {
       case "full_bio": {
         const p = bioById.get(b.performerId);
-        result.push({ kind: "full_bio", name: b.performerName, bio: p?.bio ?? null, photoUrl: p?.photoUrl ?? null });
+        result.push({
+          kind: "full_bio",
+          name: b.performerName,
+          bio: p?.bio ?? null,
+          photoUrl: p?.photoUrl ?? null,
+        });
         break;
       }
       case "open_band_label":

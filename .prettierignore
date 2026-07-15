@@ -8,6 +8,11 @@
 # One owner per file type: prettier → code, markdownlint → markdown.
 *.md
 
+# SpecKit owns these and rewrites them on its own schedule — `.specify/feature.json` is written
+# compact by its scripts, so formatting it here just churns on the next /speckit-specify. Same
+# reasoning as the markdownlint ignore.
+.specify/
+
 # Generated / vendored
 node_modules/
 .next/

@@ -13,7 +13,8 @@ export default async function LoginPage({
 }) {
   const params = await searchParams;
   const next = safeNextPath(params.next);
-  const href = next === "/" ? "/api/auth/google" : `/api/auth/google?next=${encodeURIComponent(next)}`;
+  const href =
+    next === "/" ? "/api/auth/google" : `/api/auth/google?next=${encodeURIComponent(next)}`;
 
   return (
     <main style={{ padding: 24, maxWidth: 480 }}>

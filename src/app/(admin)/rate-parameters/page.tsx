@@ -27,7 +27,9 @@ export default function RateParametersPage() {
 
   const loadResolved = useCallback(async () => {
     if (!seriesKey) return;
-    const r = await fetch(`/api/rate-parameters?seriesKey=${seriesKey}&kind=${kind}&on=${effectiveDate}`);
+    const r = await fetch(
+      `/api/rate-parameters?seriesKey=${seriesKey}&kind=${kind}&on=${effectiveDate}`,
+    );
     const d = await r.json();
     setResolved(d.resolved);
   }, [seriesKey, kind, effectiveDate]);
@@ -57,7 +59,9 @@ export default function RateParametersPage() {
   return (
     <main style={{ padding: 24, maxWidth: 480 }}>
       <h1>Standard pay rates</h1>
-      <p style={{ color: "#666" }}>Effective-dated, per series; bookings default to the rate in effect on the event date.</p>
+      <p style={{ color: "#666" }}>
+        Effective-dated, per series; bookings default to the rate in effect on the event date.
+      </p>
       <form onSubmit={save} style={{ display: "grid", gap: 6 }}>
         <label>
           Series
@@ -77,7 +81,11 @@ export default function RateParametersPage() {
             </option>
           ))}
         </select>
-        <input placeholder="Amount (dollars)" value={amount} onChange={(e) => setAmount(e.target.value)} />
+        <input
+          placeholder="Amount (dollars)"
+          value={amount}
+          onChange={(e) => setAmount(e.target.value)}
+        />
         <input
           type="date"
           value={effectiveDate}

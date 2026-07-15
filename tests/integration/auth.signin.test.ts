@@ -73,8 +73,9 @@ describe("sign-in resolution (FR-009, FR-013)", () => {
     await makeContactWithEmail({ firstName: "Dancer", email: "dancer@example.com" });
     await signIn("google-dancer", "dancer@example.com");
     await signIn("google-nobody", "stranger@example.com");
-    const logins = (await db.select().from(contactEmails).where(eq(contactEmails.isLogin, true)))
-      .filter((e) => e.email !== TEST_STAFF_EMAIL);
+    const logins = (
+      await db.select().from(contactEmails).where(eq(contactEmails.isLogin, true))
+    ).filter((e) => e.email !== TEST_STAFF_EMAIL);
     expect(logins).toHaveLength(0);
   });
 

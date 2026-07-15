@@ -33,7 +33,9 @@ describe("POST /api/rate-parameters", () => {
     const audits = await db
       .select()
       .from(seriesParameterAudit)
-      .where(and(eq(seriesParameterAudit.category, "rate"), eq(seriesParameterAudit.kind, "caller")));
+      .where(
+        and(eq(seriesParameterAudit.category, "rate"), eq(seriesParameterAudit.kind, "caller")),
+      );
     expect(audits).toHaveLength(1);
     expect(audits[0]?.amountCents).toBe(15000);
     expect(audits[0]?.actor).toBeTruthy();
