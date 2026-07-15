@@ -39,10 +39,11 @@ far cheaper up front than retrofitted.
 - **After P3-2, packages P3-3 and P3-4 are largely independent** and could proceed in parallel; **P3-5
   is best last** (B30's online/PayPal path is the most novel and touches external reconciliation).
 
-**Still-open model question that gates P3-2:** **row 17 scope** — does the VP / Mailing List Manager own
-the _whole_ contacts directory + dedup, or only the mailing-side (emails, consent, exports)? Resolve
-before finalizing the contacts capabilities in the permission layer. _(The per-event-group scope question
-was resolved 2026-07-14 — see `use-cases.md` §1/§4.)_
+**Resolved 2026-07-15 — row 17 no longer gates P3-2.** Contacts ownership is the **mailing side only**:
+the VP / Mailing List Manager own **emails, consent topics, exports, and dedup/merge**; contact **records**
+stay writable by the **Door Attendant** (creates them at check-in — already shipped) and the **FS /
+Treasurer** (membership side). See `use-cases.md` rows 17/17a and §6. _(The per-event-group scope question
+was resolved 2026-07-14 — see `use-cases.md` §1/§4.)_ **No model questions gate P3-2 now.**
 
 **Decided 2026-07-14 — the Organizer base stays UNSCOPED.** `is_volunteer` is cleared only when a
 volunteer _leaves_, so a short-term volunteer's ⬢ grants go inert once the group's events pass while their
@@ -117,40 +118,53 @@ This is **not a backlog line item** — it is the core of "flesh out user roles,
 
 1. Model roles as **base (Organizer) + additive grants**, with **scope that can vary per capability**
    (the Mailing List Manager is per-series but exports across all series — see `use-cases.md` §4).
-   ⚠️ **Scope is not a tree.** Four granularities — ⬡ club-wide, ⬤ per-series, ⬢ **per-event-group**,
-   ◍ per-event — and **⬢ is orthogonal to ⬤**: event groups deliberately span series ("Thanksgiving 2026"
+   ⚠️ **Scope is not a tree.** **Three** granularities — ⬡ club-wide, ⬤ per-series, ⬢ **per-event-group**
+   — and **⬢ is orthogonal to ⬤**: event groups deliberately span series ("Thanksgiving 2026"
    = tnc + ecd; a double dance = community_dance + tnc). `event_groups` has no `series_id` and
    `events.group_id` is independent of `events.series_id`, so a group-scoped grant legitimately reaches
    events in a series the holder has no series authority over. Evaluate scope as a **set of filters
-   (series OR group OR event)**, never a single tree walk. **Short-term volunteers are ⬢ group-scoped**
-   (decided 2026-07-14) — per-event grants cannot express it.
-2. Implement the **officer → delegate** assignment paths (President→Booker, Treasurer→FS,
-   VP→{Webmaster, Mailing List Manager}) and the **Super-user** global-write role (rename the DB enum
-   `administrator` → super-user semantics).
+   (series OR group)**, never a single tree walk. **Short-term volunteers are ⬢ group-scoped**
+   (decided 2026-07-14). _(**Per-event ◍ dropped 2026-07-15** — the Door Attendant is club-wide, leaving ◍
+   with no users; see `use-cases.md` §1.)_
+2. Implement the **assignment authority**: rows 20/21 are **President + VP** (**VP ⊇ President**, decided
+   2026-07-15) — the Treasurer does **not** assign the FS; the officer→delegate chains describe
+   _nomination_, not authority. Plus the **Super-user** global-write role (rename the DB enum
+   `administrator` → super-user semantics), and the **annual Presidential approval of the volunteer list**
+   (row 22 — advisory: recorded and surfaced when overdue, never lapsing access).
 3. Enforce the matrix: per-route **and** per-field rules (e.g. an event's public price/description
-   = Webmaster/Booker while its date/venue/cancel = Booker), plus the **Door Attendant ✗ `/gate`** deny.
+   = Webmaster/Booker while its date/venue/cancel = Booker), plus the **Door Attendant ✗ _write_ `/gate`**
+   deny. **Read is one rule** (decided 2026-07-15): every volunteer reads everything **except contact PII**
+   (emails/phones) — **all money is open, incl. individual performer pay**, because the club holds that pay
+   secrecy enables performer exploitation. PII is gated against **bulk enumeration**, not lookup: matching
+   a dancer at the door shows their PII; the roster shows names only. **Field-level _read_ filtering is
+   therefore in scope**, not just field-level write.
 4. **Give the dormant volunteer substrate real writers.** `contacts.is_volunteer` and
    `contacts.volunteer_roles` exist since feature 001 but **no UI sets them** (0 of 1334 contacts are
    volunteers today); the only write path is `PATCH /api/contacts/[id]`. P3-1 bootstraps just the first
    officer via an operator seed/CLI — **P3-2 owns designating volunteers and assigning their roles in the
-   UI** (the President's job, matrix row 20). Same dormant-field pattern as B21.
+   UI** (the President's or VP's job, matrix row 20). Same dormant-field pattern as B21.
 
 ### Expected outcomes (testable)
 
 - A per-series grant (e.g. Booker-of-ecd) can act on its series and is denied on another series.
-- A Door Attendant is denied `/gate`; the FS is allowed.
+- A Door Attendant is denied **writes** to `/gate` but may **read** it; the FS may write it in scope.
 - The Mailing List Manager can export all series' lists but only manages its own series' mailing list.
+- A volunteer holding only the Organizer base reads the treasurer report and individual performer pay, and
+  is refused contact emails/phone numbers.
+- A group-scoped grant reaches events across **both** series in its group, and no event outside it.
+- The President (or VP) can take a person from non-volunteer to holding a working scoped role entirely in
+  the UI.
 
 ### Dependencies / notes
 
-- Requires P3-1. Consumes the whole `use-cases.md` matrix. **Resolve row 17** first (see §0).
+- Requires P3-1. Consumes the whole `use-cases.md` matrix. **Row 17 is resolved** (see §0).
 - Retire the provisional `/dev/routes` index convention here (Phase 3 introduces real role-aware nav).
 
 ### Open questions for `/speckit-clarify`
 
 - **Grant storage.** Extend the `volunteer_roles` array, or a new `role_grants` table (role, scope,
   contact) — the per-series/per-capability scope strongly favors a table.
-- **Row 17** — contacts directory ownership (see §0).
+- _(**Row 17** — resolved 2026-07-15, see §0.)_
 
 ---
 
