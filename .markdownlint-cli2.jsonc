@@ -1,0 +1,47 @@
+// markdownlint configuration.
+//
+// Read by BOTH the VS Code markdownlint extension and `pnpm run lint:md`, so the editor and CI
+// agree — that is what keeps it fixed rather than drifting back.
+//
+// Rules are tuned to conventions this repo already follows. Anything switched off below is off
+// because the repo has a deliberate, consistent style that differs from the default — not to
+// silence real problems.
+{
+  // Without this, a bare `markdownlint-cli2` lints ZERO files and cheerfully reports success.
+  "globs": ["**/*.md"],
+
+  "config": {
+    "default": true,
+
+    // OFF, deliberately. Prose in this repo is already wrapped at 100 by hand, everywhere — the rule
+    // finds no real violations of that. What it does find is content that is long *by format* and must
+    // not wrap: SpecKit checklist lines (`- [ ] T001 [P] [US1] … file path`, one task per line, up to
+    // ~600 chars), glossary file-index entries, and wide tables. Enabled at any limit it produced ~1,200
+    // findings, essentially all false. Line length here is a prose convention, not a lint rule.
+    "MD013": false,
+
+    // The SpecKit templates repeat section headings by design ("### Context / why",
+    // "### Expected outcomes") across sibling sections. Only flag duplicates within one section.
+    "MD024": { "siblings_only": true },
+
+    // Inline HTML is used deliberately: the constitution's Sync Impact Report comment, and
+    // <br>/<details> in a few tables.
+    "MD033": false,
+
+    // Several files legitimately open with YAML front matter (tasks.md) or an HTML comment
+    // (constitution.md) rather than a top-level heading.
+    "MD041": false,
+
+    // Table pipe padding. This repo writes compact tables (|---|---|); enforcing padded columns
+    // would rewrite ~740 rows for zero readability gain.
+    "MD060": false,
+  },
+
+  // Vendored/tool-managed and generated content.
+  "ignores": [
+    "node_modules/**",
+    // SpecKit owns these; they are overwritten on upgrade, so our style must not fight theirs.
+    ".specify/**",
+    ".claude/**",
+  ],
+}

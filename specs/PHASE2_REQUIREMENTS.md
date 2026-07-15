@@ -25,7 +25,7 @@ items yet.
   (`double_dance` / `weekend` / `jane_austen_ball` / `other`), only `jane_austen_ball` ever drives
   behavior — solely to label the JAB mailing list with the most-recent-ball year, which goes away with
   this change. The values are otherwise just loose descriptive categories. The club wants to categorize
-  groups **freely**, where the group's *name* is the specific instance and *kind* is a free-form
+  groups **freely**, where the group's _name_ is the specific instance and _kind_ is a free-form
   category — e.g. name "Pride Dance 2026", kind "double dance"; name "Jane Austen Ball 2027", kind
   "weekend". Grouping itself (for planning and results review) is delivered by the `event_group_id`
   association and is unaffected.
@@ -72,8 +72,8 @@ items yet.
 - Feature 006's spec/artifacts drop from 7 lists to 6 and lose FR-005 (JAB-year scoping). Feature
   002's event-group model changes `kind` from enum to free text. `specs/DATA_MODEL.md` and the
   auto-memory should be re-synced when this is implemented.
-- Removing an enum *value* (`janeaustenball`) requires recreating the `mailing_list_id` type; dropping
-  an enum *type* (`event_group_kind`) is a clean `ALTER TABLE … ALTER COLUMN … TYPE text` +
+- Removing an enum _value_ (`janeaustenball`) requires recreating the `mailing_list_id` type; dropping
+  an enum _type_ (`event_group_kind`) is a clean `ALTER TABLE … ALTER COLUMN … TYPE text` +
   `DROP TYPE`.
 
 ### Open questions for `/speckit-clarify`
@@ -100,8 +100,8 @@ actually consumed, there are three distinct behaviors, and `kind`/`label` were s
   type; instance = a booking, which already carries `pay_cents` + `is_overridden`). **Rent is the same
   shape**: a venue is booked to an event the way a performer is booked to an event (today that booking
   is just `events.venue_id` — the degenerate single-venue case), the standard rent varies by venue, and
-  it should be overridable per *event* exactly as pay is overridable per booking. The one difference is
-  *grain*: performer pay is keyed by performer **type** — a grouping one level above the booked
+  it should be overridable per _event_ exactly as pay is overridable per booking. The one difference is
+  _grain_: performer pay is keyed by performer **type** — a grouping one level above the booked
   individual (all callers share a rate; the specific caller is interchangeable for pay) — whereas rent
   is keyed by the **venue itself**, the leaf. There is no "venue type" because venues are few and each
   is genuinely distinct, so the standard already lives at the individual grain. Same pattern, two grains.
@@ -116,7 +116,7 @@ Two consequences: **(1) rent is in the wrong bucket** — it belongs with perfor
 ongoing. Rent was series-scoped only as a stand-in before venues existed (005 research: "rent is a
 venue stand-in until the deferred venue model, B12"); feature 007 has since built `venues` +
 `events.venue_id`, so the stand-in has outlived its reason. **(2) `kind` is overloaded** — it's a
-controlled *resolution key* only where something resolves by it (performer type → rate kind; venue →
+controlled _resolution key_ only where something resolves by it (performer type → rate kind; venue →
 rent), while `label` is a pure human display name. To the organizer these all read as "just
 parameters," which is why the current split feels artificial.
 
@@ -139,8 +139,8 @@ parameters," which is why the current split feels artificial.
 3. **Misc → unchanged** (per-event ad-hoc labeled amount).
 
 4. **Performer pay → unchanged.** Standard rate per performer type, per series, effective-dated,
-   resolved at booking, overridable on the booking. Per-*individual* standard pay is **YAGNI** — and note
-   it is simply "drop the performer dimension from *type* down to the *leaf*," i.e. make performers work
+   resolved at booking, overridable on the booking. Per-_individual_ standard pay is **YAGNI** — and note
+   it is simply "drop the performer dimension from _type_ down to the _leaf_," i.e. make performers work
    the way venue rent already does. The "standard keyed by a dimension + per-instance override" family
    absorbs it later with no new mechanism if ever proven out.
 
@@ -278,7 +278,7 @@ short label and no start time.
 - Only **start** time is requested; end time is YAGNI (add later if a duration is ever needed).
 - **No time-zone handling** — the club treats start time as venue-local wall-clock; there is no
   cross-zone conversion and venues need no time-zone field.
-- Complements P2-1: `label` distinguishes *instances within* a group, while the (now free-text) group
+- Complements P2-1: `label` distinguishes _instances within_ a group, while the (now free-text) group
   `kind` categorizes the group — different, complementary fields.
 
 ### Open questions for `/speckit-clarify`

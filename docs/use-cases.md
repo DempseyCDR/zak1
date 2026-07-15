@@ -24,7 +24,7 @@ Two structural findings shape everything below:
    authority and hand operational grants down to delegates. A delegate is essentially an officer's grant
    assigned to another contact.
 
-```
+```text
 Public (unauthenticated)  ── reads public site only
 │
 ├─ Super-user  ⬡  — may write ANYTHING (global; formerly "Administrator", app role, not a bylaws officer)
@@ -251,6 +251,7 @@ authenticated roles inherit the Organizer base (read oversight). ⚠️ = inferr
 ### 5.9 Membership acquisition (cross-role)
 
 A contact becomes a member by paying dues via one of:
+
 - **(a) Online** — PayPal buy button on the website; required info captured on the site; payment
   confirmed by the existing PayPal→QBO feed (B30).
 - **(b) Door, cash** — paid to the Door Attendant; the **FS** enters the contact's name on `/gate` (B31).

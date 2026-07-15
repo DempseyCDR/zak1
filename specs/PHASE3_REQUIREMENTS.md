@@ -17,13 +17,13 @@ Phase 3 features number **015+**.
 
 The sixteen items fall into five work packages. **Order is driven by dependencies, not by backlog
 number** (B-numbers are creation order). The one hard rule: **authentication and authorization come
-first** — nothing in the role model can be *enforced* without them, and building scope-aware behavior is
+first** — nothing in the role model can be _enforced_ without them, and building scope-aware behavior is
 far cheaper up front than retrofitted.
 
 | Pkg | Theme | Backlog items | Depends on |
 |---|---|---|---|
 | **P3-1** | Authentication & session foundation ✅ **SHIPPED** (feature 015) | **B32** | — |
-| **P3-2** | Authorization — role × capability × scope enforcement | *(derived from `use-cases.md`, not a B-item)* | P3-1 |
+| **P3-2** | Authorization — role × capability × scope enforcement | _(derived from `use-cases.md`, not a B-item)_ | P3-1 |
 | **P3-3** | Check-in overhaul (Door Attendant + community dance) | **B34, B33, B35, B36, B29** | P3-1/P3-2 |
 | **P3-4** | Booking & event management (Booker) | **B23, B24, B25, B26, B22, B27** | P3-1/P3-2 |
 | **P3-5** | Performer payments & membership acquisition | **B28, B31, B30** | P3-1/P3-2; B30 also relates to 007 US2 / B1 |
@@ -40,15 +40,15 @@ far cheaper up front than retrofitted.
   is best last** (B30's online/PayPal path is the most novel and touches external reconciliation).
 
 **Still-open model question that gates P3-2:** **row 17 scope** — does the VP / Mailing List Manager own
-the *whole* contacts directory + dedup, or only the mailing-side (emails, consent, exports)? Resolve
-before finalizing the contacts capabilities in the permission layer. *(The per-event-group scope question
-was resolved 2026-07-14 — see `use-cases.md` §1/§4.)*
+the _whole_ contacts directory + dedup, or only the mailing-side (emails, consent, exports)? Resolve
+before finalizing the contacts capabilities in the permission layer. _(The per-event-group scope question
+was resolved 2026-07-14 — see `use-cases.md` §1/§4.)_
 
 **Decided 2026-07-14 — the Organizer base stays UNSCOPED.** `is_volunteer` is cleared only when a
-volunteer *leaves*, so a short-term volunteer's ⬢ grants go inert once the group's events pass while their
+volunteer _leaves_, so a short-term volunteer's ⬢ grants go inert once the group's events pass while their
 authentication and Organizer-base read persist indefinitely. **The club accepts this**: a volunteer may
 retain read access to club data indefinitely. P3-2 therefore does **not** need to scope oversight reads —
-scope filtering applies to *grants and writes*, not to the authenticated baseline. "Short-term" bounds
+scope filtering applies to _grants and writes_, not to the authenticated baseline. "Short-term" bounds
 authority, not access.
 
 ---
@@ -72,7 +72,7 @@ is nothing to attach to. This is the foundation the rest of Phase 3 stands on.
    staff). No passwords are stored; Google verifies identity and owns recovery. A staff identity links to a
    **volunteer** contact by matching Google's verified email to the contact's `is_login` email — activating
    the dormant feature-001 substrate (`is_volunteer` / `volunteer_roles` / `is_login`) rather than building
-   a parallel one. Distinct from B2 (deferred *non-volunteer* contact login).
+   a parallel one. Distinct from B2 (deferred _non-volunteer_ contact login).
 2. Login / logout, session management, and the accessor the authorization layer reads (server-side
    session → current user + their grants).
 3. A route/middleware seam so pages and API handlers can require an authenticated user.
@@ -91,15 +91,15 @@ is nothing to attach to. This is the foundation the rest of Phase 3 stands on.
 
 ### Open questions for `/speckit-clarify`
 
-*Resolved during `/speckit-specify` + `/speckit-clarify` (see `specs/015-staff-auth/spec.md`):* auth method
+_Resolved during `/speckit-specify` + `/speckit-clarify` (see `specs/015-staff-auth/spec.md`):_ auth method
 = **Google sign-in**; identity ↔ contact = **Google verified email → contact's `is_login` email**, gated on
 `is_volunteer`; **no passwords**, so no reset/issuance question; **officer approval dropped** as redundant.
 
-*Remaining, for `/speckit-plan`:*
+_Remaining, for `/speckit-plan`:_
 
 - Session inactivity timeout value; whether to additionally restrict sign-in to the club's Workspace domain.
 
-*Settled by constitution v1.2.0 (2026-07-14):* the Google round-trip test strategy — automated tests must
+_Settled by constitution v1.2.0 (2026-07-14):_ the Google round-trip test strategy — automated tests must
 not call Google's production endpoints; exercise the provider at its boundary (local conforming
 implementation or signed-OIDC-token fixture) while integration-testing everything behind the seam against
 real Postgres.
@@ -156,7 +156,7 @@ This is **not a backlog line item** — it is the core of "flesh out user roles,
 
 ## P3-3 — Check-in overhaul (Door Attendant + community dance)
 
-### Included: B34, B33, B35, B36, B29 · Internal order: B34 → B33; B29 before B36.
+### Included: B34, B33, B35, B36, B29 · Internal order: B34 → B33; B29 before B36
 
 > **B37 retired 2026-07-14**: a community dance is its own **series** (already seeded), not an event
 > type — so no `events.type` is needed. B35 (children count) applies to **all series**; B36 is the
@@ -210,7 +210,7 @@ comp capture to check-in, revising feature 014 and resolving B21.
 
 ## P3-4 — Booking & event management (Booker)
 
-### Included: B23, B24, B25, B26, B22, B27 · Internal order: B23 → B24; others independent.
+### Included: B23, B24, B25, B26, B22, B27 · Internal order: B23 → B24; others independent
 
 ### Context / why
 
@@ -224,7 +224,7 @@ is no DELETE or `cancelled` state).
 1. **B23** — per-booking status **proposed → requested → confirmed / declined**; threads through
    `bookingService` + `bookBand`.
 2. **B24** — **cross-event bookings report** (date · caller · band · musicians · sound tech), filterable
-   by caller / band / musician / series / date-range. *(Needs B23 to show status.)*
+   by caller / band / musician / series / date-range. _(Needs B23 to show status.)_
 3. **B25** — event **cancel** (retained + shown on the public site), **delete** (hard), and **reschedule**
    (add `eventDate` to the event PATCH; add a DELETE path; add a `cancelled` state).
 4. **B26** — **recurring event generation** (first · increment · last) → many independent event rows.
@@ -256,19 +256,19 @@ is no DELETE or `cancelled` state).
 
 ## P3-5 — Performer payments & membership acquisition
 
-### Included: B28, B31, B30 · Internal order: B28 and B31 independent; B30 last (external/PayPal).
+### Included: B28, B31, B30 · Internal order: B28 and B31 independent; B30 last (external/PayPal)
 
 ### Context / why
 
 Completes the FS/Treasurer finance surface and the three membership-acquisition paths. B28 separates
-*payment* from *booking* (today they are conflated on one row). B31/B30 make dues payment actually create
+_payment_ from _booking_ (today they are conflated on one row). B31/B30 make dues payment actually create
 membership records — at the door and (newly) online.
 
 ### What must change (by item — see `BACKLOG.md`)
 
 1. **B28** — **performer payment override**: payee may differ from the booked performer (substitution),
    and amounts may redistribute/aggregate (one check covering several bookings). Likely a new
-   `performer_payments` table; the booked rate becomes the *expected* pay, the payment records *actual*
+   `performer_payments` table; the booked rate becomes the _expected_ pay, the payment records _actual_
    disbursement.
 2. **B31** — **door membership enrollment**: the FS entering a named `membership` gate payment
    creates/renews the `memberships` record and recomputes status (today the gate `membership` line is

@@ -1,0 +1,17 @@
+# Markdown is owned by markdownlint (.markdownlint-cli2.jsonc), NOT prettier.
+#
+# Two formatters on one file type fight: prettier pads table columns and reflows content, which is
+# exactly the style this repo does not use (see MD060 in the markdownlint config) — and it would rewrite
+# specs/BACKLOG.md's 1600-char table rows. Keeping prettier off .md is what stops `pnpm run format` from
+# silently undoing `pnpm run lint:md:fix`.
+#
+# One owner per file type: prettier → code, markdownlint → markdown.
+*.md
+
+# Generated / vendored
+node_modules/
+.next/
+dist/
+build/
+coverage/
+pnpm-lock.yaml

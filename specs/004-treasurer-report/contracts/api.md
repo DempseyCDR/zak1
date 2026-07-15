@@ -6,7 +6,9 @@ Internal HTTP API (Next.js route handlers). JSON; Zod-validated; uniform error s
 ## Treasurer report
 
 ### GET /api/events/:id/treasurer-report
+
 Assembles and returns the five-section report for the event; writes a report-generation audit entry.
+
 - 200 → `{
     event: { id, date, seriesKey },
     gateSalesSummary: { customer, posVerification: { gross, fee }, lines: { category, account, class, cash, card, total }[] },
@@ -23,29 +25,39 @@ Assembles and returns the five-section report for the event; writes a report-gen
 ## Account / class mapping (config)
 
 ### GET /api/qbo-mapping
+
 - 200 → `{ accounts: { lineKey, accountCode, accountName }[], series: { seriesKey, gateCustomer, qboClass }[] }`.
 
 ### PUT /api/qbo-mapping/accounts/:lineKey
+
 Body: `{ accountCode: string, accountName: string }`.
+
 - 200 → updated row; appends a mapping audit entry. 404 `MAPPING_KEY_NOT_FOUND` for unknown lineKey.
 
 ### PUT /api/qbo-mapping/series/:seriesId
+
 Body: `{ gateCustomer: string, qboClass: string }`.
+
 - 200 → updated row; appends a mapping audit entry. 404 `SERIES_NOT_FOUND`.
 
 ## Non-Dance Income (per-event entries)
 
 ### POST /api/events/:id/non-dance-income
+
 Body: `{ description: string, amount: number, entryDate: string (YYYY-MM-DD) }`.
+
 - 201 → `NonDanceIncome`. 404 `EVENT_NOT_FOUND`.
 
 ### GET /api/events/:id/non-dance-income
+
 - 200 → `{ items: NonDanceIncome[], total: number }`.
 
 ## Performer check numbers
 
 ### PATCH /api/bookings/:id/check
+
 Body: `{ checkNumber: string | null }`.
+
 - 200 → `Booking` with `checkNumber` set. 404 `BOOKING_NOT_FOUND`.
 
 ## Error codes

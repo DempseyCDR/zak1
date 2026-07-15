@@ -90,6 +90,7 @@ never contain `contact_tracing`). Unmatched attendance rows (`attendance.contact
 attendees with no email on file produce no row.
 
 **Event selectability and zero-attendee handling (Decision 9)**:
+
 - The event dropdown (`GET /api/events?from=<today − 90 days>`) excludes any event whose attendance
   would already be purged (feature 002, `RETENTION_DAYS = 90`) — such events are never offered.
 - For a selectable event, the export endpoint first checks the *raw* attendance count for that event

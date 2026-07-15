@@ -109,7 +109,7 @@ for the right reason** before implementing.
 
 ## 5. Repo layout (key paths)
 
-```
+```text
 src/
   app/
     (admin)/      events admin, etc.
@@ -144,6 +144,7 @@ or remove a route** (`page.tsx` under `src/app` or `route.ts` under `src/app/api
 ## 6. Domain model highlights (rules a new session will need)
 
 **Organizer report** (`src/server/domain/organizer/`), per event:
+
 - `payingDancers(attendance, performers, comps=0) = max(0, attendance − performers − 1 − comps)`
   — subtracts distinct performers, the single door attendant (−1), and comps (feature 014). Floored at 0.
 - `avgTicketCents(admission, dancers)` = admission ÷ dancers (0 when no dancers).
@@ -174,6 +175,7 @@ progressively extended (venueId → rentCents → label/startTime/description).
 ## 7. Implementation status — features 001–014 (ALL done & pushed)
 
 **Phase 1 (001–009):**
+
 - **001** contacts & membership · **002** door attendance & gate · **003** performers & bookings ·
   **004** treasurer report & QBO (manual copy/paste) · **005** organizer report.
 - **006** iContact export — 6 standing mailing-list CSVs + event-scoped contact-tracing export.
@@ -183,6 +185,7 @@ progressively extended (venueId → rentCents → label/startTime/description).
 - **009** series parameters — consolidated rate + expense params (implements old BACKLOG B16).
 
 **Phase 2 — COMPLETE (010–014 = P2-1…P2-5):**
+
 - **010** (P2-1) — retired the Jane Austen Ball standing mailing list from the enum (6 lists remain);
   `event_groups.kind` is now nullable free text. Migration 0015.
 - **011** (P2-2) — venue-scoped rent + multi-ongoing charges (see §6). Migration 0016.
@@ -200,6 +203,7 @@ progressively extended (venueId → rentCents → label/startTime/description).
 ## 8. Deferred work / backlog (`specs/BACKLOG.md`)
 
 **Genuinely open backlog items:**
+
 - **B1** group tickets (prereq for 007 online sales) · **B2** non-volunteer login · **B3** primary email ·
   **B4** cross-club directory · **B5** configurable fiscal quarters · **B6** separate Venmo fee ·
   **B7** iContact API · **B8** QBO API · **B9** native apps · **B10** automated email ·

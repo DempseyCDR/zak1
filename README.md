@@ -14,6 +14,7 @@ project [constitution](.specify/memory/constitution.md).
 - Node.js LTS (22+/24)
 - pnpm (`npm i -g pnpm`)
 - PostgreSQL 16 running locally. With Homebrew:
+
   ```sh
   brew install postgresql@16 && brew services start postgresql@16
   createdb zak1_dev && createdb zak1_test
@@ -74,7 +75,7 @@ node --env-file=.env --import tsx src/jobs/attendance-purge.ts
 
 ## Layout
 
-```
+```text
 src/
   app/            # Next.js routes: (admin) UI + /api route handlers
   server/

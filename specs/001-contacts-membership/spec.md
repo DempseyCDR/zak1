@@ -22,8 +22,8 @@ An administrator maintains the single source of truth for everyone the club comm
 
 1. **Given** a new person, **When** the admin creates a contact with one email, **Then** the contact is stored with a stable unique identifier and the email is marked active with the "personal" purpose presented by default.
 2. **Given** an existing contact, **When** the admin adds a second email tagged with the "booking" purpose, **Then** both emails are retained against the same contact.
-4. **Given** an email, **When** the admin tags it with more than one purpose (e.g., personal and booking), **Then** all selected purposes are retained for that address.
-3. **Given** an email already active on another contact, **When** the admin tries to add it, **Then** the system rejects it as a duplicate.
+3. **Given** an email, **When** the admin tags it with more than one purpose (e.g., personal and booking), **Then** all selected purposes are retained for that address.
+4. **Given** an email already active on another contact, **When** the admin tries to add it, **Then** the system rejects it as a duplicate.
 
 ---
 

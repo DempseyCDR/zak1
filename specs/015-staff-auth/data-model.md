@@ -41,8 +41,6 @@ A volunteer contact's ability to authenticate via Google. **Holds no password** 
 | `created_at` | timestamptz NOT NULL DEFAULT now() | Provisioned on first successful sign-in (FR-012). |
 | `last_sign_in_at` | timestamptz NULL | Updated each successful sign-in. |
 
-**Rules**
-
 - Created automatically on the first sign-in satisfying FR-009 — there is no registration form and no
   approval step.
 - `contact_id` UNIQUE prevents two Google accounts binding to one person; `google_sub` UNIQUE prevents one

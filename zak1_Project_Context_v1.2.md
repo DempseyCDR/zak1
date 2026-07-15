@@ -1,6 +1,7 @@
 # CDR Dance Club Management Platform — Project Context
 
 ## Document Status
+
 - Requirements document: v1.2 (Phase 1 complete)
 - Last updated: May 2026
 - All Phase 1 open questions resolved
@@ -10,6 +11,7 @@
 ## Project Overview
 
 Country Dancers of Rochester (CDR) has operated since 1976. The goal is to replace:
+
 - WordPress website (cdrochester.org)
 - Three Excel workbooks (Contra_Results_v3_0.xlsx, ECD_Results_v3.xlsx, CDR_Member_DB_v1.xlsx)
 - Paper cash form
@@ -39,11 +41,14 @@ With a purpose-built, open-source, multi-tenant dance club management platform t
 ## People Model
 
 ### Two-Tier Structure
+
 - **Contact**: Everyone CDR communicates with. UUID PK. ~1,300 records. Multiple emails via ContactEmail.
 - **Member**: A Contact who has paid dues. ~152 current/recent. Linked to a Payer.
 
 ### ContactEmail Entity
+
 Each Contact has one-to-many email addresses. Key fields:
+
 - `email` — unique across active + transition records globally
 - `type` — personal / booking / public-profile / other
 - `status` — active / transition / inactive
@@ -53,6 +58,7 @@ Each Contact has one-to-many email addresses. Key fields:
 - No primary email designation in Phase 1
 
 ### Membership Status (materialized on Contact)
+
 | Status | Definition | list_member |
 |---|---|---|
 | current | Most recent expiry ≥ today | true |
@@ -65,6 +71,7 @@ Each Contact has one-to-many email addresses. Key fields:
 - Included as column in member.csv iContact export for segmentation
 
 ### iContact List Flags (7 lists)
+
 | List ID | CSV Filename | Notes |
 |---|---|---|
 | contra | contra.csv | TNC announcements |
@@ -81,12 +88,14 @@ Each Contact has one-to-many email addresses. Key fields:
 - `memberthrough` (year) derived from Membership expiry at export time — not stored
 
 ### Door Attendance — Fuzzy Name Search
+
 - Volunteer types name → fuzzy search (trigram/Jaro-Winkler) → ranked pick list within 300ms
 - Email disambiguates multiple matches
 - No match: volunteer enters name + email → new Contact created; admin reviews
 - Dancer declines: Unmatched Attendance Contact
 
 ### Contact Deduplication
+
 - Fuzzy name matching surfaces suggestions in admin review queue
 - Admin confirms all merges; no automatic merges
 - Merge: canonical UUID chosen; all related records re-linked
@@ -132,7 +141,7 @@ Seven categories, each tracked separately by cash and card:
 
 ## Dance Net Formula
 
-```
+```text
 Dance Net = Gross Gate + Merchandise Sales − Rent − Performer Total − Ongoing Expense − Misc Expenses
 ```
 
@@ -165,6 +174,7 @@ Dance Net = Gross Gate + Merchandise Sales − Rent − Performer Total − Ongo
 **No CSV import** — QBO does not natively accept CSV imports; no plugin in Phase 1.
 
 **Treasurer Report** — formatted per-event report (screen-first, laptop dimensions; print-supported) for manual copy/paste into QBO. Five sections:
+
 1. **Gate Sales Summary** — for anonymous QBO sales receipt; includes PayPal POS verification line
 2. **Named-Customer Receipts** — memberships and advance tickets collected at door
 3. **Performer Payments** — check number, payee, amount, QBO account, QBO class
@@ -172,6 +182,7 @@ Dance Net = Gross Gate + Merchandise Sales − Rent − Performer Total − Ongo
 5. **Fees** (informational) — door POS fee calculation for reconciliation awareness
 
 **QBO Sales Receipt Structure:**
+
 - One sales receipt per event
 - Customer: "Contra Gate" (TNC, Community Dance, Double Dance) or "English Gate" (ECD)
 - Line items with QBO class per category
@@ -179,6 +190,7 @@ Dance Net = Gross Gate + Merchandise Sales − Rent − Performer Total − Ongo
 - Memberships and advance tickets: separate named-customer receipts (NOT on gate receipt)
 
 **QBO Classes** (already in use at CDR):
+
 - Applied per line item based on event type
 - Configurable mapping per club in admin settings
 
@@ -189,6 +201,7 @@ Dance Net = Gross Gate + Merchandise Sales − Rent − Performer Total − Ongo
 ## QBO Account Reference (App Scope)
 
 ### Revenue
+
 | QBO # | Account Name | App Category |
 |---|---|---|
 | 4100 | Voluntary Contributions | Donations |
@@ -200,6 +213,7 @@ Dance Net = Gross Gate + Merchandise Sales − Rent − Performer Total − Ongo
 | 4910 | Other Miscellaneous Revenue | Non-Dance Income (excluded from organizer report) |
 
 ### Expenditures
+
 | QBO # | Account Name | App Category |
 |---|---|---|
 | 5310 | Program Staff:Bands | Musician Pay |
@@ -210,6 +224,7 @@ Dance Net = Gross Gate + Merchandise Sales − Rent − Performer Total − Ongo
 | 5950 | Other Misc Expenditure | Ongoing Expense + Misc Expenses |
 
 ### Balance Sheet
+
 | QBO # | Account Name | App Action |
 |---|---|---|
 | 1021 | ESL Checking | Cash deposits from all dance events |
@@ -219,6 +234,7 @@ Dance Net = Gross Gate + Merchandise Sales − Rent − Performer Total − Ongo
 | 2201 | Prepaid Services:Pre-paid Gift Card | Gift card balance (deferred revenue) |
 
 ### Removed from Scope
+
 - 1012, 1014 (Contra/ECD Cash on hand) — deposits go to 1021
 - 2202, 2204 (Annual passes) — program ended
 - 5352, 5354 (Travel) — folded into performer pay
@@ -228,11 +244,13 @@ Dance Net = Gross Gate + Merchandise Sales − Rent − Performer Total − Ongo
 ## Organizer Report
 
 ### Structure
+
 - **TNC Report**: TNC per-dance rows + quarterly summary + 52-week charts → Community Dance per-dance rows + quarterly summary + 52-week charts
 - **ECD Report**: ECD per-dance rows + quarterly summary + 52-week charts
 - Separate reports for TNC and ECD
 
 ### Per-Dance Row Columns
+
 | Column | Dance Net? | Notes |
 |---|---|---|
 | Date | — | |
@@ -256,12 +274,14 @@ Dance Net = Gross Gate + Merchandise Sales − Rent − Performer Total − Ongo
 | Misc Sales | FYI | |
 
 ### Quarterly Summary
+
 - Q1 (Jan–Mar), Q2 (Apr–Jun), Q3 (Jul–Sep), Q4 (Oct–Dec) + YTD + Last Year
 - Replaces Last 4 Weeks / Last 12 Weeks from spreadsheets
 - Columns: Count, Avg Dancers, Avg Gross Gate, Avg Merchandise, Avg Rent, Avg Performer Total, Avg Ongoing Expense, Avg Misc Expenses, Avg Dance Net, Avg Ticket
 - FYI totals per quarter: Donations, Memberships, Future Event, Gift Cards, Misc Sales
 
 ### 52-Week Trend Charts
+
 - Rolling 52-week window
 - Two panels: Dance Net (top), Attendance (bottom)
 - Each panel: individual event data points + smoothed trend line (4-event rolling avg)
@@ -273,6 +293,7 @@ Dance Net = Gross Gate + Merchandise Sales − Rent − Performer Total − Ongo
 ## Door Record
 
 Key fields:
+
 - `pos_transaction_count` — read from PayPal/Venmo POS app by volunteer
 - `pos_gross_total` — door PayPal/Venmo gross
 - `pos_fee` = (pos_transaction_count × $0.09) + (pos_gross_total × 2.29%) — system-calculated
@@ -315,6 +336,7 @@ Key fields:
 ## Key Decisions Summary (all phases)
 
 ### Confirmed for Phase 1
+
 - People: Contact (UUID PK) + ContactEmail (one-to-many); no primary email label
 - Phase 1 login: volunteer/admin Contacts only
 - Membership status: materialized (current/lapsed/long_lapsed/never); long_lapse_cycles = 3
@@ -340,6 +362,7 @@ Key fields:
 - Venmo/PayPal fee shared in Phase 1; admin splits when rates diverge
 
 ### Deferred to Future Phase
+
 - Non-volunteer Contact login + self-service profiles
 - Primary email label
 - Cross-club shared performer directory

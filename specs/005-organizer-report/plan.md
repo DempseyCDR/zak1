@@ -93,8 +93,8 @@ src/
 **Structure Decision**: Continue the single Next.js project. Extract the admission/gate-breakdown
 computation currently inside feature 004's `reportService` into `domain/gate/eventMoney.ts` so both the
 treasurer report (004) and the organizer report (005) share one source of truth for admission and
-category totals. The organizer report itself is a pure assembler over events + door records + bookings
-+ the new expense parameters/misc expenses + the persisted attendance count.
+category totals. The organizer report itself is a pure assembler over events + door records + bookings −
+the new expense parameters/misc expenses + the persisted attendance count.
 
 ## Complexity Tracking
 

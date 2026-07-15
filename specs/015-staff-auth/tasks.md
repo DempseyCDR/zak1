@@ -226,8 +226,8 @@ Task: "Create /login page in src/app/login/page.tsx"
 ### MVP First (User Story 1 only)
 
 1. Phase 1 Setup → 2. Phase 2 Foundational (**critical — blocks everything**) → 3. Phase 3 US1
-4. **STOP and VALIDATE**: bootstrap an officer, sign in with Google, sign out
-5. At this point the app has its first authenticated identity — the thing all of Phase 3 depends on
+2. **STOP and VALIDATE**: bootstrap an officer, sign in with Google, sign out
+3. At this point the app has its first authenticated identity — the thing all of Phase 3 depends on
 
 > ⚠️ **MVP caveat**: US1 alone gives sign-in but **does not yet close the doors** — staff pages stay open
 > until US2. US1 is a valid demo checkpoint, not a deployable security posture. Ship US1+US2 together.
@@ -235,9 +235,9 @@ Task: "Create /login page in src/app/login/page.tsx"
 ### Incremental Delivery
 
 1. Setup + Foundational → foundation ready (officer designatable)
-2. + US1 → sign-in/out works → demo
-3. + US2 → non-public surface closed, revocation live → **first genuinely deployable state**
-4. + US3 → session ergonomics (rolling window, idle expiry)
+2. Add US1 → sign-in/out works → demo
+3. Add US2 → non-public surface closed, revocation live → **first genuinely deployable state**
+4. Add US3 → session ergonomics (rolling window, idle expiry)
 5. Polish → validation, docs, backlog/memory sync
 
 ### Notes

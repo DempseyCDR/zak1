@@ -50,6 +50,7 @@ column on the existing `bookings` table.
 ## Behavior: book-as-unit (bookBand)
 
 Given `(eventId, bandId, optional per-member pay)`:
+
 1. Load the band's current roster (`band_members` for `band_id`).
 2. Drop any member with an existing `bookings` row for `(eventId, performer_id)` — skip, no error
    (FR-003c).
@@ -57,12 +58,14 @@ Given `(eventId, bandId, optional per-member pay)`:
    (for the `is_lead` member) or musician (others), the confirmed per-member pay (or none → default),
    and `band_id = bandId`. All in one transaction (Decision 5).
 4. Return `{ createdCount, skippedCount }`.
+
 - Pay default per member follows feature 003/009's existing chain inside `createBooking`: explicit
   override → series `musician` rate (`resolveParameterCents`) → 0. No new rate logic (Decision 6).
 
 ## Computed view: PublicEventPerformers (not persisted; for feature 007)
 
 Given an event, `groupEventBookingsForDisplay(db, eventId)` returns:
+
 - **bandBlocks**: one per distinct non-null `bookings.band_id` on the event — the current band's
   `{ name, bio, photoUrl }` (live read, Decision 2). Does NOT list individual members (FR-007).
 - **adHoc**: bookings with `band_id = null`, displayed per feature 007's existing per-musician rules

@@ -6,8 +6,10 @@ Internal HTTP API (Next.js route handlers). JSON; Zod-validated; uniform error s
 ## Organizer report
 
 ### GET /api/organizer/:seriesKey/report?year=
+
 Assembles the per-series report (the `tnc` report also includes its same-evening Community Dance events;
 `ecd` separate). `year` optional (defaults to current calendar year for quarterly YTD/Last-Year).
+
 - 200 → `{
     series: { key, name },
     perDanceRows: {
@@ -38,20 +40,26 @@ Assembles the per-series report (the `tnc` report also includes its same-evening
 ## Expense parameters (rent + ongoing, effective-dated)
 
 ### POST /api/expense-parameters
+
 Body: `{ seriesKey: string, kind: "rent"|"ongoing", amount: number, label?: string, effectiveDate: string (YYYY-MM-DD) }`.
+
 - 201 → `SeriesExpenseParameter` (append-only); writes an audit entry. 404 `SERIES_NOT_FOUND`.
 
 ### GET /api/expense-parameters?seriesKey=&kind=&on=
+
 - 200 → `{ resolved: { seriesKey, kind, amount, label, effectiveDate } | null }` — the parameter in
   effect for (series, kind) on date `on`.
 
 ## Misc expenses (per event)
 
 ### POST /api/events/:id/misc-expenses
+
 Body: `{ description: string, amount: number }`.
+
 - 201 → `MiscExpense`. 404 `EVENT_NOT_FOUND`.
 
 ### GET /api/events/:id/misc-expenses
+
 - 200 → `{ items: MiscExpense[], total: number }` (total excludes the card fee; the report adds it).
 
 ## Enums

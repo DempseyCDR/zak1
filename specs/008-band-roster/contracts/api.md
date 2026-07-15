@@ -39,7 +39,7 @@ Body (all optional): `{ name?, bio?, photoUrl?, members?: { performerId, isLead 
 
 Soft-delete (sets `archived_at`). Does not delete/alter any performer or booking (FR-011).
 
-- 204. Writes a `band.deleted` audit event. Idempotent-ish: deleting an already-archived band → 204.
+- 1. Writes a `band.deleted` audit event. Idempotent-ish: deleting an already-archived band → 204.
 - 404 `BAND_NOT_FOUND`.
 
 ## Book a band onto an event

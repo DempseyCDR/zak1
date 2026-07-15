@@ -90,6 +90,7 @@ _(`club_settings`, `account_mapping`, and `mapping_audit` are standalone — no 
 ## 1. Contacts & Membership (feature 001)
 
 ### `contacts`
+
 The person directory — the hub most other data links to.
 
 | Column | Type | Notes |
@@ -112,6 +113,7 @@ The person directory — the hub most other data links to.
 - **Domain rules**: `membership_status`/`list_member` are **materialized** (recomputed by the membership service + nightly job), not derived on read. Dedup **merges are soft** — the merged row stays with `merged_into_id` set; active queries filter `merged_into_id IS NULL`.
 
 ### `contact_emails`
+
 Multiple emails per contact, each with its own purposes/consent.
 
 | Column | Type | Notes |
@@ -126,11 +128,12 @@ Multiple emails per contact, each with its own purposes/consent.
 | provider_set_date, provider_last_open, provider_last_click | timestamptz NULL | read-only provider telemetry (iContact) |
 | created_at, updated_at | timestamptz | |
 
-- **Unique**: partial unique on `lower(trim(email)) WHERE status IN ('active','transition')` — an email can't be active on two contacts at once. Feature 015 relies on this: it makes the sign-in email→contact match unambiguous *by construction*, so the "multiple matches" branch is unreachable in practice.
+- **Unique**: partial unique on `lower(trim(email)) WHERE status IN ('active','transition')` — an email can't be active on two contacts at once. Feature 015 relies on this: it makes the sign-in email→contact match unambiguous _by construction_, so the "multiple matches" branch is unreachable in practice.
 - **Unique**: `contact_emails_one_login_per_contact` — partial unique on `contact_id WHERE is_login` (feature 015). Before 015 nothing enforced single designation.
 - **Domain rules**: `contact_tracing` is the **default** consent topic on a new email. `do_not_contact` is exclusive — the service collapses `consent_topics` to exactly `{do_not_contact}` when set, so a DNC email can never match a content topic (this is what makes mailing-list exclusion "free").
 
 ### `payers`
+
 Who paid for a membership (may differ from the member; may be an unlinked ad-hoc name).
 
 | Column | Type | Notes |
@@ -141,6 +144,7 @@ Who paid for a membership (may differ from the member; may be an unlinked ad-hoc
 | created_at | timestamptz | |
 
 ### `memberships`
+
 One row per membership term; the contact's status is derived from the greatest expiry.
 
 | Column | Type | Notes |
@@ -155,6 +159,7 @@ One row per membership term; the contact's status is derived from the greatest e
 - **Domain rule**: membership status is classified from `max(expiry_date)` vs. `club_settings.long_lapse_cycles` × cycle → current / lapsed / long_lapsed / never.
 
 ### `club_settings`
+
 Singleton config row.
 
 | Column | Type | Notes |
@@ -165,6 +170,7 @@ Singleton config row.
 | created_at, updated_at | timestamptz | |
 
 ### `status_change_audit`
+
 Append-only log of membership-status transitions.
 
 | Column | Type | Notes |
@@ -178,6 +184,7 @@ Append-only log of membership-status transitions.
 | created_at | timestamptz | |
 
 ### `merge_audit`
+
 Append-only record of contact dedup merges.
 
 | Column | Type | Notes |
@@ -194,6 +201,7 @@ Append-only record of contact dedup merges.
 ## 2. Series, Event Groups, Venues & Events (features 002, 007)
 
 ### `series`
+
 A standing dance series (config; seeded).
 
 | Column | Type | Notes |
@@ -207,6 +215,7 @@ A standing dance series (config; seeded).
 - **Domain rule**: a `general` series exists for joint/cross-series events (added in feature 009); there is **no fallback** between series for rates/expenses.
 
 ### `event_groups`
+
 Bundles related events (Double Dance, weekend festival, Jane Austen Ball).
 
 | Column | Type | Notes |
@@ -217,6 +226,7 @@ Bundles related events (Double Dance, weekend festival, Jane Austen Ball).
 | created_at | timestamptz | |
 
 ### `venues` (feature 007)
+
 Structured location for the public site's map.
 
 | Column | Type | Notes |
@@ -228,6 +238,7 @@ Structured location for the public site's map.
 | created_at, updated_at | timestamptz | |
 
 ### `events`
+
 A single scheduled dance.
 
 | Column | Type | Notes |
@@ -249,6 +260,7 @@ A single scheduled dance.
 ## 3. Door, Gate & Attendance (feature 002)
 
 ### `door_records`
+
 One per event; the money-capture header. **Exactly one per event** (unique `event_id`).
 
 | Column | Type | Notes |
@@ -269,6 +281,7 @@ One per event; the money-capture header. **Exactly one per event** (unique `even
 - **Domain rules**: **admission is DERIVED, never stored** — `admissionCash = grossCash − seedFloat − Σ(non-admission cash)`, `admissionCard = cardGross − Σ(non-admission card)`. **Deposit = gross cash − seed float − cash paid out.** "Card" is the canonical term (not POS/PC).
 
 ### `gate_sales`
+
 Line items under a door record, per category × payment method.
 
 | Column | Type | Notes |
@@ -284,6 +297,7 @@ Line items under a door record, per category × payment method.
 - **Domain rule**: donation / future_event / membership are **named-customer receipts** (per-contact); other categories are anonymous.
 
 ### `door_record_audit`
+
 Append-only log of door-record edits.
 
 | Column | Type | Notes |
@@ -296,6 +310,7 @@ Append-only log of door-record edits.
 | created_at | timestamptz | |
 
 ### `attendance`
+
 Who was present (contact-tracing). **Purged after 90 days.**
 
 | Column | Type | Notes |
@@ -309,6 +324,7 @@ Who was present (contact-tracing). **Purged after 90 days.**
 - **Domain rule**: rows older than 90 days are **rolled up into `quarterly_attendance_counts` and deleted**; `events.attendance_count` persists so historical counts survive.
 
 ### `quarterly_attendance_counts`
+
 Permanent aggregate that outlives the attendance purge.
 
 | Column | Type | Notes |
@@ -326,6 +342,7 @@ Permanent aggregate that outlives the attendance purge.
 ## 4. Performers, Bookings & Bands (features 003, 008)
 
 ### `performers`
+
 A bookable performer; each has a backing contact (for door check-in).
 
 | Column | Type | Notes |
@@ -340,6 +357,7 @@ A bookable performer; each has a backing contact (for door check-in).
 - **Indexes**: `(contact_id)`.
 
 ### `bands` (feature 008)
+
 A reusable, named roster with its own identity.
 
 | Column | Type | Notes |
@@ -354,6 +372,7 @@ A reusable, named roster with its own identity.
 - **Domain rules**: band identity is **live** — display re-reads the current row; edits update all events (past and future). "Delete" sets `archived_at` (soft-delete) so already-booked events still resolve the band.
 
 ### `band_members` (feature 008)
+
 The roster (one Lead + members), all existing performers.
 
 | Column | Type | Notes |
@@ -368,6 +387,7 @@ The roster (one Lead + members), all existing performers.
 - **Domain rules**: the service enforces **exactly one `is_lead = true`** per band. A performer may belong to many bands. Lead Musician and Musician share identical pay/check/display treatment — "Lead" only marks the booking contact.
 
 ### `bookings`
+
 One performer booked onto one event.
 
 | Column | Type | Notes |
@@ -393,6 +413,7 @@ One performer booked onto one event.
 ## 5. Series-Scoped Rate & Expense Parameters (feature 009)
 
 ### `series_parameters`
+
 One effective-dated table for both standard performer rates and series expenses (consolidates the
 former `rate_parameters` + `series_expense_parameters`).
 
@@ -411,6 +432,7 @@ former `rate_parameters` + `series_expense_parameters`).
 - **Domain rules**: resolution = greatest `effective_date ≤ target date` for (series, category, kind); 0 if none. Append-only (superseding never edits history, so past bookings/reports are immutable). No fallback between series.
 
 ### `series_parameter_audit`
+
 Append-only history of parameter changes (both categories).
 
 | Column | Type | Notes |
@@ -430,6 +452,7 @@ Append-only history of parameter changes (both categories).
 ## 6. Treasurer, QBO & Per-Event Financials (features 004, 005)
 
 ### `account_mapping`
+
 Chart-of-accounts mapping for the QBO-ready treasurer report (config; standalone).
 
 | Column | Type | Notes |
@@ -440,6 +463,7 @@ Chart-of-accounts mapping for the QBO-ready treasurer report (config; standalone
 | updated_at | timestamptz | |
 
 ### `series_qbo_map`
+
 Per-series QBO customer/class (one row per series).
 
 | Column | Type | Notes |
@@ -450,6 +474,7 @@ Per-series QBO customer/class (one row per series).
 | updated_at | timestamptz | |
 
 ### `non_dance_income` (feature 004)
+
 Per-event non-dance income lines, included separately in the treasurer report.
 
 | Column | Type | Notes |
@@ -464,6 +489,7 @@ Per-event non-dance income lines, included separately in the treasurer report.
 - **Indexes**: `(event_id)`.
 
 ### `misc_expenses` (feature 005)
+
 Per-event ad-hoc expenses feeding Dance Net.
 
 | Column | Type | Notes |
@@ -478,6 +504,7 @@ Per-event ad-hoc expenses feeding Dance Net.
 - **Domain rule**: an event's Misc Expenses total = Σ these rows **+ the door record's card fee** (`pos_fee_cents`). Dance Net = admission + merchandise − rent − performer total − ongoing − misc.
 
 ### `mapping_audit`
+
 Append-only log of account/series-mapping edits (standalone).
 
 | Column | Type | Notes |
@@ -490,6 +517,7 @@ Append-only log of account/series-mapping edits (standalone).
 | created_at | timestamptz | |
 
 ### `treasurer_report_audit`
+
 Append-only log of treasurer-report generation.
 
 | Column | Type | Notes |
@@ -504,6 +532,7 @@ Append-only log of treasurer-report generation.
 ## 7. Mailing-List Exports (feature 006)
 
 ### `mailing_list_exports`
+
 Audit trail of on-demand CSV exports (the CSV rows themselves are never stored).
 
 | Column | Type | Notes |
@@ -526,9 +555,10 @@ Staff sign in with **Google**; the platform stores **no password**. A Google acc
 **volunteer** contact by matching Google's verified email to an active `contact_emails` row, which then
 becomes that contact's `is_login` email. This activates the dormant feature-001 substrate
 (`is_volunteer` / `volunteer_roles` / `is_login`) rather than introducing a parallel user model — there is
-deliberately **no `users` table**; the person *is* a `contact`.
+deliberately **no `users` table**; the person _is_ a `contact`.
 
 ### `staff_identities`
+
 A volunteer contact's ability to authenticate via Google. Holds no secret.
 
 | Column | Type | Notes |
@@ -543,12 +573,13 @@ A volunteer contact's ability to authenticate via Google. Holds no secret.
   approval step. `google_sub` wins once bound: if a known account presents a changed email, the binding is
   kept and the mismatch logged; it must never silently re-point to another contact.
 - `contact_id` UNIQUE is why a person may hold only **one** Google account. A long-term volunteer with both
-  a personal and a `cdrochester.org` account gets a clean `identity_exists` refusal (checked *before*
+  a personal and a `cdrochester.org` account gets a clean `identity_exists` refusal (checked _before_
   insert, so never a raw constraint violation). Backlog **B38** makes re-binding self-service.
 - **Eligibility is deliberately NOT copied here** — `contacts.is_volunteer` is read live, so it cannot go
   stale.
 
 ### `staff_sessions`
+
 A revocable authenticated period.
 
 | Column | Type | Notes |
@@ -574,8 +605,8 @@ A revocable authenticated period.
 These were specced but intentionally **not built** (no tables exist), per project decisions:
 
 - **Online sales / Online Order** (feature 007 US2 — PayPal advance tickets): deferred; the public site is
-  browse-only. The treasurer online-fee calculator stays dormant as a result. *Online **membership**
-  purchase is now scoped separately as backlog **B30** (a PayPal Hosted Button the club already uses).*
+  browse-only. The treasurer online-fee calculator stays dormant as a result. _Online **membership**
+  purchase is now scoped separately as backlog **B30** (a PayPal Hosted Button the club already uses)._
 - **Group tickets** (BACKLOG B1): one ticket redeemable across an `EventGroup`'s events — the
   `event_groups` scaffolding exists, but purchase/redemption/revenue-split do not.
 - **Primary-email designation** (B3), **effective-dated venue/other event attributes beyond venue**

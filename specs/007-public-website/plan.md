@@ -38,6 +38,7 @@ Next.js app alongside `(admin)` and `(door)`, plus a small admin venue-managemen
 **Performance Goals**: None specified; single-club scale — not a design constraint.
 
 **Constraints**:
+
 - **Public safety**: public endpoints/read model MUST expose only public-safe fields — event
   date/activity/venue and performer *public* display per `PERFORMER_RULES.publicDisplay` (Sound Tech
   hidden, "Open Band" for unpaid, full bio+photo for Caller/Lead Musician/Musician, name+note for

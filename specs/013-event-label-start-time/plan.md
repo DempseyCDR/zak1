@@ -39,6 +39,7 @@ for the viewer (FR-004/SC-002) — so it is stored zoneless and formatted withou
 fields optional; an event with none set is unchanged (FR-008/SC-004).
 
 **Scale/Scope**: Single tenant. 3 nullable columns + 1 migration; edits to event create/patch validation
+
 + service + route, the public read model + two public pages, the events admin page, and the door event
 picker; a small `formatWallClock` util + tests.
 
@@ -46,18 +47,18 @@ picker; a small `formatWallClock` util + tests.
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-- **I. Test-First (NON-NEGOTIABLE)**: PASS — integration tests (real Postgres) cover create/patch of the
++ **I. Test-First (NON-NEGOTIABLE)**: PASS — integration tests (real Postgres) cover create/patch of the
   three fields and the public read model exposing them; a unit test pins the wall-clock formatter as
   zone-independent (e.g., renders "7:30 PM" regardless of `TZ`). No existing behavior changes without a
   test.
-- **II. Simplicity / YAGNI**: PASS — three nullable columns, all optional and additive; no new tables,
++ **II. Simplicity / YAGNI**: PASS — three nullable columns, all optional and additive; no new tables,
   no backfill. Start time is a zoneless SQL `time` (no time-zone model, no venue zone field, no end
   time), which is the minimal representation for "local wall-clock." Formatting is one small pure
   function.
-- **III. Type Safety**: PASS — nullable columns typed accordingly; Zod validates the three inputs
++ **III. Type Safety**: PASS — nullable columns typed accordingly; Zod validates the three inputs
   (start time as an `HH:MM` string) at the API boundary; the formatter returns a typed display string;
   no undocumented `any`/`as`.
-- **IV. Observability**: PASS — no logging/audit change; event create/patch keep their existing paths.
++ **IV. Observability**: PASS — no logging/audit change; event create/patch keep their existing paths.
 
 **Initial gate: PASS. No violations — Complexity Tracking left empty.**
 

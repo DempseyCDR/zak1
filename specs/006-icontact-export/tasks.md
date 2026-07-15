@@ -39,7 +39,7 @@ real `zak1_test` database — no DB mocking.
   Decision 1)
 - [X] T006 Export-audit helpers in `src/server/domain/exports/exportAuditService.ts`:
   `recordExportRun(db, { listId, eventId?, rowCount, actor })` (inserts one `mailing_list_exports` row
-  + `writeAudit({ kind: "mailing_list.exported", ... })`) and `getLastExports(db)` (latest row per
+  - `writeAudit({ kind: "mailing_list.exported", ... })`) and `getLastExports(db)` (latest row per
   `list_id`, for the admin page)
 
 **Checkpoint**: migration/schema, CSV helpers, and audit plumbing ready — both user stories below
@@ -95,7 +95,7 @@ filename, correct columns, and correct qualifying rows, without needing to touch
   applicable) in `src/server/domain/exports/mailingLists.ts`
 - [X] T016 [US1] `buildListRows(db, listId)` in `src/server/domain/exports/exportService.ts` — topic-
   list query (active + matching consent topic) and derived-list queries (member: `list_member = true`
-  + explicit DNC exclusion + `membership_status`; performer: `EXISTS` join to `performers` + explicit
+  - explicit DNC exclusion + `membership_status`; performer: `EXISTS` join to `performers` + explicit
   DNC exclusion); every row includes `email, first_name, last_name` (FR-011)
 - [X] T017 [US1] Jane Austen Ball "most recent year" lookup (latest `events.event_date` whose
   `event_groups.kind = 'jane_austen_ball'`) in `src/server/domain/exports/exportService.ts`

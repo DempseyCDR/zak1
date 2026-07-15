@@ -17,7 +17,7 @@ to their new expectations *before* the code changes land, so the change is caugh
 
 ## Phase 1: Setup
 
-_No setup tasks — this is a subtractive change to an existing project. Work begins at Foundational._
+*No setup tasks — this is a subtractive change to an existing project. Work begins at Foundational.*
 
 ---
 

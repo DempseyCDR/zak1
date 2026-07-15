@@ -5,9 +5,11 @@ How to configure, bootstrap, run, and **prove** the feature works. Details live 
 is the run/verify guide.
 
 > **Shell prerequisite** (this repo): every `node`/`pnpm` command must first select Node 24 —
+>
 > ```bash
 > export NVM_DIR="$HOME/.nvm"; . "$NVM_DIR/nvm.sh"; nvm use 24 >/dev/null 2>&1
 > ```
+>
 > For direct `psql`, source the env instead: `set -a; . ./.env; set +a`
 
 ---
@@ -127,9 +129,9 @@ psql "$DATABASE_URL" -c "UPDATE staff_sessions SET expires_at = now() - interval
 
 1. While signed in with a live session, withdraw volunteer access:
 
-```bash
-psql "$DATABASE_URL" -c "UPDATE contacts SET is_volunteer = false WHERE id = '<contact-id>';"
-```
+   ```bash
+   psql "$DATABASE_URL" -c "UPDATE contacts SET is_volunteer = false WHERE id = '<contact-id>';"
+   ```
 
 2. Refresh any staff page. ✅ Immediately signed out / refused — **without** deleting the session row and
    without waiting for expiry (the live `is_volunteer` join does it).

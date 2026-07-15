@@ -43,6 +43,7 @@ actor, created_at`. Written on every `venue_rents` insert (audit parity, Constit
 ### Event rent — `resolveEventRentCents(event)`
 
 Most specific first (FR-005):
+
 1. `event.rent_cents` if non-null → use it.
 2. else if `event.venue_id`: latest `venue_rents(venue_id=V, series_id=event.series_id, effective_date ≤
    event_date)` → use it.

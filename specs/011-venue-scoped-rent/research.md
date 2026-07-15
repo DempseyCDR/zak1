@@ -39,6 +39,7 @@ against later venue-rent changes, the opposite of what unset events should do).
 ## Decision 3 — Rent resolution precedence
 
 **Decision**: `resolveEventRentCents(event)` returns, most specific first:
+
 1. `event.rent_cents` if non-null;
 2. else, if the event has a venue: the latest `venue_rents` row for `(venue_id, series_id = event.series)`
    with `effective_date ≤ event.date`;

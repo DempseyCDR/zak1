@@ -43,6 +43,7 @@ originate from `CDR_Project_Context_v1.2.md`, which was split into **7 SpecKit f
 **Active SpecKit feature pointer** (`.specify/feature.json`): `specs/005-organizer-report`.
 
 ### Next step
+
 Run the pipeline on **006** (recommended — smaller, self-contained CSV export on top of
 001 contacts/consent; no new external deps) or **007** (larger — public UI + PayPal + maps):
 `/speckit-plan` → `/speckit-tasks` → `/speckit-analyze` → `/speckit-implement`.
@@ -67,12 +68,14 @@ node_modules/.bin/vitest run                        # full suite (currently 105 
   page + API endpoint. **Convention (in CLAUDE.md): update it whenever a route is added/removed.**
 
 ## Migrations (`src/server/db/migrations/`)
+
 `0001_init` · `0002_memberships` · `0003_dedup` · `0004_door` · `0005_performers` ·
 `0006_treasurer` · `0007_gate_sales_redesign` · `0008_add_musician_type` · `0009_organizer`.
 
 ## Key domain concepts & decisions (hard-won; don't re-litigate)
 
 ### Money / gate (features 002/004/005)
+
 - **Admission is DERIVED, never entered.**
   `admissionCash = grossCash − seedFloat − Σ(non-admission cash)`;
   `admissionCard = cardGross − Σ(non-admission card)`; `admission = sum`.
@@ -87,10 +90,12 @@ node_modules/.bin/vitest run                        # full suite (currently 105 
   is reused by both the treasurer (004) and organizer (005) reports.
 
 ### Attendance
+
 - Attendance rows are **purged after 90 days**, but `events.attendance_count` is an
   incrementing counter that **persists** so historical dancer counts survive the purge (FR-014).
 
 ### Performers / bookings (feature 003)
+
 - `performer_type` enum: caller, lead_musician, **musician**, open_band_musician, sound_tech, instructor.
 - A `lead_musician` is a band's booking contact; a plain `musician` is a band member paid
   individually. Same person can be lead for one band, musician for another. Band = per-event
@@ -99,6 +104,7 @@ node_modules/.bin/vitest run                        # full suite (currently 105 
 - Bookings support **remove** (`DELETE /api/bookings/[id]`, writes `booking.deleted` audit).
 
 ### Organizer report (feature 005)
+
 - Report for a series; **the TNC report also includes same-evening Community Dance events** (FR-001).
 - **Dance Net = admission + merchandise − rent − performer total − ongoing − misc**
   (note: organizer Dance Net INCLUDES merchandise; treasurer "dance income" is admissions only).
