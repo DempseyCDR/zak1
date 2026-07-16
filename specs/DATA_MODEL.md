@@ -75,7 +75,7 @@ _(`club_settings`, `account_mapping`, and `mapping_audit` are standalone — no 
 | `email_purpose` | personal, booking, public_profile, other | `contact_emails.purposes[]` |
 | `email_status` | active, transition, inactive | `contact_emails.status` |
 | `membership_status` | current, lapsed, long_lapsed, never | `contacts.membership_status`, `status_change_audit` |
-| `volunteer_role` | door_attendant, administrator | `contacts.volunteer_roles[]` |
+| `role` | door_attendant, booker, financial_secretary, treasurer, vice_president, webmaster, mailing_list_manager, secretary, president, super_user | `role_grants.role` (feature 016; **`volunteer_role` was dropped in migration 0021**) |
 | `email_consent_topic` | contra, english, openband, special_events, jane_austen_ball, contact_tracing, do_not_contact | `contact_emails.consent_topics[]` |
 | `gate_category` | admission, merchandise, donation, future_event, membership, gift_card, misc_sales | `gate_sales.category` |
 | `payment_method` | cash, card | `gate_sales.payment_method` |
@@ -102,7 +102,9 @@ The person directory — the hub most other data links to.
 | list_member | boolean NOT NULL default false | `status != never` — drives the member mailing list |
 | status_recomputed_at | timestamptz NULL | |
 | is_volunteer | boolean NOT NULL default false | **the staff access gate** (feature 015): re-checked live on every session read, so withdrawing it ends an active session on the next request |
-| volunteer_roles | volunteer_role[] NOT NULL default `{}` | CHECK: roles allowed only if `is_volunteer` |
+| volunteer_approved_at | timestamptz NULL | feature 016: the President/VP's annual review. **Advisory** — nothing on the session path reads it; a lapsed approval never costs access |
+| volunteer_approved_by | uuid NULL → contacts(id) | who approved |
+| ~~volunteer_roles~~ | — | **DROPPED in migration 0021** — roles moved to `role_grants` (an array cannot carry scope) |
 | merged_into_id | uuid NULL → contacts(id) | self-FK; non-null means this row was merged away |
 | needs_review | boolean NOT NULL default false | door-created / no-contact-info contacts flagged for admin |
 | source | text NULL | e.g. `door`, `performer` |
@@ -597,6 +599,49 @@ A revocable authenticated period.
   access locks the person out on their **next request** — no revocation sweep, no stored copy to go stale.
 - **Domain rules**: rolling idle expiry; sign-out deletes the row; only the hash is stored, so a database
   leak yields no usable sessions.
+
+---
+
+## 9. Authorization — Role Grants & Audit (feature 016)
+
+### `role_grants`
+
+One role at one scope, held by one volunteer contact. The unit the President/VP issues and revokes; a
+contact may hold many. Replaces the retired `contacts.volunteer_roles` array (which could not carry scope).
+
+| Column | Type | Notes |
+|---|---|---|
+| id | uuid PK | |
+| contact_id | uuid NOT NULL → contacts(id) ON DELETE CASCADE | grants die with the person |
+| role | `role` NOT NULL | the ten grants; `organizer` is the implicit base, not a row |
+| series_id | uuid NULL → series(id) | set ⇒ per-series scope |
+| group_id | uuid NULL → event_groups(id) | set ⇒ per-event-group scope |
+| granted_by | uuid NULL → contacts(id) | NULL = operator CLI |
+| granted_at | timestamptz NOT NULL default now() | |
+
+- **Scope is the SHAPE of the row**: both NULL = club-wide, `series_id` set = per-series, `group_id` set =
+  per-event-group. Series and group are **orthogonal** (a group spans series), so they are two independent
+  nullable FKs, never a polymorphic `scope_id` (which `ON DELETE SET NULL` would silently promote to
+  club-wide). Real FKs default `NO ACTION` — a delete referencing a grant is refused.
+- **Constraints**: `grant_scope_exclusive CHECK (num_nonnulls(series_id, group_id) <= 1)`;
+  `role_grants_unique UNIQUE NULLS NOT DISTINCT (contact_id, role, series_id, group_id)` — `NULLS NOT
+  DISTINCT` is load-bearing, since every row has a NULL scope column and a plain UNIQUE would catch
+  nothing. **No uniqueness on role**: two people may hold President.
+- **Not in the table**: President/VP/Treasurer mutual exclusivity (a cross-row invariant, enforced in
+  `grantService`) and only-a-volunteer-may-hold-a-grant (enforced in the service + the live session join).
+
+### `audit_events`
+
+The general audit trail (feature 016). `writeAudit` logged only until now; `recordAudit(db, …)` writes a
+row **and** logs. Required by SC-014 (PII-disclosure queries) and the grant/revoke trail.
+
+| Column | Type | Notes |
+|---|---|---|
+| id | uuid PK | |
+| kind | text NOT NULL | `text`, not an enum — the union grows every feature; nothing joins on it |
+| actor_contact_id | uuid NULL → contacts(id) | NULL for system/CLI actors |
+| details | jsonb NOT NULL default `{}` | e.g. `pii.disclosed` → `{surface, count}` (per request, never per contact) |
+| occurred_at | timestamptz NOT NULL default now() | indexed with `(kind, occurred_at)` and `(actor_contact_id, occurred_at)` |
 
 ---
 

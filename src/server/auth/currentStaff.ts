@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { db } from "@/server/db/client";
 import { SESSION_COOKIE, readSession, type CurrentStaff } from "@/server/auth/session";
+import { loadActor, type Actor } from "@/server/auth/actor";
 
 /**
  * The authorization seam (feature 015, FR-005) — what P3-2 will build on.
@@ -34,4 +35,15 @@ export async function requireStaff(next?: string): Promise<CurrentStaff> {
     redirect(next ? `/login?next=${encodeURIComponent(next)}` : "/login");
   }
   return staff;
+}
+
+/**
+ * Require a signed-in staff member AND load their grants — the authorization view (feature 016).
+ *
+ * For server components (layouts, pages) that need capabilities, e.g. to derive nav. API handlers get
+ * the `Actor` injected by `withAuth` instead. Grants are loaded live per request (FR-014), no caching.
+ */
+export async function requireActor(next?: string): Promise<Actor> {
+  const staff = await requireStaff(next);
+  return loadActor(db, staff);
 }

@@ -9,10 +9,12 @@ what each role *does* (use cases first), then deriving the security model and UI
 [`../specs/016-role-authorization/spec.md`](../specs/016-role-authorization/spec.md) (the feature
 implementing this document).
 
-> **Big caveat:** the app does **not** enforce any of this yet. **Authentication** shipped as feature 015;
-> **authorization** is feature 016 (P3-2), in specification as of 2026-07-15. Today roles exist only as the
-> `volunteer_role` enum (`door_attendant`, `administrator`) with no route/field gating. This document is
-> the *target* model, not current behavior.
+> **Status:** **Authentication** shipped as feature 015; **authorization SHIPPED as feature 016** (P3-2,
+> 2026-07-15). This document is now *enforced behavior*, not a target: role grants carry scope
+> (`role_grants`), the capability catalog lives in `src/server/auth/capabilities.ts`, and routes + services
+> gate on it. The old `volunteer_role` enum was retired in migration 0021. A few rows describe capabilities
+> whose underlying features are not built yet (booking status, cancel/delete, membership enrollment) — those
+> arrive with P3-3/P3-4/P3-5 and plug into the same framework.
 
 ---
 

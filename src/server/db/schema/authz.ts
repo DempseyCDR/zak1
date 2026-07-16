@@ -56,7 +56,10 @@ export const roleGrants = pgTable(
     grantedAt: timestamp("granted_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => ({
-    scopeExclusive: check("grant_scope_exclusive", sql`num_nonnulls(${t.seriesId}, ${t.groupId}) <= 1`),
+    scopeExclusive: check(
+      "grant_scope_exclusive",
+      sql`num_nonnulls(${t.seriesId}, ${t.groupId}) <= 1`,
+    ),
     // NULLS NOT DISTINCT is load-bearing: a plain UNIQUE would catch NOTHING, because
     // grant_scope_exclusive guarantees at least one scope column is always NULL and Postgres treats
     // NULLs as distinct. Still permits the same role at two different series (FR-005).

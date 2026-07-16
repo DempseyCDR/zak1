@@ -19,9 +19,12 @@ export const PATCH = withAuth<{ id: string }>({ requires: "performer.write" }, a
   return NextResponse.json(band);
 });
 
-export const DELETE = withAuth<{ id: string }>({ requires: "performer.write" }, async (req, ctx) => {
-  const { id } = await ctx.params;
-  const actor = req.headers.get("x-actor") ?? "admin";
-  await archiveBand(db, id, actor);
-  return new NextResponse(null, { status: 204 });
-});
+export const DELETE = withAuth<{ id: string }>(
+  { requires: "performer.write" },
+  async (req, ctx) => {
+    const { id } = await ctx.params;
+    const actor = req.headers.get("x-actor") ?? "admin";
+    await archiveBand(db, id, actor);
+    return new NextResponse(null, { status: 204 });
+  },
+);

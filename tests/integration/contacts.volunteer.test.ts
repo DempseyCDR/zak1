@@ -48,7 +48,10 @@ describe("contact endpoint: designation yes, authority no (FR-023)", () => {
 
   it("does NOT confer any role — a designated volunteer holds zero grants", async () => {
     const id = await createContact();
-    await PATCH_CONTACT(jsonReq("PATCH", `/api/contacts/${id}`, { isVolunteer: true }), ctx({ id }));
+    await PATCH_CONTACT(
+      jsonReq("PATCH", `/api/contacts/${id}`, { isVolunteer: true }),
+      ctx({ id }),
+    );
 
     // Designation is eligibility, not authority. This contact can sign in and holds the Organizer
     // base — read everything but contact PII, write nothing — until someone grants them a role.

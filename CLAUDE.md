@@ -4,9 +4,10 @@ shell commands, and other important information, read the current plan
 at specs/016-role-authorization/plan.md
 <!-- SPECKIT END -->
 
-## Development conventions (temporary)
+## Development conventions
 
-- **Route index**: `src/app/dev/routes/page.tsx` is a temporary review page listing every UI page and
-  API endpoint. **Whenever you add or remove a route** (a `page.tsx` under `src/app` or a `route.ts`
-  under `src/app/api`), update that page's `uiRoutes` / `apiRoutes` lists in the same change.
-  This requirement is provisional and will be revised when the UI is formally designed.
+- **Route index**: `src/app/dev/routes/page.tsx` lists every UI page and API endpoint. As of feature
+  016 it is **generated from the source tree** (`src/server/lib/routeInventory.ts`, shared with
+  `auth.routeInventory.test.ts`) and shown only to a Super-user. There is **nothing to hand-maintain** —
+  a new route appears automatically. *(The previous convention to keep two arrays in sync was retired
+  here.)*

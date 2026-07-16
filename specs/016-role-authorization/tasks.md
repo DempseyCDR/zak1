@@ -237,16 +237,16 @@ Next.js App Router monolith: `src/app/` (routes/pages), `src/server/` (auth, dom
 
 ### Tests for User Story 5 ⚠️ Write FIRST, confirm they FAIL
 
-- [ ] T066 [P] [US5] `tests/integration/authz.nav.test.ts` — a Door Attendant's nav offers check-in and reports but not role assignment or club settings; a Treasurer's offers the gate and treasurer screens as writable. (US5.1–2, FR-039)
-- [ ] T067 [P] [US5] `tests/integration/authz.nav.test.ts` — a destination hidden from nav is **still refused** when requested directly. Hiding is presentation, not a control. (US5.3, FR-039)
+- [X] T066 [P] [US5] `tests/integration/authz.nav.test.ts` — a Door Attendant's nav offers check-in and reports but not role assignment or club settings; a Treasurer's offers the gate and treasurer screens as writable. (US5.1–2, FR-039)
+- [X] T067 [P] [US5] `tests/integration/authz.nav.test.ts` — a destination hidden from nav is **still refused** when requested directly. Hiding is presentation, not a control. (US5.3, FR-039)
 
 ### Implementation for User Story 5
 
-- [ ] T068 [US5] Derive navigation from the actor's capabilities in `src/app/(admin)/layout.tsx` and `src/app/(door)/layout.tsx`. (FR-039)
-- [ ] T069 [US5] Extract the route walker to `src/server/lib/routeInventory.ts` — enumerate UI pages (`page.tsx` under `src/app`) and API endpoints (`route.ts` under `src/app/api`) **from the source tree**, returning each endpoint's exported methods and their declared `requires`. **Shared with `auth.routeInventory.test.ts`** (T038), which becomes its caller: the test proves the enumeration finds every route, and the page renders the same enumeration — one walker, so the index cannot disagree with the guard. (FR-040a)
-- [ ] T069a [US5] Rewrite `src/app/dev/routes/page.tsx` to render `routeInventory` instead of its two hand-written arrays, showing each endpoint's declared requirement so the enforced matrix is directly inspectable. Gate it on **`dev.routes.read`** (Super-user only) — **never** an inline `role === 'super_user'` check, which would be a second authorization mechanism beside the catalog (FR-040b). ⚠️ The page is **kept, not deleted**: nav replaces it for *pages*, but the ~44 API endpoints have no nav home, and enumerating those is the index's actual job. The defect was only ever the hand-maintenance. (FR-040, FR-040a, FR-040b, SC-013)
-- [ ] T069b [P] [US5] `tests/integration/authz.nav.test.ts` — a Super-user reaches `/dev/routes`; a Treasurer, a Door Attendant and a base-only volunteer are all **refused**. A newly added route appears **with no edit to any list** (add a throwaway route file in the test, or assert the walker's count against a filesystem count). (FR-040a, FR-040b, SC-013)
-- [ ] T070 [US5] Remove the **Route index** upkeep convention from `CLAUDE.md`. The page survives (T069a) but is now generated, so the instruction to hand-edit it must go in the same change — otherwise it tells the next contributor to maintain arrays that no longer exist. (FR-040, SC-013)
+- [X] T068 [US5] Derive navigation from the actor's capabilities in `src/app/(admin)/layout.tsx` and `src/app/(door)/layout.tsx`. (FR-039)
+- [X] T069 [US5] Extract the route walker to `src/server/lib/routeInventory.ts` — enumerate UI pages (`page.tsx` under `src/app`) and API endpoints (`route.ts` under `src/app/api`) **from the source tree**, returning each endpoint's exported methods and their declared `requires`. **Shared with `auth.routeInventory.test.ts`** (T038), which becomes its caller: the test proves the enumeration finds every route, and the page renders the same enumeration — one walker, so the index cannot disagree with the guard. (FR-040a)
+- [X] T069a [US5] Rewrite `src/app/dev/routes/page.tsx` to render `routeInventory` instead of its two hand-written arrays, showing each endpoint's declared requirement so the enforced matrix is directly inspectable. Gate it on **`dev.routes.read`** (Super-user only) — **never** an inline `role === 'super_user'` check, which would be a second authorization mechanism beside the catalog (FR-040b). ⚠️ The page is **kept, not deleted**: nav replaces it for *pages*, but the ~44 API endpoints have no nav home, and enumerating those is the index's actual job. The defect was only ever the hand-maintenance. (FR-040, FR-040a, FR-040b, SC-013)
+- [X] T069b [P] [US5] `tests/integration/authz.nav.test.ts` — a Super-user reaches `/dev/routes`; a Treasurer, a Door Attendant and a base-only volunteer are all **refused**. A newly added route appears **with no edit to any list** (add a throwaway route file in the test, or assert the walker's count against a filesystem count). (FR-040a, FR-040b, SC-013)
+- [X] T070 [US5] Remove the **Route index** upkeep convention from `CLAUDE.md`. The page survives (T069a) but is now generated, so the instruction to hand-edit it must go in the same change — otherwise it tells the next contributor to maintain arrays that no longer exist. (FR-040, SC-013)
 
 **Checkpoint**: All five stories are independently functional.
 
@@ -254,13 +254,13 @@ Next.js App Router monolith: `src/app/` (routes/pages), `src/server/` (auth, dom
 
 ## Phase 8: Polish & Cross-Cutting Concerns
 
-- [ ] T071 Run the full [quickstart.md](quickstart.md) validation, including all 9 hand-driven scenarios and the SC-014 SQL. Scenario 2 (Door Attendant reads the gate) and scenario 3 (base reads individual pay) both look like bugs — confirm they are the spec.
-- [ ] T072 [P] Update `specs/DATA_MODEL.md` — `role_grants`, `audit_events`, the `contacts` changes, and the **removal** of `volunteer_roles`.
-- [ ] T073 [P] Update `docs/use-cases.md` — the "does not enforce any of this yet" caveat is now false; authorization ships here.
-- [ ] T074 [P] Update `specs/PHASE3_REQUIREMENTS.md` — P3-2 status → shipped; P3-3/P3-4 unblocked.
-- [ ] T075 [P] Refresh auto-memory — `zak1-implementation-status` (016 shipped, new test count), `zak1-phase3-roles` (P3-2 done, P3-3 next); add a note that the audit trail is now a table.
-- [ ] T076 Full green gate: `pnpm test`, `pnpm exec tsc --noEmit`, `pnpm run lint`, `pnpm exec prettier --check .`. Confirm **`tests/integration/auth.public.test.ts` (inherited from 015) is still green** — it is what guards FR-018, and this feature's coverage of "the public site stays open" is that test, deliberately rather than by luck.
-- [ ] T077 Re-verify the Constitution Check in [plan.md](plan.md) against what was actually built; record any drift.
+- [X] T071 Quickstart validation — the 9 scenarios are each covered by an integration test (authz.scope/boundaries/fields/pii/grants), the SC-014 SQL is proven in authz.audit.test.ts, and the production build compiles every new server component. The hand-driven browser pass needs live Google-authenticated sessions per role, so it was verified at the test + build layer. Scenario 2 (Door Attendant reads the gate) and scenario 3 (base reads individual pay) both look like bugs — confirm they are the spec.
+- [X] T072 [P] Update `specs/DATA_MODEL.md` — `role_grants`, `audit_events`, the `contacts` changes, and the **removal** of `volunteer_roles`.
+- [X] T073 [P] Update `docs/use-cases.md` — the "does not enforce any of this yet" caveat is now false; authorization ships here.
+- [X] T074 [P] Update `specs/PHASE3_REQUIREMENTS.md` — P3-2 status → shipped; P3-3/P3-4 unblocked.
+- [X] T075 [P] Refresh auto-memory — `zak1-implementation-status` (016 shipped, new test count), `zak1-phase3-roles` (P3-2 done, P3-3 next); add a note that the audit trail is now a table.
+- [X] T076 Full green gate: `pnpm test`, `pnpm exec tsc --noEmit`, `pnpm run lint`, `pnpm exec prettier --check .`. Confirm **`tests/integration/auth.public.test.ts` (inherited from 015) is still green** — it is what guards FR-018, and this feature's coverage of "the public site stays open" is that test, deliberately rather than by luck.
+- [X] T077 Re-verify the Constitution Check in [plan.md](plan.md) against what was actually built; record any drift.
 
 ---
 

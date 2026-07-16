@@ -184,3 +184,29 @@ requiring its upkeep must go in the same change, or it becomes an instruction th
 ## Complexity Tracking
 
 > No Constitution Check violations. Table intentionally empty.
+
+## Post-Implementation Constitution Re-check (2026-07-15)
+
+Re-verified against what was actually built. **Still PASS, no drift.**
+
+- **I. Test-First** — held throughout. Every enforcement mechanism was written test-first, and two real
+  bugs were caught *by* that discipline, not by review: the plain `UNIQUE` that caught nothing (T004), and
+  `can()` denying every scoped grant asked without a target. R5's layer-2 has no source-level guard, so the
+  per-capability tests are the guarantee — and they exist (authz.scope/boundaries/fields/pii/grants/nav).
+- **II. YAGNI** — the honest scope calls are the evidence, not a violation: per-event scope dropped
+  (no users), venues/performers left at layer 1 (no per-resource series), the door comp-split deferred to
+  B29, FR-017a documented as vacuous-today rather than built against a PII surface dedup doesn't have. 2
+  tables, 0 new dependencies, no policy engine.
+- **III. Type Safety** — `Role`/`Capability` string-literal unions make the catalog exhaustively checked;
+  a missing role is a compile error. `requires` is mandatory (omission = TS2554). Zod at every new
+  boundary (grants, access).
+- **IV. Observability** — the principle's deferred half finally landed: `audit_events` + `recordAudit`
+  replace the log-only sink, and grants/revokes/refusals/PII-disclosures are all audited.
+- **Testing (v1.2.0)** — real `zak1_test` throughout; this feature contacts nothing external, so the
+  third-party exception did not apply. A test-mode authz bypass was refused (R12) on the constitution's own
+  reasoning — the harness holds a real `super_user` grant instead.
+
+**One deviation from the plan's file list, recorded honestly**: `audit.ts` gained a second writer
+(`recordAudit`) rather than the plan's "signature unchanged" — a DB write is async and the 31 legacy
+`writeAudit` sites pass free-text actors an FK cannot accept. Documented in research R8's revision. Not a
+constitution issue; a corrected design assumption.

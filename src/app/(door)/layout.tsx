@@ -1,13 +1,19 @@
 import { requireStaff } from "@/server/auth/currentStaff";
+import Nav from "@/app/Nav";
 
 /**
- * Protects /checkin and /gate (feature 015, FR-004).
+ * Protects /checkin and /gate (feature 015, FR-004) and offers role-aware nav (016, FR-039).
  *
- * Note this only establishes that SOMEONE is signed in. The Door Attendant vs Financial Secretary
- * boundary — Door Attendant must NOT reach /gate (docs/use-cases.md) — is authorization, and lands
- * with P3-2.
+ * The layout establishes only that someone is signed in. The Door Attendant vs Financial Secretary
+ * boundary — Door Attendant must NOT write /gate — is enforced by the routes and the gate service
+ * (feature 016), not here; the nav merely declines to invite them where they would be refused.
  */
 export default async function DoorLayout({ children }: { children: React.ReactNode }) {
   await requireStaff();
-  return <>{children}</>;
+  return (
+    <>
+      <Nav />
+      {children}
+    </>
+  );
 }

@@ -7,8 +7,11 @@ is [`../docs/use-cases.md`](../docs/use-cases.md); per-item detail lives in [`BA
 Each package below is written to be handed to `/speckit-specify` as one (or a small number of) feature
 descriptions; run `/speckit-clarify` afterward to resolve the flagged open questions._
 
-Status: **in progress**. **P3-1 shipped as feature 015** (auth foundation, commit `6702db1`, 2026-07-14).
-P3-2 onward are still planning; nothing in the codebase has changed for B22–B31 or B33–B36.
+Status: **in progress**. **P3-1 shipped as feature 015** (auth foundation, 2026-07-14). **P3-2 shipped as
+feature 016** (authorization — role × capability × scope, 2026-07-15): grants with scope, the capability
+catalog, per-route + per-field enforcement, PII projection, the President/VP access screen, role-aware nav,
+and a generated route index. **P3-3, P3-4, and P3-5 are now unblocked** — each gates its UI by role and
+plugs into feature 016's framework. Nothing in the codebase has changed for B22–B31 or B33–B36 yet.
 Phase 3 features number **015+**.
 
 ---
@@ -23,7 +26,7 @@ far cheaper up front than retrofitted.
 | Pkg | Theme | Backlog items | Depends on |
 |---|---|---|---|
 | **P3-1** | Authentication & session foundation ✅ **SHIPPED** (feature 015) | **B32** | — |
-| **P3-2** | Authorization — role × capability × scope enforcement | _(derived from `use-cases.md`, not a B-item)_ | P3-1 |
+| **P3-2** | Authorization — role × capability × scope enforcement ✅ **SHIPPED** (feature 016) | _(derived from `use-cases.md`, not a B-item)_ | P3-1 |
 | **P3-3** | Check-in overhaul (Door Attendant + community dance) | **B34, B33, B35, B36, B29** | P3-1/P3-2 |
 | **P3-4** | Booking & event management (Booker) | **B23, B24, B25, B26, B22, B27** | P3-1/P3-2 |
 | **P3-5** | Performer payments & membership acquisition | **B28, B31, B30** | P3-1/P3-2; B30 also relates to 007 US2 / B1 |

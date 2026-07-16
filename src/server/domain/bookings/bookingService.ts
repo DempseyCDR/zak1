@@ -115,7 +115,11 @@ export async function deleteBooking(
 }
 
 /** Scope a write to an existing booking, via its event's series/group (FR-007). */
-async function assertBookingScope(db: Db, actor: Actor | undefined, bookingId: string): Promise<void> {
+async function assertBookingScope(
+  db: Db,
+  actor: Actor | undefined,
+  bookingId: string,
+): Promise<void> {
   if (!actor) return;
   const booking = await db.query.bookings.findFirst({ where: eq(bookings.id, bookingId) });
   if (!booking) throw errors.bookingNotFound();

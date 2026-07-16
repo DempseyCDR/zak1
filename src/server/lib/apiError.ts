@@ -115,7 +115,11 @@ export const errors = {
     ),
   /** FR-030a: Super-user is grantable from no screen, by nobody — only the operator CLI. */
   roleNotUiGrantable: (role: string) =>
-    new ApiError("ROLE_NOT_UI_GRANTABLE", 422, `${role} may only be granted from the operator CLI.`),
+    new ApiError(
+      "ROLE_NOT_UI_GRANTABLE",
+      422,
+      `${role} may only be granted from the operator CLI.`,
+    ),
   grantNotFound: () => new ApiError("GRANT_NOT_FOUND", 404, "Grant not found."),
   seriesNotFound: () => new ApiError("SERIES_NOT_FOUND", 404, "Series not found."),
   eventGroupNotFound: () => new ApiError("EVENT_GROUP_NOT_FOUND", 404, "Event group not found."),

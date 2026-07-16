@@ -1,7 +1,8 @@
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join, relative } from "node:path";
 import { describe, expect, it } from "vitest";
 import { CAPABILITIES } from "@/server/auth/capabilities";
+import { apiRouteFiles, exportedMethods } from "@/server/lib/routeInventory";
 
 /**
  * FR-004 / SC-002: `/api/*` is default-deny — and, since feature 016, every method DECLARES what it
@@ -23,39 +24,9 @@ const KNOWN_CAPABILITIES = new Set<string>(
 
 const API_ROOT = join(process.cwd(), "src/app/api");
 const AUTH_PREFIX = join(API_ROOT, "auth");
-const HTTP_METHODS = ["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"] as const;
-
-function findRouteFiles(dir: string): string[] {
-  const out: string[] = [];
-  for (const entry of readdirSync(dir)) {
-    const full = join(dir, entry);
-    if (statSync(full).isDirectory()) out.push(...findRouteFiles(full));
-    else if (entry === "route.ts") out.push(full);
-  }
-  return out;
-}
-
-/** Every exported HTTP method, the wrapper it is built from, and the requirement it declares. */
-function exportedMethods(source: string): {
-  method: string;
-  wrapper: string;
-  requires: string | null;
-}[] {
-  const re = new RegExp(
-    `export\\s+const\\s+(${HTTP_METHODS.join("|")})\\s*(?::[^=]+)?=\\s*([A-Za-z_$][\\w$]*)` +
-      // optional explicit type arg (`withAuth<{ id: string }>`), then an optional `{ requires: "x" }`
-      `(?:<[^>]*>)?\\(\\s*(?:\\{\\s*requires:\\s*"([^"]+)")?`,
-    "g",
-  );
-  const found: { method: string; wrapper: string; requires: string | null }[] = [];
-  for (const m of source.matchAll(re)) {
-    found.push({ method: m[1]!, wrapper: m[2]!, requires: m[3] ?? null });
-  }
-  return found;
-}
 
 describe("API route inventory: default-deny (FR-004, SC-002)", () => {
-  const all = findRouteFiles(API_ROOT);
+  const all = apiRouteFiles();
   const protectedRoutes = all.filter((f) => !f.startsWith(AUTH_PREFIX + "/"));
   const authRoutes = all.filter((f) => f.startsWith(AUTH_PREFIX + "/"));
 

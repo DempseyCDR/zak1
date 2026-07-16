@@ -91,7 +91,11 @@ export async function bootstrapOfficer(opts: BootstrapOptions): Promise<Bootstra
     //    but here we treat any successful call as "no error"; `changed` already reflects designation.
     if (opts.role) {
       const before = await tx.select().from(roleGrants).where(eq(roleGrants.contactId, contactId));
-      await grantRole(tx, { subjectContactId: contactId, role: opts.role, grantedBy: null }, { allowSuperUser: true });
+      await grantRole(
+        tx,
+        { subjectContactId: contactId, role: opts.role, grantedBy: null },
+        { allowSuperUser: true },
+      );
       const after = await tx.select().from(roleGrants).where(eq(roleGrants.contactId, contactId));
       if (after.length > before.length) changed = true;
     }

@@ -165,9 +165,9 @@ describe("can() — scope varies per CAPABILITY, not per role (FR-008)", () => {
 
 describe("can() — PII read rides on the roles that need it (FR-016a)", () => {
   it("is conferred by a Door Attendant grant (matching a dancer)", () => {
-    expect(can([{ role: "door_attendant", seriesId: null, groupId: null }], "contact.pii.read")).toBe(
-      true,
-    );
+    expect(
+      can([{ role: "door_attendant", seriesId: null, groupId: null }], "contact.pii.read"),
+    ).toBe(true);
   });
 
   it("is conferred by the Booker (performer contact details)", () => {
