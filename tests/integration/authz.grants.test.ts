@@ -4,7 +4,7 @@ import { ensureSchema, resetDb, closeDb } from "./helpers/db";
 import { db } from "@/server/db/client";
 import { auditEvents, contacts, roleGrants, series } from "@/server/db/schema";
 import { jsonReqAs, ctx } from "./helpers/http";
-import { makeActor, makeVolunteerContact } from "./helpers/factories";
+import { makeActor, makeContactWithEmail, makeVolunteerContact } from "./helpers/factories";
 import { bootstrapOfficer } from "@/server/db/bootstrapOfficer";
 import {
   approveVolunteer,
@@ -16,6 +16,7 @@ import {
   revokeRole,
 } from "@/server/domain/access/grantService";
 import { POST as GRANT } from "@/app/api/access/grants/route";
+import { POST as DESIGNATE } from "@/app/api/access/volunteers/route";
 
 /**
  * US2 — the President/VP assign volunteers and roles.
@@ -223,6 +224,45 @@ describe("US2: assignment", () => {
 
       await designateVolunteer(db, subject, null);
       expect(await grantsForContact(db, subject)).toHaveLength(0);
+    });
+  });
+
+  describe("designate a volunteer — the /access route path (FR-028)", () => {
+    it("the President designates a non-volunteer contact through the API", async () => {
+      const { token } = await makeActor({
+        email: "prez.des@cdrochester.org",
+        grants: [{ role: "president" }],
+      });
+      const { contactId } = await makeContactWithEmail({
+        email: "fresh.recruit@cdrochester.org",
+      });
+
+      const res = await DESIGNATE(
+        jsonReqAs(token, "POST", "/api/access/volunteers", { contactId }),
+        ctx(),
+      );
+      expect(res.status).toBe(201);
+      const [c] = await db.select().from(contacts).where(eq(contacts.id, contactId));
+      expect(c?.isVolunteer).toBe(true);
+      // Nomination only — no grants conferred.
+      expect(await grantsForContact(db, contactId)).toHaveLength(0);
+    });
+
+    it("a volunteer without role.assign is refused the designate route", async () => {
+      const { token } = await makeActor({
+        email: "fs.des@cdrochester.org",
+        grants: [{ role: "financial_secretary", seriesId: await seriesId("tnc") }],
+      });
+      const { contactId } = await makeContactWithEmail({ email: "recruit2@cdrochester.org" });
+
+      const res = await DESIGNATE(
+        jsonReqAs(token, "POST", "/api/access/volunteers", { contactId }),
+        ctx(),
+      );
+      // Refused on THIS path (role.assign). Note: the same flag is separately writable via the contact
+      // editor under contact.write — a deliberate second path (designation is a low-stakes nomination).
+      expect(res.status).toBe(403);
+      expect((await res.json()).error.message).toContain("role.assign");
     });
   });
 

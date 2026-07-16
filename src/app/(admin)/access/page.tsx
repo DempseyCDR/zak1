@@ -44,6 +44,9 @@ export default function AccessPage() {
   const [volunteers, setVolunteers] = useState<Volunteer[]>([]);
   const [message, setMessage] = useState<string | null>(null);
 
+  // Designate form
+  const [designateContactId, setDesignateContactId] = useState("");
+
   // Grant form
   const [subjectContactId, setSubjectContactId] = useState("");
   const [role, setRole] = useState<(typeof ROLES)[number]>("booker");
@@ -62,6 +65,27 @@ export default function AccessPage() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  // Designate a contact as a volunteer (FR-028). Provisional surface — the UI-spec process will settle
+  // how this is presented (e.g. from the contact directory). Designation is a low-stakes nomination: it
+  // grants only the Organizer base (read, no PII, no write), and makes the contact eligible for roles.
+  async function designate(e: React.FormEvent) {
+    e.preventDefault();
+    setMessage(null);
+    const res = await fetch("/api/access/volunteers", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ contactId: designateContactId }),
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => null);
+      setMessage(body?.error?.message ?? "Designate failed");
+      return;
+    }
+    setMessage("Designated as a volunteer.");
+    setDesignateContactId("");
+    await load();
+  }
 
   async function grant(e: React.FormEvent) {
     e.preventDefault();
@@ -136,6 +160,26 @@ export default function AccessPage() {
       <h1>Access control</h1>
       <p>Designate volunteers and assign their roles. President or VP only.</p>
       {message && <p role="status">{message}</p>}
+
+      <section>
+        <h2>Designate a volunteer</h2>
+        <form onSubmit={designate}>
+          <input
+            placeholder="Contact id"
+            value={designateContactId}
+            onChange={(e) => setDesignateContactId(e.target.value)}
+            required
+          />
+          <button type="submit">Designate</button>
+        </form>
+        <p>
+          <small>
+            Makes the contact a volunteer — read access to club data, and eligible to be granted
+            roles. A nomination, not an authority.{" "}
+            <em>(Provisional form; the UI spec will refine how this is surfaced.)</em>
+          </small>
+        </p>
+      </section>
 
       <section>
         <h2>Grant a role</h2>

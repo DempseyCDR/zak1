@@ -507,6 +507,14 @@ destinations their grants permit — and that a hidden destination is still refu
 
 - **FR-028**: The **President and the Vice-President** MUST be able to designate a contact as a volunteer
   and to clear that designation when a volunteer leaves.
+  > **Designation is a low-stakes nomination, not a gated authority** (decided 2026-07-15). Marking a
+  > contact `is_volunteer` grants only the **Organizer base** — read access to club data (never contact
+  > PII, never any write). It confers no authority of its own; it is essentially a *nomination* that makes
+  > the contact eligible to be granted roles, which the President/VP may or may not do. So designation is
+  > deliberately **also** writable by `contact.write` holders (Door Attendant / FS / Treasurer) via
+  > `PATCH /api/contacts/[id]` — that is accepted, not a leak. The President/VP path
+  > (`POST /api/access/volunteers`) is the *primary* surface and the one the access screen exposes; it is
+  > not the *only* one. **Do not strip `isVolunteer` from `contactPatchSchema`.**
 - **FR-028a**: Clearing a volunteer's designation MUST **first report every grant that will be revoked** —
   each role and its scope — and require confirmation before proceeding. The officer must see what
   authority they are destroying, not infer it.

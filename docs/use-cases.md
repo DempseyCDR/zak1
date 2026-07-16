@@ -388,6 +388,11 @@ The Treasurer may also edit membership records directly. The VP never edits them
 - **Clearing a volunteer's designation cascades** *(2026-07-15)* — every grant is **reported first**, then
   revoked and individually audited. Grants never survive dormantly; a returning volunteer is re-granted
   deliberately. Preserves the intent of feature 001's `roles_require_volunteer` constraint.
+- **Designation is a nomination, not a gated authority** *(2026-07-15)* — `is_volunteer` grants only the
+  Organizer base (read, no PII, no write), so it is deliberately writable by `contact.write` holders (Door
+  Attendant/FS/Treasurer) via the contact editor **as well as** by President/VP via `/access`. The
+  President/VP path is primary but not exclusive. Designation *proposes* someone for roles; granting the
+  roles stays President/VP.
 - **Refusals are explicit** *(2026-07-15)* — an unauthorized actor is told what they lack, not shown a 404
   or redirected. Safe because the base reads nearly everything; **contact PII is the one exception**.
 - **President / VP / Treasurer are mutually exclusive; Secretary is exempt** *(2026-07-15)* — a hard
