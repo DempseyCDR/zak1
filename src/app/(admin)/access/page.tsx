@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import ContactPicker from "@/app/ContactPicker";
 
 /**
  * Access control (feature 016, US2) — the President/VP's screen (matrix row 20).
@@ -164,13 +165,10 @@ export default function AccessPage() {
       <section>
         <h2>Designate a volunteer</h2>
         <form onSubmit={designate}>
-          <input
-            placeholder="Contact id"
-            value={designateContactId}
-            onChange={(e) => setDesignateContactId(e.target.value)}
-            required
-          />
-          <button type="submit">Designate</button>
+          <ContactPicker onSelect={(c) => setDesignateContactId(c?.id ?? "")} />
+          <button type="submit" disabled={!designateContactId}>
+            Designate
+          </button>
         </form>
         <p>
           <small>
@@ -184,11 +182,9 @@ export default function AccessPage() {
       <section>
         <h2>Grant a role</h2>
         <form onSubmit={grant}>
-          <input
-            placeholder="Volunteer contact id"
-            value={subjectContactId}
-            onChange={(e) => setSubjectContactId(e.target.value)}
-            required
+          <ContactPicker
+            onSelect={(c) => setSubjectContactId(c?.id ?? "")}
+            placeholder="Search for the volunteer to grant"
           />
           <select value={role} onChange={(e) => setRole(e.target.value as (typeof ROLES)[number])}>
             {ROLES.map((r) => (
@@ -202,7 +198,9 @@ export default function AccessPage() {
             value={seriesKey}
             onChange={(e) => setSeriesKey(e.target.value)}
           />
-          <button type="submit">Grant</button>
+          <button type="submit" disabled={!subjectContactId}>
+            Grant
+          </button>
         </form>
         <p>
           <small>
