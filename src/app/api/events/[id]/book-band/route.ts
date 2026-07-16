@@ -5,10 +5,10 @@ import { parseBody } from "@/server/lib/parseBody";
 import { bookBandSchema } from "@/server/validation/bands";
 import { bookBand } from "@/server/domain/bands/bookBand";
 
-export const POST = withAuth<{ id: string }>(async (req, ctx) => {
+export const POST = withAuth<{ id: string }>({ requires: "booking.write" }, async (req, ctx) => {
   const { id } = await ctx.params;
   const input = await parseBody(req, bookBandSchema);
   const actor = req.headers.get("x-actor") ?? "admin";
-  const result = await bookBand(db, id, input.bandId, input.memberPay ?? [], actor);
+  const result = await bookBand(db, id, input.bandId, input.memberPay ?? [], actor, ctx.actor);
   return NextResponse.json(result, { status: 201 });
 });

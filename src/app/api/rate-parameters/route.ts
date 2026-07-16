@@ -10,14 +10,14 @@ import {
   resolveParameterCents,
 } from "@/server/domain/parameters/seriesParameterService";
 
-export const POST = withAuth(async (req) => {
+export const POST = withAuth({ requires: "parameter.write" }, async (req, ctx) => {
   const input = await parseBody(req, rateParameterCreateSchema);
   const actor = req.headers.get("x-actor") ?? "admin";
-  const row = await createRateParameter(db, input, actor);
+  const row = await createRateParameter(db, input, actor, ctx.actor);
   return NextResponse.json(row, { status: 201 });
 });
 
-export const GET = withAuth(async (req) => {
+export const GET = withAuth({ requires: "base" }, async (req) => {
   const url = new URL(req.url);
   const seriesKey = url.searchParams.get("seriesKey");
   const kind = url.searchParams.get("kind");

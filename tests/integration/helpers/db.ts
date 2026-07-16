@@ -1,7 +1,7 @@
 import { resolveDatabaseUrl } from "@/server/validation/env";
 import { runMigrations } from "@/server/db/migrate";
 import { db, sql } from "@/server/db/client";
-import { contactEmails, contacts, staffIdentities } from "@/server/db/schema";
+import { contactEmails, contacts, roleGrants, staffIdentities } from "@/server/db/schema";
 import { deriveContactNames } from "@/server/domain/contacts/normalize";
 import { createSession } from "@/server/auth/session";
 
@@ -16,7 +16,7 @@ export async function ensureSchema(): Promise<void> {
 
 /** Truncate all feature tables between tests (preserves club_settings seed). */
 export async function resetDb(): Promise<void> {
-  await sql`TRUNCATE staff_sessions, staff_identities, mailing_list_exports, series_parameters, series_parameter_audit, venue_rents, venue_rent_audit, misc_expenses, account_mapping, series_qbo_map, treasurer_report_audit, mapping_audit, non_dance_income, band_members, bands, bookings, performers, door_record_audit, gate_sales, door_records, attendance, quarterly_attendance_counts, events, event_groups, venues, merge_audit, status_change_audit, memberships, payers, contact_emails, contacts RESTART IDENTITY CASCADE`;
+  await sql`TRUNCATE role_grants, audit_events, staff_sessions, staff_identities, mailing_list_exports, series_parameters, series_parameter_audit, venue_rents, venue_rent_audit, misc_expenses, account_mapping, series_qbo_map, treasurer_report_audit, mapping_audit, non_dance_income, band_members, bands, bookings, performers, door_record_audit, gate_sales, door_records, attendance, quarterly_attendance_counts, events, event_groups, venues, merge_audit, status_change_audit, memberships, payers, contact_emails, contacts RESTART IDENTITY CASCADE`;
   // series + QBO mapping are config (seeded once); ensure they exist for tests
   await sql`INSERT INTO series (key, name, has_sound_tech) VALUES
     ('tnc','Thursday Night Contra',true),
@@ -99,6 +99,20 @@ async function seedTestStaff(): Promise<void> {
     .values({ contactId: contact.id, googleSub: TEST_STAFF_GOOGLE_SUB })
     .returning();
   if (!identity) throw new Error("test staff identity insert failed");
+
+  // R12 — the harness actor holds a CLUB-WIDE super_user grant.
+  //
+  // Feature 016 makes every write require a grant. This contact was seeded by 015 with no roles, so
+  // without this it would hold only the Organizer base (read all but PII, write NOTHING) and ~291
+  // tests across 112 files would fail on writes they are not about.
+  //
+  // Super-user rather than "every role" because "every role" is not a legal state: President, VP and
+  // Treasurer are mutually exclusive (FR-005a). And a real grant rather than a test-mode bypass, on
+  // 015's own precedent — a bypass means the protection is never exercised.
+  //
+  // ⚠️ Authorization tests must build their OWN scoped actors (see factories). Asserting against this
+  // actor proves nothing: it can do everything.
+  await db.insert(roleGrants).values({ contactId: contact.id, role: "super_user" });
 
   const { token } = await createSession(db, identity.id);
   currentSessionToken = token;

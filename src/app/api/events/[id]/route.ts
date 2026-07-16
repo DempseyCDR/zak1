@@ -9,7 +9,7 @@ import { assignVenueSchema } from "@/server/validation/venues";
 import { assignVenueToEvent, setEventRent } from "@/server/domain/venues/venueService";
 import { updateEventDetails } from "@/server/domain/events/eventService";
 
-export const PATCH = withAuth<{ id: string }>(async (req, ctx) => {
+export const PATCH = withAuth<{ id: string }>({ requires: "event.write" }, async (req, ctx) => {
   const { id } = await ctx.params;
   const input = await parseBody(req, assignVenueSchema);
   const actor = req.headers.get("x-actor") ?? "admin";

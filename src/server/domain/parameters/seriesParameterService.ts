@@ -3,6 +3,8 @@ import type { Db, DbOrTx } from "@/server/db/client";
 import { series, seriesParameterAudit, seriesParameters } from "@/server/db/schema";
 import type { ParameterCategory, ParameterKind, SeriesParameterRow } from "@/server/db/schema";
 import { errors } from "@/server/lib/apiError";
+import { assertScope } from "@/server/auth/can";
+import type { Actor } from "@/server/auth/actor";
 import { writeAudit } from "@/server/lib/audit";
 import { dollarsToCents } from "@/server/lib/money";
 import type { RateParameterCreateInput } from "@/server/validation/performers";
@@ -81,9 +83,13 @@ async function createSeriesParameter(
     effectiveDate: string;
   },
   actor: string | null,
+  authz?: Actor,
 ): Promise<SeriesParameterRow> {
   const s = await db.query.series.findFirst({ where: eq(series.key, input.seriesKey) });
   if (!s) throw errors.seriesNotFound();
+  // Parameters are per-series (row 9): a Booker sets their OWN series' rates; the Treasurer any. No
+  // group axis here — parameters attach to a series, not an event.
+  assertScope(authz, "parameter.write", { seriesId: s.id });
   return db.transaction(async (tx) => {
     const [row] = await tx
       .insert(seriesParameters)
@@ -119,6 +125,7 @@ export async function createRateParameter(
   db: Db,
   input: RateParameterCreateInput,
   actor: string | null = null,
+  authz?: Actor,
 ): Promise<SeriesParameterRow> {
   return createSeriesParameter(
     db,
@@ -131,6 +138,7 @@ export async function createRateParameter(
       effectiveDate: input.effectiveDate,
     },
     actor,
+    authz,
   );
 }
 
@@ -138,6 +146,7 @@ export async function createExpenseParameter(
   db: Db,
   input: ExpenseParameterCreateInput,
   actor: string | null = null,
+  authz?: Actor,
 ): Promise<SeriesParameterRow> {
   return createSeriesParameter(
     db,
@@ -150,5 +159,6 @@ export async function createExpenseParameter(
       effectiveDate: input.effectiveDate,
     },
     actor,
+    authz,
   );
 }

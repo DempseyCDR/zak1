@@ -3,6 +3,8 @@ import type { Db } from "@/server/db/client";
 import { eventGroups, events, series } from "@/server/db/schema";
 import type { EventGroupRow, EventRow } from "@/server/db/schema";
 import { errors } from "@/server/lib/apiError";
+import { assertScope } from "@/server/auth/can";
+import type { Actor } from "@/server/auth/actor";
 import type { EventCreateInput, EventGroupCreateInput } from "@/server/validation/door";
 
 export async function listSeries(db: Db): Promise<{ id: string; key: string; name: string }[]> {
@@ -25,7 +27,11 @@ export async function createEventGroup(
   return row;
 }
 
-export async function createEvent(db: Db, input: EventCreateInput): Promise<EventRow> {
+export async function createEvent(
+  db: Db,
+  input: EventCreateInput,
+  actor?: Actor,
+): Promise<EventRow> {
   const s = await db.query.series.findFirst({ where: eq(series.key, input.seriesKey) });
   if (!s) throw errors.seriesNotFound();
 
@@ -33,6 +39,11 @@ export async function createEvent(db: Db, input: EventCreateInput): Promise<Even
     const g = await db.query.eventGroups.findFirst({ where: eq(eventGroups.id, input.groupId) });
     if (!g) throw errors.eventGroupNotFound();
   }
+
+  // Layer 2 (research R5): the scoped check lands HERE, where the target is finally known — the route
+  // wrapper only saw `seriesKey`, a string, and could not have resolved it without reading the body it
+  // may only read once. Series and group are passed as independent filters, never a tree.
+  if (actor) assertScope(actor, "event.write", { seriesId: s.id, groupId: input.groupId ?? null });
 
   const [row] = await db
     .insert(events)

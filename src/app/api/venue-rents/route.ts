@@ -7,7 +7,7 @@ import { parseBody } from "@/server/lib/parseBody";
 import { venueRentCreateSchema } from "@/server/validation/venueRents";
 import { createVenueRent } from "@/server/domain/parameters/rentService";
 
-export const GET = withAuth(async (req) => {
+export const GET = withAuth({ requires: "base" }, async (req) => {
   const url = new URL(req.url);
   const venueId = url.searchParams.get("venueId");
   if (!venueId) {
@@ -24,7 +24,7 @@ export const GET = withAuth(async (req) => {
   return NextResponse.json({ items });
 });
 
-export const POST = withAuth(async (req) => {
+export const POST = withAuth({ requires: "venue.write" }, async (req) => {
   const input = await parseBody(req, venueRentCreateSchema);
   const actor = req.headers.get("x-actor") ?? "admin";
   const row = await createVenueRent(db, input, actor);

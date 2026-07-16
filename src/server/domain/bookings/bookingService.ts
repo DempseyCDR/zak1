@@ -3,6 +3,8 @@ import type { Db, DbOrTx } from "@/server/db/client";
 import { bookings, events, performers, series } from "@/server/db/schema";
 import type { BookingRow, PerformerType } from "@/server/db/schema";
 import { errors } from "@/server/lib/apiError";
+import { assertEventScope } from "@/server/auth/can";
+import type { Actor } from "@/server/auth/actor";
 import { writeAudit } from "@/server/lib/audit";
 import { centsToDollars, dollarsToCents } from "@/server/lib/money";
 import { PERFORMER_RULES, bookingRequiresCheck } from "@/server/domain/performers/performerRules";
@@ -20,9 +22,13 @@ export async function createBooking(
   input: BookingCreateInput,
   actor: string | null = null,
   bandId: string | null = null,
+  authz?: Actor,
 ): Promise<BookingRow> {
   const event = await db.query.events.findFirst({ where: eq(events.id, eventId) });
   if (!event) throw errors.eventNotFound();
+  // Booking authority is per-series: scope to the EVENT's series/group (FR-007). A Booker-of-ecd may
+  // not book performers onto a tnc event.
+  assertEventScope(authz, "booking.write", { seriesId: event.seriesId, groupId: event.groupId });
   const performer = await db.query.performers.findFirst({
     where: eq(performers.id, input.performerId),
   });
@@ -100,10 +106,22 @@ export async function deleteBooking(
   db: Db,
   id: string,
   actor: string | null = null,
+  authz?: Actor,
 ): Promise<void> {
+  await assertBookingScope(db, authz, id); // scope to the booking's event, before deleting it
   const [row] = await db.delete(bookings).where(eq(bookings.id, id)).returning({ id: bookings.id });
   if (!row) throw errors.bookingNotFound();
   writeAudit({ kind: "booking.deleted", actor, details: { bookingId: id } });
+}
+
+/** Scope a write to an existing booking, via its event's series/group (FR-007). */
+async function assertBookingScope(db: Db, actor: Actor | undefined, bookingId: string): Promise<void> {
+  if (!actor) return;
+  const booking = await db.query.bookings.findFirst({ where: eq(bookings.id, bookingId) });
+  if (!booking) throw errors.bookingNotFound();
+  const event = await db.query.events.findFirst({ where: eq(events.id, booking.eventId) });
+  if (!event) throw errors.eventNotFound();
+  assertEventScope(actor, "booking.write", { seriesId: event.seriesId, groupId: event.groupId });
 }
 
 export async function patchBooking(
@@ -111,9 +129,11 @@ export async function patchBooking(
   id: string,
   input: BookingPatchInput,
   actor: string | null = null,
+  authz?: Actor,
 ): Promise<BookingRow> {
   const current = await db.query.bookings.findFirst({ where: eq(bookings.id, id) });
   if (!current) throw errors.bookingNotFound();
+  await assertBookingScope(db, authz, id);
 
   const type = current.performerType;
   let payCents = current.payCents;

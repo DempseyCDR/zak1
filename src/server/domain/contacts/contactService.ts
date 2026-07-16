@@ -4,7 +4,7 @@ import { contactEmails, contacts } from "@/server/db/schema";
 import type { ContactRow } from "@/server/db/schema";
 import { errors } from "@/server/lib/apiError";
 import { writeAudit } from "@/server/lib/audit";
-import { deriveContactNames, normalizeName, uniqueSet } from "./normalize";
+import { deriveContactNames, normalizeName } from "./normalize";
 import { addEmailInTx } from "./emailService";
 import type { ContactCreateInput, ContactPatchInput } from "@/server/validation/contacts";
 
@@ -72,11 +72,10 @@ export async function patchContact(
   const existing = await db.query.contacts.findFirst({ where: eq(contacts.id, id) });
   if (!existing) throw errors.contactNotFound();
 
+  // Roles are no longer a field on this row (feature 016): they are `role_grants`, because scope
+  // cannot live in an array. Granting and revoking is the President/VP's job via the access screen,
+  // not a side effect of editing a contact — so this endpoint no longer touches authority at all.
   const isVolunteer = input.isVolunteer ?? existing.isVolunteer;
-  const roles =
-    input.volunteerRoles !== undefined ? uniqueSet(input.volunteerRoles) : existing.volunteerRoles;
-
-  if (roles.length > 0 && !isVolunteer) throw errors.rolesRequireVolunteer();
 
   // Recompute the maintained name values when any name field changes (an override edit, or first/last).
   const nameChanged =
@@ -112,7 +111,6 @@ export async function patchContact(
         : {}),
       ...(input.phone !== undefined ? { phone: input.phone } : {}),
       isVolunteer,
-      volunteerRoles: roles,
       updatedAt: new Date(),
     })
     .where(eq(contacts.id, id))

@@ -4,8 +4,9 @@ import { createEvent } from "@/server/domain/events/eventService";
 import { createPerformer } from "@/server/domain/performers/performerService";
 import { createDoorRecord, putGateSales } from "@/server/domain/door/doorRecordService";
 import { deriveContactNames } from "@/server/domain/contacts/normalize";
-import { contactEmails, contacts } from "@/server/db/schema";
-import type { EventRow, PerformerRow } from "@/server/db/schema";
+import { contactEmails, contacts, roleGrants, staffIdentities } from "@/server/db/schema";
+import type { EventRow, PerformerRow, Role } from "@/server/db/schema";
+import { createSession } from "@/server/auth/session";
 import type { GateCategory, PaymentMethod } from "@/server/db/schema";
 import type { EmailConsentTopic, EmailStatus, MembershipStatus } from "@/server/db/schema";
 
@@ -129,4 +130,55 @@ export async function makeDoorRecord(
   const dr = await createDoorRecord(db, eventId, "test");
   if (sales.length) await putGateSales(db, dr.id, { sales });
   return dr.id;
+}
+
+/**
+ * A volunteer holding specific grants, plus a session token to act as them.
+ *
+ * Authorization tests MUST use this rather than the standing harness actor: `resetDb()` seeds
+ * "Zztest Staff" a club-wide `super_user` (research R12), so asserting against it proves nothing —
+ * it can do everything by construction. Pair with `jsonReqAs(token, ...)`.
+ *
+ * Scope is the shape of the grant: omit both ids for club-wide, pass `seriesId` for per-series, or
+ * `groupId` for per-event-group (data-model.md §3).
+ */
+export async function makeActor(opts: {
+  email: string;
+  firstName?: string;
+  lastName?: string;
+  grants?: { role: Role; seriesId?: string | null; groupId?: string | null }[];
+}): Promise<{ contactId: string; token: string }> {
+  const { contactId } = await makeVolunteerContact({
+    firstName: opts.firstName ?? "Actor",
+    lastName: opts.lastName ?? "Test",
+    email: opts.email,
+  });
+
+  await db
+    .update(contactEmails)
+    .set({ isLogin: true })
+    .where(eq(contactEmails.contactId, contactId));
+
+  for (const g of opts.grants ?? []) {
+    await db.insert(roleGrants).values({
+      contactId,
+      role: g.role,
+      seriesId: g.seriesId ?? null,
+      groupId: g.groupId ?? null,
+    });
+  }
+
+  const [identity] = await db
+    .insert(staffIdentities)
+    .values({ contactId, googleSub: `test-sub-${contactId}` })
+    .returning();
+  if (!identity) throw new Error("actor identity insert failed");
+
+  const { token } = await createSession(db, identity.id);
+  return { contactId, token };
+}
+
+/** A volunteer holding NO grants: the bare Organizer base. The lapsed short-term volunteer. */
+export async function makeBaseActor(email: string): Promise<{ contactId: string; token: string }> {
+  return makeActor({ email, firstName: "Base", lastName: "Only" });
 }

@@ -8,14 +8,14 @@ import {
   recordAttendance,
 } from "@/server/domain/attendance/attendanceService";
 
-export const POST = withAuth<{ id: string }>(async (req, ctx) => {
+export const POST = withAuth<{ id: string }>({ requires: "attendance.write" }, async (req, ctx) => {
   const { id } = await ctx.params;
   const input = await parseBody(req, attendanceSchema);
   const row = await recordAttendance(db, id, input);
   return NextResponse.json(row, { status: 201 });
 });
 
-export const GET = withAuth<{ id: string }>(async (_req, ctx) => {
+export const GET = withAuth<{ id: string }>({ requires: "base" }, async (_req, ctx) => {
   const { id } = await ctx.params;
   const view = await listEventAttendance(db, id);
   return NextResponse.json(view);

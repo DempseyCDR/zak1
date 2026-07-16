@@ -5,7 +5,7 @@ import { parseBody } from "@/server/lib/parseBody";
 import { eventCreateSchema } from "@/server/validation/door";
 import { createEvent, listEvents } from "@/server/domain/events/eventService";
 
-export const GET = withAuth(async (req) => {
+export const GET = withAuth({ requires: "base" }, async (req) => {
   const url = new URL(req.url);
   const from = url.searchParams.get("from") ?? undefined;
   const to = url.searchParams.get("to") ?? undefined;
@@ -13,8 +13,9 @@ export const GET = withAuth(async (req) => {
   return NextResponse.json({ items });
 });
 
-export const POST = withAuth(async (req) => {
+export const POST = withAuth({ requires: "event.write" }, async (req, { actor }) => {
   const input = await parseBody(req, eventCreateSchema);
-  const event = await createEvent(db, input);
+  // The wrapper confirmed `event.write` at SOME scope; the service confirms it for THIS series.
+  const event = await createEvent(db, input, actor);
   return NextResponse.json(event, { status: 201 });
 });

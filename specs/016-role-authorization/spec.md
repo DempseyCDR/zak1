@@ -48,7 +48,7 @@ This feature turns the permission matrix in `docs/use-cases.md` (rows 1–22) in
 - The assignment authority (President + VP), the Super-user global-write role, and the **annual
   Presidential approval** of the volunteer list.
 - Renaming the `administrator` role to **Super-user** semantics.
-- Role-aware navigation, retiring the provisional `/dev/routes` index convention.
+- Role-aware navigation, and retiring the `/dev/routes` **upkeep convention** (the page survives, generated).
 
 ### Out of scope
 
@@ -106,6 +106,18 @@ This feature turns the permission matrix in `docs/use-cases.md` (rows 1–22) in
   capability** (FR-026) — not a 404 and not a silent redirect. Because the base reads nearly everything, a
   refusal conceals nothing the actor could not already see. **Contact PII is the one exception**
   (FR-026a).
+- Q: After `/dev/routes` retires, what does a Super-user see — everything? → A: **Every page, but that is
+  not everything the index showed.** Nav is derived from capabilities, so a Super-user sees every *page* —
+  but `/dev/routes` also enumerates **~44 API endpoints**, which have no nav home and would simply be lost.
+  **Decided: keep the page, generated from the filesystem** (FR-040a), Super-user only (FR-040b). Retires
+  the manual upkeep — the actual defect — rather than the tool. Its natural successor for correctness is
+  the route-inventory test, which already walks the same tree; the page and the test now share one walker.
+- Q: ⚠️ *Discovered during implementation, not asked:* the spec assumed one contact held `administrator`.
+  Live data says **zero contacts hold any role** — the bootstrap CLI's `--role` is optional and was never
+  used. So who holds Super-user after the migration? → A: **Nobody, by design.** The migration stays
+  data-driven (it migrates the empty set — correctly a no-op) and **must not hardcode a person**; the first
+  Super-user is bootstrapped via `auth:bootstrap --role super_user` as a separate, audited step. FR-013 was
+  rewritten around the real cold start rather than left vacuously true.
 - Q: When the President clears a volunteer's designation, what happens to their grants? → A: **Cascade —
   but report them first** (FR-028a/b). Every grant that will be revoked is listed for confirmation, then
   all are revoked and individually audited. Grants never survive dormantly; a returning volunteer is
@@ -319,8 +331,12 @@ destinations their grants permit — and that a hidden destination is still refu
    treasurer screens as writable destinations.
 3. **Given** a destination hidden from a user's navigation, **When** they request it directly, **Then**
    they are still refused (hiding is presentation, not enforcement).
-4. **Given** the product after this story, **When** the `/dev/routes` index is sought, **Then** it no longer
-   exists and the project convention requiring its upkeep is withdrawn.
+4. **Given** a Super-user, **When** they open `/dev/routes`, **Then** it lists every UI page and API
+   endpoint **generated from the source tree**, each endpoint showing its declared requirement.
+5. **Given** any volunteer who is not a Super-user, **When** they request `/dev/routes` directly, **Then**
+   they are refused.
+6. **Given** a newly added route, **When** the index is opened, **Then** it appears there with **no edit
+   to any hand-written list** — and the `CLAUDE.md` upkeep convention is gone.
 
 ---
 
@@ -368,8 +384,11 @@ destinations their grants permit — and that a hidden destination is still refu
   with PII per keystroke, which sits closer to "bulk" than the "matching a dancer" case FR-017 sanctions.
   Accepted for the same reason and covered by the same audit; narrowing it (PII only once a candidate is
   selected) would be a tightening available later, not a requirement here.
-- **Existing live grants.** One contact currently holds `administrator`; the rename to Super-user must
-  preserve that person's access rather than stranding it.
+- **The cold start is real, and it is now.** ⚠️ **Nobody holds any role** (verified 2026-07-15). The one
+  volunteer is `is_volunteer = true` with an **empty** `volunteer_roles`. So the moment enforcement lands,
+  *every* volunteer holds only the Organizer base: read everything, write nothing, assign nothing. The club
+  bootstraps its first Super-user from the command line (FR-013, FR-033) — that is not a fallback, it is
+  the path.
 
 ## Requirements *(mandatory)*
 
@@ -415,8 +434,12 @@ destinations their grants permit — and that a hidden destination is still refu
   application role, not a bylaws officer.
 - **FR-012**: FR-009, FR-010, and FR-011 MUST be the **only** superset relationships; no other role implies
   another.
-- **FR-013**: The stored `administrator` role MUST be renamed to **Super-user** semantics without stranding
-  the access of any contact currently holding it.
+- **FR-013**: The stored `administrator` role MUST be **retired** and replaced by **Super-user** semantics.
+  **No contact holds it** — verified against live data 2026-07-15: zero contacts hold *any*
+  `volunteer_role`, because the bootstrap CLI's `--role` flag is optional and was not used. There is
+  therefore no access to preserve. What the requirement actually is: after the migration the club MUST have
+  a working path to its **first Super-user**, and per FR-030a that path is the operator command line
+  (FR-033). The migration MUST NOT hardcode a person.
 - **FR-014**: Authority MUST be evaluated **live** against the holder's current volunteer eligibility and
   grants, so that clearing eligibility or revoking a grant takes effect on the holder's next request
   without requiring them to sign out.
@@ -541,8 +564,18 @@ destinations their grants permit — and that a hidden destination is still refu
 
 - **FR-039**: Navigation MUST present only the destinations a signed-in user's grants permit; hidden
   destinations MUST still be refused when requested directly.
-- **FR-040**: The provisional `/dev/routes` index MUST be removed and its upkeep convention withdrawn from
-  the project instructions.
+- **FR-040**: The `/dev/routes` index's **hand-maintenance convention** MUST be withdrawn from the project
+  instructions. The page itself MUST be **retained and regenerated from the filesystem** rather than
+  deleted: role-aware navigation (FR-039) replaces it for *pages* but not for **API endpoints**, which have
+  no navigation home — and enumerating those is the index's actual job (*"lists every UI page **and API
+  endpoint** so reviewers can navigate"*). Deleting it would remove a working developer tool to solve a
+  problem that was only ever its manual upkeep.
+- **FR-040a**: The regenerated index MUST derive its contents by **walking the source tree**, never from a
+  hand-written list — the list going stale is the entire defect being fixed. It MUST show each endpoint's
+  **declared requirement** (FR-019), making the enforced matrix directly inspectable.
+- **FR-040b**: The index MUST be restricted to the **Super-user**, via a capability like any other
+  destination. It MUST NOT be gated by an inline role check (`role === 'super_user'`): that would be a
+  second authorization mechanism beside the catalog, which is the coupling this feature exists to remove.
 
 ### Key Entities *(include if feature involves data)*
 
@@ -601,7 +634,10 @@ destinations their grants permit — and that a hidden destination is still refu
   create that combination are refused, by every path including the operator CLI. A President or VP who
   also holds Financial Secretary is permitted, warned at assignment, and appears as a concentration on the
   annual review in 100% of cases.
-- **SC-013**: The product ships with no `/dev/routes` index and no project convention requiring one.
+- **SC-013**: The product ships with **no hand-maintained route list and no convention requiring one**. The
+  `/dev/routes` index still resolves, is generated from the source tree, shows each endpoint's declared
+  requirement, and is reachable **only** by a Super-user. Adding a route makes it appear with no edit to
+  any list.
 
 ## Assumptions
 
@@ -630,7 +666,11 @@ destinations their grants permit — and that a hidden destination is still refu
   implement the first and not quietly implement the second.
 - **Series and event groups already exist** as first-class records with stable identifiers, and event
   groups carry no series reference — the orthogonality in FR-007 is already true of the data model.
-- **Existing live data is one volunteer** holding `administrator`, who becomes a Super-user on rename.
+- **Existing live data is one volunteer holding *no* roles** — ⚠️ *corrected 2026-07-15 against the live
+  database; the earlier assumption that they held `administrator` was wrong and had propagated into the
+  plan, research, data model, quickstart, and tasks.* Zero contacts hold any `volunteer_role`; the enum's
+  two values (`door_attendant`, `administrator`) have never had a holder. Nothing is migrated into
+  `role_grants`, and the first Super-user is bootstrapped from the command line.
 - **Event groups are named per instance** and carry the year, which is what makes group-scoped grants
   self-expire in effect.
 

@@ -4,7 +4,7 @@ import { withAuth } from "@/server/auth/withAuth";
 import { MAILING_LISTS } from "@/server/domain/exports/mailingLists";
 import { getLastExports } from "@/server/domain/exports/exportAuditService";
 
-export const GET = withAuth(async () => {
+export const GET = withAuth({ requires: "export.read" }, async () => {
   const lastExports = await getLastExports(db);
 
   const items = MAILING_LISTS.map((def) => ({

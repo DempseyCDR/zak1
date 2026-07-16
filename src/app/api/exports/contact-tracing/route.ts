@@ -7,7 +7,7 @@ import { buildContactTracingRows } from "@/server/domain/exports/contactTracingS
 import { recordExportRun } from "@/server/domain/exports/exportAuditService";
 import { rowsToCsv } from "@/server/domain/exports/csv";
 
-export const GET = withAuth(async (req) => {
+export const GET = withAuth({ requires: "export.read" }, async (req) => {
   const url = new URL(req.url);
   const parsed = eventIdSchema.safeParse(url.searchParams.get("eventId"));
   if (!parsed.success) throw errors.eventNotFound();

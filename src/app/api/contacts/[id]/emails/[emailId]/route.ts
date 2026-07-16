@@ -5,7 +5,7 @@ import { parseBody } from "@/server/lib/parseBody";
 import { emailPatchSchema } from "@/server/validation/contacts";
 import { patchEmail } from "@/server/domain/contacts/emailService";
 
-export const PATCH = withAuth<{ id: string; emailId: string }>(async (req, ctx) => {
+export const PATCH = withAuth<{ id: string; emailId: string }>({ requires: "contact.mailing.write" }, async (req, ctx) => {
   const { id, emailId } = await ctx.params;
   const input = await parseBody(req, emailPatchSchema);
   const email = await patchEmail(db, id, emailId, input);

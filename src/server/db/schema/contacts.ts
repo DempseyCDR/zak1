@@ -1,6 +1,5 @@
-import { sql } from "drizzle-orm";
 import { boolean, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
-import { membershipStatusEnum, volunteerRoleEnum } from "./enums";
+import { membershipStatusEnum } from "./enums";
 
 export const contacts = pgTable("contacts", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -18,11 +17,13 @@ export const contacts = pgTable("contacts", {
   membershipStatus: membershipStatusEnum("membership_status").notNull().default("never"),
   listMember: boolean("list_member").notNull().default(false),
   statusRecomputedAt: timestamp("status_recomputed_at", { withTimezone: true }),
+  // Eligibility to sign in (feature 015). Roles themselves moved OUT of this row in feature 016:
+  // scope cannot live in an array, so they are `role_grants` rows keyed by contact_id.
   isVolunteer: boolean("is_volunteer").notNull().default(false),
-  volunteerRoles: volunteerRoleEnum("volunteer_roles")
-    .array()
-    .notNull()
-    .default(sql`'{}'`),
+  // Annual Presidential review (feature 016, FR-034). ADVISORY: nothing on the session path may read
+  // these — doing so would turn a governance ritual into a lockout on a forgotten meeting.
+  volunteerApprovedAt: timestamp("volunteer_approved_at", { withTimezone: true }),
+  volunteerApprovedBy: uuid("volunteer_approved_by"),
   mergedIntoId: uuid("merged_into_id"),
   needsReview: boolean("needs_review").notNull().default(false),
   source: text("source"),

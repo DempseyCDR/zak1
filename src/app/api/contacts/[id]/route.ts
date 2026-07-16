@@ -5,13 +5,13 @@ import { parseBody } from "@/server/lib/parseBody";
 import { contactPatchSchema } from "@/server/validation/contacts";
 import { getContact, patchContact } from "@/server/domain/contacts/contactService";
 
-export const GET = withAuth<{ id: string }>(async (_req, ctx) => {
+export const GET = withAuth<{ id: string }>({ requires: "base" }, async (_req, ctx) => {
   const { id } = await ctx.params;
   const contact = await getContact(db, id);
   return NextResponse.json(contact);
 });
 
-export const PATCH = withAuth<{ id: string }>(async (req, ctx) => {
+export const PATCH = withAuth<{ id: string }>({ requires: "contact.write" }, async (req, ctx) => {
   const { id } = await ctx.params;
   const input = await parseBody(req, contactPatchSchema);
   const contact = await patchContact(db, id, input);

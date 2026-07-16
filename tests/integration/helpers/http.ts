@@ -12,6 +12,23 @@ function authCookie(): string {
   return `${SESSION_COOKIE}=${encodeURIComponent(testSessionToken())}`;
 }
 
+/**
+ * A request AS a specific actor (feature 016) — pair with `makeActor`.
+ *
+ * The standing session in `jsonReq` is a club-wide super_user, so it can do anything: authorization
+ * tests must act as their own scoped actor or they assert nothing.
+ */
+export function jsonReqAs(token: string, method: string, path: string, body?: unknown): Request {
+  return new Request(`${BASE}${path}`, {
+    method,
+    headers: {
+      "content-type": "application/json",
+      cookie: `${SESSION_COOKIE}=${encodeURIComponent(token)}`,
+    },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+}
+
 export function jsonReq(method: string, path: string, body?: unknown): Request {
   return new Request(`${BASE}${path}`, {
     method,

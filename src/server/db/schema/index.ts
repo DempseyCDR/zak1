@@ -19,3 +19,4 @@ export * from "./venueRents";
 export * from "./miscExpenses";
 export * from "./mailingListExports";
 export * from "./auth";
+export * from "./authz";

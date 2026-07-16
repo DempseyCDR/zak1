@@ -7,7 +7,7 @@ import { parseBody } from "@/server/lib/parseBody";
 import { errors } from "@/server/lib/apiError";
 import { checkNumberPatchSchema } from "@/server/validation/treasurer";
 
-export const PATCH = withAuth<{ id: string }>(async (req, ctx) => {
+export const PATCH = withAuth<{ id: string }>({ requires: "booking.write" }, async (req, ctx) => {
   const { id } = await ctx.params;
   const input = await parseBody(req, checkNumberPatchSchema);
   const [row] = await db

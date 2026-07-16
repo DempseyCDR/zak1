@@ -1,7 +1,7 @@
 import { and, eq } from "drizzle-orm";
 import { db } from "@/server/db/client";
-import { contactEmails, contacts } from "@/server/db/schema";
-import type { VolunteerRole } from "@/server/db/schema";
+import { contactEmails, contacts, roleGrants } from "@/server/db/schema";
+import type { Role } from "@/server/db/schema";
 import { writeAudit } from "@/server/lib/audit";
 import { loadEnv } from "@/server/lib/loadEnv";
 
@@ -13,7 +13,11 @@ import { loadEnv } from "@/server/lib/loadEnv";
  * the feature cannot be bootstrapped at all.
  *
  * Deliberately NOT an HTTP endpoint — an unauthenticated privilege-granting route would be a hole.
- * Designating *other* volunteers and assigning roles is out of scope here; that is P3-2's job (FR-018).
+ *
+ * Feature 016 makes this the SOLE source of a Super-user (FR-030a): that role is grantable from no
+ * screen, by nobody — not the President, not the VP, not another Super-user. It is a technical
+ * break-glass role, not a club office, so it must not sit one click from routine officer work.
+ * Everything else is granted through the access screen by the President or VP.
  *
  * ⚠️ This is NOT `db:seed`. It only ever touches the one named contact; it never truncates anything.
  */
@@ -23,8 +27,8 @@ export type BootstrapOptions = {
   email: string;
   /** Required when the address is not yet on the contact — attaches it. */
   contactId?: string;
-  /** Optional volunteer role to grant (e.g. "administrator"). */
-  role?: VolunteerRole;
+  /** Optional role to grant, club-wide. The only way to create a `super_user` (FR-030a). */
+  role?: Role;
 };
 
 export type BootstrapResult = {
@@ -79,13 +83,16 @@ export async function bootstrapOfficer(opts: BootstrapOptions): Promise<Bootstra
       changed = true;
     }
 
-    // 2. Optionally grant a role (the CHECK constraint requires is_volunteer first, set above).
-    if (opts.role && !contact.volunteerRoles.includes(opts.role)) {
-      await tx
-        .update(contacts)
-        .set({ volunteerRoles: [...contact.volunteerRoles, opts.role] })
-        .where(eq(contacts.id, contactId));
-      changed = true;
+    // 2. Optionally grant a role, CLUB-WIDE (both scope columns NULL — feature 016).
+    //    Roles left `contacts.volunteer_roles` in 0021: an array cannot carry scope. Idempotent via
+    //    ON CONFLICT, so re-running the bootstrap is safe.
+    if (opts.role) {
+      const inserted = await tx
+        .insert(roleGrants)
+        .values({ contactId, role: opts.role })
+        .onConflictDoNothing()
+        .returning({ id: roleGrants.id });
+      if (inserted.length > 0) changed = true;
     }
 
     // 3. Ensure the address exists as an ACTIVE email on this contact.
@@ -137,7 +144,7 @@ export async function bootstrapOfficer(opts: BootstrapOptions): Promise<Bootstra
   });
 }
 
-// CLI entrypoint: pnpm run auth:bootstrap -- --email a@b.org [--contact-id <uuid>] [--role administrator]
+// CLI entrypoint: pnpm run auth:bootstrap -- --email a@b.org [--contact-id <uuid>] [--role super_user]
 if (import.meta.url === `file://${process.argv[1]}`) {
   loadEnv();
   const argv = process.argv.slice(2);
@@ -149,21 +156,34 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   const email = arg("email");
   if (!email) {
     console.error(
-      "usage: pnpm run auth:bootstrap -- --email <address> [--contact-id <uuid>] [--role administrator]",
+      "usage: pnpm run auth:bootstrap -- --email <address> [--contact-id <uuid>] [--role <role>]",
     );
     process.exit(1);
   }
 
+  const ROLES = [
+    "door_attendant",
+    "booker",
+    "financial_secretary",
+    "treasurer",
+    "vice_president",
+    "webmaster",
+    "mailing_list_manager",
+    "secretary",
+    "president",
+    "super_user",
+  ] as const satisfies readonly Role[];
+
   const role = arg("role");
-  if (role && role !== "administrator" && role !== "door_attendant") {
-    console.error(`--role must be "administrator" or "door_attendant" (got "${role}")`);
+  if (role && !(ROLES as readonly string[]).includes(role)) {
+    console.error(`--role must be one of: ${ROLES.join(", ")} (got "${role}")`);
     process.exit(1);
   }
 
   bootstrapOfficer({
     email,
     ...(arg("contact-id") ? { contactId: arg("contact-id")! } : {}),
-    ...(role ? { role: role as VolunteerRole } : {}),
+    ...(role ? { role: role as Role } : {}),
   })
     .then((r) => {
       console.log(

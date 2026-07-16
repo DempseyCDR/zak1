@@ -17,9 +17,9 @@
     "lint:md:fix": "markdownlint-cli2 --fix",
     "format": "prettier --write .",
     "typecheck": "tsc --noEmit",
-    "db:migrate": "tsx src/server/db/migrate.ts",
-    "db:seed": "tsx src/server/db/seed.ts",
-    "auth:bootstrap": "tsx src/server/db/bootstrapOfficer.ts",
+    "db:migrate": "tsx --env-file-if-exists=.env src/server/db/migrate.ts",
+    "db:seed": "tsx --env-file-if-exists=.env src/server/db/seed.ts",
+    "auth:bootstrap": "tsx --env-file-if-exists=.env src/server/db/bootstrapOfficer.ts",
     "test": "vitest run",
     "test:unit": "vitest run tests/unit",
     "test:integration": "vitest run tests/integration"

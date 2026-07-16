@@ -4,7 +4,7 @@ import { withAuth } from "@/server/auth/withAuth";
 import { ensureDoorRecord, getDoorRecord } from "@/server/domain/door/doorRecordService";
 
 // Idempotent "open the door record" for an event: create if absent, else fetch (FR-015).
-export const POST = withAuth<{ id: string }>(async (req, ctx) => {
+export const POST = withAuth<{ id: string }>({ requires: "attendance.write" }, async (req, ctx) => {
   const { id } = await ctx.params;
   const actor = req.headers.get("x-actor") ?? "door";
   const row = await ensureDoorRecord(db, id, actor);

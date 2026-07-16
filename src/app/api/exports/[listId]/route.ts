@@ -13,7 +13,7 @@ const COLUMNS: Record<string, string[]> = {
 };
 const DEFAULT_COLUMNS = ["email", "first_name", "last_name"];
 
-export const GET = withAuth<{ listId: string }>(async (_req, ctx) => {
+export const GET = withAuth<{ listId: string }>({ requires: "export.read" }, async (_req, ctx) => {
   const { listId } = await ctx.params;
   const parsed = listIdSchema.safeParse(listId);
   if (!parsed.success) throw errors.mailingListNotFound();

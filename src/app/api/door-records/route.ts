@@ -5,7 +5,7 @@ import { parseBody } from "@/server/lib/parseBody";
 import { doorRecordCreateSchema } from "@/server/validation/door";
 import { createDoorRecord } from "@/server/domain/door/doorRecordService";
 
-export const POST = withAuth(async (req) => {
+export const POST = withAuth({ requires: "attendance.write" }, async (req) => {
   const input = await parseBody(req, doorRecordCreateSchema);
   const actor = req.headers.get("x-actor") ?? "door";
   const record = await createDoorRecord(db, input.eventId, actor);

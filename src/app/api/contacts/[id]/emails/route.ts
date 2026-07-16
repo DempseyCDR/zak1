@@ -5,7 +5,7 @@ import { parseBody } from "@/server/lib/parseBody";
 import { emailAddSchema } from "@/server/validation/contacts";
 import { addEmail } from "@/server/domain/contacts/emailService";
 
-export const POST = withAuth<{ id: string }>(async (req, ctx) => {
+export const POST = withAuth<{ id: string }>({ requires: "contact.mailing.write" }, async (req, ctx) => {
   const { id } = await ctx.params;
   const input = await parseBody(req, emailAddSchema);
   const email = await addEmail(db, id, input);

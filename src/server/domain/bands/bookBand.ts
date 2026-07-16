@@ -3,6 +3,8 @@ import type { Db } from "@/server/db/client";
 import { bands, bookings, events } from "@/server/db/schema";
 import type { BookingRow } from "@/server/db/schema";
 import { errors } from "@/server/lib/apiError";
+import { assertEventScope } from "@/server/auth/can";
+import type { Actor } from "@/server/auth/actor";
 import { writeAudit } from "@/server/lib/audit";
 import { createBooking } from "@/server/domain/bookings/bookingService";
 import { getRoster } from "./bandService";
@@ -21,9 +23,11 @@ export async function bookBand(
   bandId: string,
   memberPay: { performerId: string; amount: number }[] = [],
   actor: string | null = null,
+  authz?: Actor,
 ): Promise<BookBandResult> {
   const event = await db.query.events.findFirst({ where: eq(events.id, eventId) });
   if (!event) throw errors.eventNotFound();
+  assertEventScope(authz, "booking.write", { seriesId: event.seriesId, groupId: event.groupId });
   const band = await db.query.bands.findFirst({ where: eq(bands.id, bandId) });
   if (!band) throw errors.bandNotFound();
 

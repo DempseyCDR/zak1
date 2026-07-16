@@ -142,6 +142,37 @@ whose use cases need it (Booker→performers, VP/MLM/Secretary→exports, Treasu
 explicit that this is an assumption to confirm. Not a blocker: the threat model — the lapsed short-term
 volunteer holding only the base — is excluded under any of the readings.
 
+### Validation iteration 6 — 2026-07-15 (⚠️ a premise falsified during `/speckit-implement`)
+
+**T003 checked the live database and the spec was wrong.** Still 16/16 — the spec was internally consistent
+and testable; it was consistent about something untrue, which no checklist item can catch.
+
+**The claim**: "one contact currently holds `administrator`, who becomes a Super-user on rename" (FR-013,
+an edge case, an Assumption; copied into research R9, data-model §7, quickstart, plan, and T003/T005/T009).
+
+**The reality**: **zero contacts hold any `volunteer_role`.** `bootstrapOfficer`'s `--role` flag is
+optional (`src/server/db/bootstrapOfficer.ts:26`) and feature 015 bootstrapped the one volunteer without
+it. The enum's two values have never had a holder.
+
+**Provenance**: I inferred it during `/speckit-specify`. The project context only ever said "1 volunteer" —
+never that they held a role. Every later artifact inherited the inference without re-checking it, which is
+exactly how a plausible assumption becomes six documents' worth of fact.
+
+**Consequence**: migration 0021's `INSERT … SELECT` moves zero rows, so after it **nobody holds any
+grant** — the operator included. Left undiscovered until T009, this would have looked like a broken
+migration rather than a correct one meeting an untrue expectation.
+
+**Resolved** (user, 2026-07-15): keep the migration data-driven and **never hardcode a person**; bootstrap
+the first Super-user via the CLI as a separate audited step (FR-033 requires that path regardless, and
+FR-030a makes it the *only* source of a Super-user). FR-013 rewritten around the real cold start rather
+than left vacuously true. Corrected in spec, research R9, data-model §7 + new §7a, quickstart, plan, and
+tasks T003/T005/T009.
+
+**Second finding, from checking the first**: T008 removes `volunteerRoles` from the schema while
+`bootstrapOfficer.ts:83-86` writes it — a **compile break**. The CLI update was scheduled in Phase 4
+(US2), three phases too late. Split: **T010** (role_grants writer, Phase 2, unblocks the build and the
+cold start) and **T050** (FR-005a enforcement, stays in US2). Task count 75 → 77.
+
 ### Content Quality note
 
 `is_volunteer`, `volunteer_roles`, `administrator`, and `/dev/routes` appear by name. Judged **not**

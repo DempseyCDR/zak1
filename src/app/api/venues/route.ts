@@ -5,12 +5,12 @@ import { parseBody } from "@/server/lib/parseBody";
 import { venueCreateSchema } from "@/server/validation/venues";
 import { createVenue, listVenues } from "@/server/domain/venues/venueService";
 
-export const GET = withAuth(async () => {
+export const GET = withAuth({ requires: "base" }, async () => {
   const items = await listVenues(db);
   return NextResponse.json({ items });
 });
 
-export const POST = withAuth(async (req) => {
+export const POST = withAuth({ requires: "venue.write" }, async (req) => {
   const input = await parseBody(req, venueCreateSchema);
   const actor = req.headers.get("x-actor") ?? "admin";
   const venue = await createVenue(db, input, actor);

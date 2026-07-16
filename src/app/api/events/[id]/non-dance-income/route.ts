@@ -8,14 +8,14 @@ import {
   listNonDanceIncome,
 } from "@/server/domain/treasurer/nonDanceIncomeService";
 
-export const POST = withAuth<{ id: string }>(async (req, ctx) => {
+export const POST = withAuth<{ id: string }>({ requires: "treasurer_report.write" }, async (req, ctx) => {
   const { id } = await ctx.params;
   const input = await parseBody(req, nonDanceIncomeCreateSchema);
   const row = await createNonDanceIncome(db, id, input);
   return NextResponse.json(row, { status: 201 });
 });
 
-export const GET = withAuth<{ id: string }>(async (_req, ctx) => {
+export const GET = withAuth<{ id: string }>({ requires: "base" }, async (_req, ctx) => {
   const { id } = await ctx.params;
   const view = await listNonDanceIncome(db, id);
   return NextResponse.json(view);

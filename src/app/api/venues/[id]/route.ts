@@ -5,13 +5,13 @@ import { parseBody } from "@/server/lib/parseBody";
 import { venuePatchSchema } from "@/server/validation/venues";
 import { getVenue, patchVenue } from "@/server/domain/venues/venueService";
 
-export const GET = withAuth<{ id: string }>(async (_req, ctx) => {
+export const GET = withAuth<{ id: string }>({ requires: "base" }, async (_req, ctx) => {
   const { id } = await ctx.params;
   const venue = await getVenue(db, id);
   return NextResponse.json(venue);
 });
 
-export const PATCH = withAuth<{ id: string }>(async (req, ctx) => {
+export const PATCH = withAuth<{ id: string }>({ requires: "venue.write" }, async (req, ctx) => {
   const { id } = await ctx.params;
   const input = await parseBody(req, venuePatchSchema);
   const actor = req.headers.get("x-actor") ?? "admin";

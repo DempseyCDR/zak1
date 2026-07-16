@@ -11,7 +11,6 @@ const consentTopic = z.enum([
   "contact_tracing",
   "do_not_contact",
 ]);
-const volunteerRole = z.enum(["door_attendant", "administrator"]);
 
 // Reject any read-only provider_* fields supplied by clients (FR-006).
 const noProviderFields = (obj: Record<string, unknown>, ctx: z.RefinementCtx) => {
@@ -57,7 +56,6 @@ export const contactPatchSchema = z.object({
   pronouns: z.string().trim().min(1).nullable().optional(),
   phone: z.string().trim().min(1).nullable().optional(),
   isVolunteer: z.boolean().optional(),
-  volunteerRoles: z.array(volunteerRole).optional(),
 });
 
 export const emailAddSchema = emailCreateSchema;

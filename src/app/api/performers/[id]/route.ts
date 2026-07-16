@@ -5,13 +5,13 @@ import { parseBody } from "@/server/lib/parseBody";
 import { performerPatchSchema } from "@/server/validation/performers";
 import { getPerformer, patchPerformer } from "@/server/domain/performers/performerService";
 
-export const GET = withAuth<{ id: string }>(async (_req, ctx) => {
+export const GET = withAuth<{ id: string }>({ requires: "base" }, async (_req, ctx) => {
   const { id } = await ctx.params;
   const performer = await getPerformer(db, id);
   return NextResponse.json(performer);
 });
 
-export const PATCH = withAuth<{ id: string }>(async (req, ctx) => {
+export const PATCH = withAuth<{ id: string }>({ requires: "performer.write" }, async (req, ctx) => {
   const { id } = await ctx.params;
   const input = await parseBody(req, performerPatchSchema);
   const performer = await patchPerformer(db, id, input);

@@ -6,7 +6,6 @@ export type ApiErrorCode =
   | "LOGIN_NOT_PERMITTED"
   | "PURPOSES_REQUIRED"
   | "CONSENT_TOPICS_REQUIRED"
-  | "ROLES_REQUIRE_VOLUNTEER"
   | "READ_ONLY_FIELD"
   | "ALREADY_MERGED"
   | "SAME_CONTACT"
@@ -25,17 +24,22 @@ export type ApiErrorCode =
   | "BAND_NOT_FOUND"
   | "VENUE_NOT_FOUND"
   | "VALIDATION_ERROR"
-  | "UNAUTHENTICATED";
+  | "UNAUTHENTICATED"
+  | "UNAUTHORIZED"
+  | "FIELD_NOT_PERMITTED";
 
 export class ApiError extends Error {
   readonly code: ApiErrorCode;
   readonly status: number;
+  /** For UNAUTHORIZED / FIELD_NOT_PERMITTED: the capability or field refused, for the audit trail. */
+  readonly detail?: string;
 
-  constructor(code: ApiErrorCode, status: number, message: string) {
+  constructor(code: ApiErrorCode, status: number, message: string, detail?: string) {
     super(message);
     this.name = "ApiError";
     this.code = code;
     this.status = status;
+    this.detail = detail;
   }
 
   toResponseBody(): { error: { code: ApiErrorCode; message: string } } {
@@ -46,6 +50,26 @@ export class ApiError extends Error {
 export const errors = {
   /** Feature 015: no valid staff session. Deliberately says nothing about why. */
   unauthenticated: () => new ApiError("UNAUTHENTICATED", 401, "Authentication required."),
+  /**
+   * Feature 016: signed in, but not permitted (FR-026).
+   *
+   * NAMES the capability — the opposite posture to `unauthenticated` above, and deliberately so. 401
+   * is silent because anyone could probe it without signing in. A 403's actor is a known volunteer
+   * who, under FR-015, could already READ the thing they were refused: concealing the reason protects
+   * nothing and only costs them the ability to understand what happened. The one carve-out is
+   * FR-026a — a refusal must never echo or partially render contact PII.
+   */
+  unauthorized: (capability: string) =>
+    new ApiError("UNAUTHORIZED", 403, `Not permitted: ${capability}.`, capability),
+  /**
+   * Feature 016: the write contained a field this actor does not own (FR-021/FR-022).
+   *
+   * The whole write is REFUSED, never stripped. Zod's instinct — drop unknown keys and carry on — is
+   * the exact failure FR-022 forbids: a Webmaster who submits a date change must be told, not quietly
+   * ignored.
+   */
+  fieldNotPermitted: (field: string) =>
+    new ApiError("FIELD_NOT_PERMITTED", 403, `Field not permitted: ${field}.`, field),
   emailDuplicate: () =>
     new ApiError("EMAIL_DUPLICATE", 409, "Email already in use by an active or transition record."),
   contactNotFound: () => new ApiError("CONTACT_NOT_FOUND", 404, "Contact not found."),
@@ -60,12 +84,6 @@ export const errors = {
     new ApiError("PURPOSES_REQUIRED", 422, "At least one email purpose is required."),
   consentTopicsRequired: () =>
     new ApiError("CONSENT_TOPICS_REQUIRED", 422, "At least one consent topic is required."),
-  rolesRequireVolunteer: () =>
-    new ApiError(
-      "ROLES_REQUIRE_VOLUNTEER",
-      422,
-      "Volunteer roles may only be assigned to a volunteer contact.",
-    ),
   readOnlyField: (field: string) =>
     new ApiError("READ_ONLY_FIELD", 422, `Field is read-only: ${field}.`),
   alreadyMerged: () =>

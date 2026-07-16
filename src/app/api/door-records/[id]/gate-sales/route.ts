@@ -5,9 +5,9 @@ import { parseBody } from "@/server/lib/parseBody";
 import { gateSalesPutSchema } from "@/server/validation/door";
 import { putGateSales } from "@/server/domain/door/doorRecordService";
 
-export const PUT = withAuth<{ id: string }>(async (req, ctx) => {
+export const PUT = withAuth<{ id: string }>({ requires: "gate.write" }, async (req, ctx) => {
   const { id } = await ctx.params;
   const input = await parseBody(req, gateSalesPutSchema);
-  const sales = await putGateSales(db, id, input);
+  const sales = await putGateSales(db, id, input, ctx.actor);
   return NextResponse.json({ sales });
 });

@@ -16,8 +16,6 @@ export const membershipStatusEnum = pgEnum("membership_status", [
   "never",
 ]);
 
-export const volunteerRoleEnum = pgEnum("volunteer_role", ["door_attendant", "administrator"]);
-
 export const emailConsentTopicEnum = pgEnum("email_consent_topic", [
   "contra",
   "english",
@@ -57,5 +55,4 @@ export type PaymentMethod = (typeof paymentMethodEnum.enumValues)[number];
 export type EmailPurpose = (typeof emailPurposeEnum.enumValues)[number];
 export type EmailStatus = (typeof emailStatusEnum.enumValues)[number];
 export type MembershipStatus = (typeof membershipStatusEnum.enumValues)[number];
-export type VolunteerRole = (typeof volunteerRoleEnum.enumValues)[number];
 export type EmailConsentTopic = (typeof emailConsentTopicEnum.enumValues)[number];

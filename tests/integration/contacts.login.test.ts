@@ -35,10 +35,8 @@ describe("login email permission", () => {
   it("allows a login email once the contact is a volunteer", async () => {
     const id = await createContact("Volunteer", "v@example.com");
     await PATCH_CONTACT(
-      jsonReq("PATCH", `/api/contacts/${id}`, {
-        isVolunteer: true,
-        volunteerRoles: ["administrator"],
-      }),
+      // Eligibility is what gates a login email — not a role. Roles left this endpoint in 0021.
+      jsonReq("PATCH", `/api/contacts/${id}`, { isVolunteer: true }),
       ctx({ id }),
     );
     const res = await ADD_EMAIL(

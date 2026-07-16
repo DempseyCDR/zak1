@@ -3,10 +3,25 @@ import type { Db } from "@/server/db/client";
 import { doorRecordAudit, doorRecords, events, gateSales } from "@/server/db/schema";
 import type { DoorRecordRow, GateSaleRow } from "@/server/db/schema";
 import { errors } from "@/server/lib/apiError";
+import { assertEventScope } from "@/server/auth/can";
+import type { Actor } from "@/server/auth/actor";
 import { writeAudit } from "@/server/lib/audit";
 import { dollarsToCents, centsToDollars } from "@/server/lib/money";
 import { depositCents, posFeeCents } from "./calc";
 import type { DoorRecordPatchInput, GateSalesPutInput } from "@/server/validation/door";
+
+/**
+ * Assert a gate write against the door record's event scope (FR-020). A door record belongs to an
+ * event, and the event carries the series/group an FS grant is scoped to — so a gate write resolves to
+ * exactly the series the FS was granted (or was not). The Door Attendant never reaches here: they hold
+ * no `gate.write` at all, so layer 1 refuses them first.
+ */
+async function assertGateScope(db: Db, actor: Actor | undefined, eventId: string): Promise<void> {
+  if (!actor) return;
+  const event = await db.query.events.findFirst({ where: eq(events.id, eventId) });
+  if (!event) throw errors.eventNotFound();
+  assertEventScope(actor, "gate.write", { seriesId: event.seriesId, groupId: event.groupId });
+}
 
 /** Door-record view returned to clients — the POS fee is intentionally omitted (FR-007). */
 export type DoorRecordView = {
@@ -83,9 +98,11 @@ export async function updateDoorRecord(
   id: string,
   input: DoorRecordPatchInput,
   actor: string | null = null,
+  authz?: Actor,
 ): Promise<DoorRecordView> {
   const current = await db.query.doorRecords.findFirst({ where: eq(doorRecords.id, id) });
   if (!current) throw errors.doorRecordNotFound();
+  await assertGateScope(db, authz, current.eventId); // FR-020: the FS owns money only for their series
 
   const cashPaidOutCents =
     input.cashPaidOut !== undefined ? dollarsToCents(input.cashPaidOut) : current.cashPaidOutCents;
@@ -142,9 +159,11 @@ export async function putGateSales(
   db: Db,
   doorRecordId: string,
   input: GateSalesPutInput,
+  authz?: Actor,
 ): Promise<GateSaleRow[]> {
   const dr = await db.query.doorRecords.findFirst({ where: eq(doorRecords.id, doorRecordId) });
   if (!dr) throw errors.doorRecordNotFound();
+  await assertGateScope(db, authz, dr.eventId); // FR-020
 
   return db.transaction(async (tx) => {
     await tx.delete(gateSales).where(eq(gateSales.doorRecordId, doorRecordId));

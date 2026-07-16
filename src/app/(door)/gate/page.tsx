@@ -161,6 +161,12 @@ export default function GatePage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ sales }),
     });
+    // Gate money is the Financial Secretary's to write (FR-020). A Door Attendant reaches this page and
+    // reads it — money is not secret — but a save is refused server-side. Surface that plainly rather
+    // than as a generic failure. (Proactively disabling the control belongs with US5's role-aware UI.)
+    if (gsRes.status === 403) {
+      return setMessage("Only the Financial Secretary may record gate money for this event.");
+    }
     if (!gsRes.ok) return setMessage("Gate sales failed");
 
     const res = await fetch(`/api/door-records/${doorRecordId}`, {
@@ -176,6 +182,9 @@ export default function GatePage() {
         ...(cashPaidOutReason ? { cashPaidOutReason } : {}),
       }),
     });
+    if (res.status === 403) {
+      return setMessage("Only the Financial Secretary may record gate money for this event.");
+    }
     if (!res.ok) {
       const b = await res.json().catch(() => null);
       return setMessage(b?.error?.message ?? "Update failed");

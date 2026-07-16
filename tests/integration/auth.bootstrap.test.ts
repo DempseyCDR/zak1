@@ -2,7 +2,7 @@ import { beforeAll, beforeEach, afterAll, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
 import { ensureSchema, resetDb, closeDb } from "./helpers/db";
 import { db } from "@/server/db/client";
-import { contactEmails, contacts } from "@/server/db/schema";
+import { contactEmails, contacts, roleGrants } from "@/server/db/schema";
 import { makeContactWithEmail } from "./helpers/factories";
 import { bootstrapOfficer } from "@/server/db/bootstrapOfficer";
 
@@ -53,15 +53,35 @@ describe("operator bootstrap (FR-017)", () => {
     expect((await readEmails(contactId)).filter((e) => e.isLogin)).toHaveLength(1);
   });
 
-  it("grants an optional volunteer role", async () => {
+  it("grants an optional role as a CLUB-WIDE role_grants row (feature 016)", async () => {
     const { contactId } = await makeContactWithEmail({
       firstName: "Alice",
       email: "alice@cdrochester.org",
     });
 
-    await bootstrapOfficer({ email: "alice@cdrochester.org", role: "administrator" });
+    await bootstrapOfficer({ email: "alice@cdrochester.org", role: "super_user" });
 
-    expect((await readContact(contactId))?.volunteerRoles).toContain("administrator");
+    // Roles left contacts.volunteer_roles in migration 0021 — an array cannot carry scope.
+    const grants = await db.select().from(roleGrants).where(eq(roleGrants.contactId, contactId));
+    expect(grants).toHaveLength(1);
+    expect(grants[0]?.role).toBe("super_user");
+    // Both NULL IS club-wide scope, not missing data (data-model.md §3).
+    expect(grants[0]?.seriesId).toBeNull();
+    expect(grants[0]?.groupId).toBeNull();
+  });
+
+  it("is idempotent about the grant — a re-run does not duplicate it", async () => {
+    const { contactId } = await makeContactWithEmail({
+      firstName: "Bob",
+      email: "bob@cdrochester.org",
+    });
+
+    await bootstrapOfficer({ email: "bob@cdrochester.org", role: "super_user" });
+    const second = await bootstrapOfficer({ email: "bob@cdrochester.org", role: "super_user" });
+
+    expect(second.changed).toBe(false);
+    const grants = await db.select().from(roleGrants).where(eq(roleGrants.contactId, contactId));
+    expect(grants).toHaveLength(1);
   });
 
   it("refuses when the email matches no contact", async () => {
