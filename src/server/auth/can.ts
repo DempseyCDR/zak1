@@ -66,7 +66,11 @@ export function actorCan(actor: Actor, capability: Capability, target?: Target):
  * a test — and skip the check. Enforcement is opt-in at the call site that has a request behind it.
  * The route wrapper is layer 1's backstop, so an actor-less internal call is not an open door.
  */
-export function assertScope(actor: Actor | undefined, capability: Capability, target?: Target): void {
+export function assertScope(
+  actor: Actor | undefined,
+  capability: Capability,
+  target?: Target,
+): void {
   if (actor && !actorCan(actor, capability, target)) throw errors.unauthorized(capability);
 }
 

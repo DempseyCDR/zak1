@@ -62,7 +62,10 @@ export function withAuth<P extends Record<string, string> = Record<string, strin
     } catch (e) {
       // Audit EVERY refusal, from layer 1 (above) OR layer 2 (assertScope inside the service), at this
       // one point — actor and db are both in scope here (FR-026b). It is one row per refused request.
-      if (e instanceof ApiError && (e.code === "UNAUTHORIZED" || e.code === "FIELD_NOT_PERMITTED")) {
+      if (
+        e instanceof ApiError &&
+        (e.code === "UNAUTHORIZED" || e.code === "FIELD_NOT_PERMITTED")
+      ) {
         await recordAudit(db, {
           kind: "authz.refused",
           actorContactId: staff.contactId,

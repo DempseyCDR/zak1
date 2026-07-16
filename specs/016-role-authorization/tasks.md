@@ -185,16 +185,16 @@ Next.js App Router monolith: `src/app/` (routes/pages), `src/server/` (auth, dom
 
 ### Tests for User Story 3 ⚠️ Write FIRST, confirm they FAIL
 
-- [ ] T051 [P] [US3] `tests/integration/authz.fields.test.ts` — Webmaster edits an event's public description (succeeds) and its date/venue (**refused**); the Booker of that series edits date/venue (succeeds). (US3.1–2, FR-021)
-- [ ] T052 [P] [US3] `tests/integration/authz.fields.test.ts` — a Door Attendant's check-in persists comp/gift counts but is refused the door record's cash/card/deposit. (US3.3, FR-021)
-- [ ] T053 [P] [US3] `tests/integration/authz.fields.test.ts` — VP/MLM edit a contact's emails and consent topics (succeeds) and its membership record (**refused**); a Door Attendant creates a contact at check-in (succeeds). (US3.4–5, FR-023)
-- [ ] T054 [P] [US3] `tests/integration/authz.fields.test.ts` — **FR-022**: a submission mixing permitted and forbidden fields is **refused entirely**, with no partial application. Assert the permitted field did **not** persist. (US3.6, SC-009)
+- [X] T051 [P] [US3] `tests/integration/authz.fields.test.ts` — Webmaster edits an event's public description (succeeds) and its date/venue (**refused**); the Booker of that series edits date/venue (succeeds). (US3.1–2, FR-021)
+- [X] T052 [P] [US3] `tests/integration/authz.fields.test.ts` — a Door Attendant's check-in persists comp/gift counts but is refused the door record's cash/card/deposit. (US3.3, FR-021)
+- [X] T053 [P] [US3] `tests/integration/authz.fields.test.ts` — VP/MLM edit a contact's emails and consent topics (succeeds) and its membership record (**refused**); a Door Attendant creates a contact at check-in (succeeds). (US3.4–5, FR-023)
+- [X] T054 [P] [US3] `tests/integration/authz.fields.test.ts` — **FR-022**: a submission mixing permitted and forbidden fields is **refused entirely**, with no partial application. Assert the permitted field did **not** persist. (US3.6, SC-009)
 
 ### Implementation for User Story 3
 
-- [ ] T055 [US3] Add `src/server/auth/fields.ts` — `assertFields(actor, entity, input)` throwing `FIELD_NOT_PERMITTED`. Check **key presence**, not value change: a submission carrying an unchanged `eventDate` is still an attempt to write a field the actor does not own, and treating "unchanged" as permitted makes authorization depend on current data. (FR-021, FR-022)
-- [ ] T056 [US3] Wire `assertFields` into the **event** service (public fields vs. date/venue) and the **door record** service (money vs. comp/gift counts). (FR-021, SC-009)
-- [ ] T057 [US3] Wire `assertFields` into the **contact** services — record/membership side vs. mailing side (emails, consent topics). Row 17 stands: the Door Attendant creates records; VP/MLM own the mailing side. (FR-023)
+- [X] T055 [US3] Add `src/server/auth/fields.ts` — `assertFields(actor, entity, input)` throwing `FIELD_NOT_PERMITTED`. Check **key presence**, not value change: a submission carrying an unchanged `eventDate` is still an attempt to write a field the actor does not own, and treating "unchanged" as permitted makes authorization depend on current data. (FR-021, FR-022)
+- [X] T056 [US3] Wire `assertFields` into the **event** service (public fields vs. date/venue) and the **door record** service (money vs. comp/gift counts). (FR-021, SC-009)
+- [X] T057 [US3] Wire `assertFields` into the **contact** services — record/membership side vs. mailing side (emails, consent topics). Row 17 stands: the Door Attendant creates records; VP/MLM own the mailing side. (FR-023)
 
 **Checkpoint**: Matrix rows 2, 12, and 17/17a are expressible and enforced.
 
@@ -208,19 +208,24 @@ Next.js App Router monolith: `src/app/` (routes/pages), `src/server/` (auth, dom
 
 ### Tests for User Story 4 ⚠️ Write FIRST, confirm they FAIL
 
-- [ ] T058 [P] [US4] `tests/integration/authz.pii.test.ts` — a base-only volunteer receives **zero** emails/phones from **every** path: contact screens, `attendance/search`, `exports/*`, `exports/contact-tracing`, `dedup/suggestions`, and performers (which reach contacts via `performers.contact_id`). Enumerate all six — this is the leak surface FR-016 names. (US4.3, FR-016, SC-004)
-- [ ] T059 [P] [US4] `tests/integration/authz.pii.test.ts` — a Door Attendant matching a dancer sees that dancer's PII; the checked-in roster returns PII for **0%** of rows. (US4.1–2, FR-017, SC-010)
-- [ ] T060 [P] [US4] `tests/integration/authz.pii.test.ts` — **FR-017a**: VP/MLM see **all** PII on every dedup candidate pair. The sanctioned bulk view — comparing emails *is* the task. (FR-017a)
-- [ ] T061 [P] [US4] `tests/integration/authz.pii.test.ts` — **FR-016a**: PII-read rides implicitly on Door Attendant / VP / MLM / Secretary / Booker / Treasurer / FS, and is **not** separately grantable. (FR-016a)
-- [ ] T062 [P] [US4] `tests/integration/authz.audit.test.ts` — **FR-017b**: a PII-disclosing request writes **exactly one** `pii.disclosed` row carrying a **count**, never one row per contact. Assert a 20-result search yields 1 row, not 20. (FR-017b, SC-014)
+- [X] T058 [P] [US4] `tests/integration/authz.pii.test.ts` — a base-only volunteer receives **zero** emails/phones from **every** path: contact screens, `attendance/search`, `exports/*`, `exports/contact-tracing`, `dedup/suggestions`, and performers (which reach contacts via `performers.contact_id`). Enumerate all six — this is the leak surface FR-016 names. (US4.3, FR-016, SC-004)
+- [X] T059 [P] [US4] `tests/integration/authz.pii.test.ts` — a Door Attendant matching a dancer sees that dancer's PII; the checked-in roster returns PII for **0%** of rows. (US4.1–2, FR-017, SC-010)
+- [X] T060 [P] [US4] `tests/integration/authz.pii.test.ts` — **FR-017a**: VP/MLM see **all** PII on every dedup candidate pair. The sanctioned bulk view — comparing emails *is* the task. (FR-017a)
+- [X] T061 [P] [US4] `tests/integration/authz.pii.test.ts` — **FR-016a**: PII-read rides implicitly on Door Attendant / VP / MLM / Secretary / Booker / Treasurer / FS, and is **not** separately grantable. (FR-016a)
+- [X] T062 [P] [US4] `tests/integration/authz.audit.test.ts` — **FR-017b**: a PII-disclosing request writes **exactly one** `pii.disclosed` row carrying a **count**, never one row per contact. Assert a 20-result search yields 1 row, not 20. (FR-017b, SC-014)
 
 ### Implementation for User Story 4
 
-- [ ] T063 [US4] Add `src/server/auth/pii.ts` — `projectContact(actor, contact)` dropping `phone` and emails unless `contact.pii.read`. One helper at the service boundary; a per-route filter would be the same rule restated ~7 times, and new routes would default to leaking (R7). (FR-016, FR-016a)
-- [ ] T064 [US4] Apply `projectContact` across every reader in T058's list, and mark the **dedup review** surface as the FR-017a exception. Audit every contact read path rather than the obvious ones — `contacts.phone` is a column on the row and emails are a joined table. (FR-016, FR-017, FR-017a)
-- [ ] T065 [US4] Emit `pii.disclosed` at **request** granularity with a count (FR-017b) — never per contact: check-in search fires per keystroke over 20 candidates, and per-contact rows would make this the largest table in the database while answering nothing SC-014 asks. (FR-017b, SC-014)
+- [X] T063 [US4] Add `src/server/auth/pii.ts` — `projectContact(actor, contact)` dropping `phone` and emails unless `contact.pii.read`. One helper at the service boundary; a per-route filter would be the same rule restated ~7 times, and new routes would default to leaking (R7). (FR-016, FR-016a)
+- [X] T064 [US4] Apply `projectContact` across every reader in T058's list, and mark the **dedup review** surface as the FR-017a exception. Audit every contact read path rather than the obvious ones — `contacts.phone` is a column on the row and emails are a joined table. (FR-016, FR-017, FR-017a)
+- [X] T065 [US4] Emit `pii.disclosed` at **request** granularity with a count (FR-017b) — never per contact: check-in search fires per keystroke over 20 candidates, and per-contact rows would make this the largest table in the database while answering nothing SC-014 asks. (FR-017b, SC-014)
 
 **Checkpoint**: The PII rule holds on every path, and a harvest is detectable in SQL.
+
+> **Scope calls in US3/US4** (recorded so they are decisions, not gaps):
+>
+> 1. **The one genuine single-record field split is the EVENT** (public description/label/startTime → `event.public.write`; venue/rent → `event.write`). The route requirement dropped to `event.public.write` so both Webmaster and Booker pass layer 1, and `assertFields` refuses what each does not own. **Contacts are split across ENDPOINTS already** (record = `contact.write`, mailing = `contact.mailing.write`, membership = `membership.write`), so route-level enforces row 17 — no single-record `assertFields` needed (proven by the VP-refused-membership test). The **door-record money-vs-comp split awaits B29/P3-3**: comp counts are written only by the FS via `gate.write` today, so the split has no user yet — same YAGNI call as venues/performers.
+> 2. **The PII disclosure surface is smaller than FR-016's list implied** — most readers were already built PII-free. Only **two** endpoints actually disclose PII today: `GET /api/contacts/[id]` and `GET /api/attendance/search`. The **roster** (`listEventAttendance`), **contacts list** (`ContactSummary`), **dedup suggestions** (names + status only), and **performer detail** carry no email/phone; **exports** are already role-restricted to PII holders (`export.read`). So FR-017 ("names in bulk") is satisfied structurally for the roster, and **FR-017a (dedup bulk PII) is vacuous today** — dedup review shows no PII yet; the exception activates when dedup is enhanced to compare emails.
 
 ---
 

@@ -54,6 +54,7 @@ export async function makeContactWithEmail(opts: {
   emailStatus?: EmailStatus;
   listMember?: boolean;
   membershipStatus?: MembershipStatus;
+  phone?: string;
 }): Promise<{ contactId: string; emailId: string }> {
   const firstName = opts.firstName ?? opts.displayName ?? "Test Contact";
   const lastName = opts.lastName ?? null;
@@ -73,6 +74,7 @@ export async function makeContactWithEmail(opts: {
       dedupNormalized: names.dedupNormalized,
       listMember: opts.listMember ?? false,
       membershipStatus: opts.membershipStatus ?? "never",
+      phone: opts.phone ?? null,
     })
     .returning();
   if (!contact) throw new Error("contact insert failed");
