@@ -3,6 +3,7 @@ import { db } from "@/server/db/client";
 import { contactEmails, contacts, roleGrants } from "@/server/db/schema";
 import type { Role } from "@/server/db/schema";
 import { writeAudit } from "@/server/lib/audit";
+import { grantRole } from "@/server/domain/access/grantService";
 import { loadEnv } from "@/server/lib/loadEnv";
 
 /**
@@ -83,16 +84,16 @@ export async function bootstrapOfficer(opts: BootstrapOptions): Promise<Bootstra
       changed = true;
     }
 
-    // 2. Optionally grant a role, CLUB-WIDE (both scope columns NULL — feature 016).
-    //    Roles left `contacts.volunteer_roles` in 0021: an array cannot carry scope. Idempotent via
-    //    ON CONFLICT, so re-running the bootstrap is safe.
+    // 2. Optionally grant a role, CLUB-WIDE. Delegated to grantRole so the CLI enforces the SAME
+    //    rules as the UI — FR-005a exclusivity (T050) and the volunteer gate — on every path (FR-033).
+    //    `allowSuperUser` is the CLI's escape hatch: it is the ONLY source of a Super-user (FR-030a).
+    //    Idempotent: grantRole does onConflictDoNothing. It reports whether the row was new via audit,
+    //    but here we treat any successful call as "no error"; `changed` already reflects designation.
     if (opts.role) {
-      const inserted = await tx
-        .insert(roleGrants)
-        .values({ contactId, role: opts.role })
-        .onConflictDoNothing()
-        .returning({ id: roleGrants.id });
-      if (inserted.length > 0) changed = true;
+      const before = await tx.select().from(roleGrants).where(eq(roleGrants.contactId, contactId));
+      await grantRole(tx, { subjectContactId: contactId, role: opts.role, grantedBy: null }, { allowSuperUser: true });
+      const after = await tx.select().from(roleGrants).where(eq(roleGrants.contactId, contactId));
+      if (after.length > before.length) changed = true;
     }
 
     // 3. Ensure the address exists as an ACTIVE email on this contact.

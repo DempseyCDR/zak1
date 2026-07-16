@@ -38,6 +38,7 @@ const uiRoutes: { path: string; label: string; feature: string }[] = [
     feature: "007",
   },
   { path: "/venues", label: "Venue management", feature: "007" },
+  { path: "/access", label: "Access control — designate volunteers, assign roles", feature: "016" },
   { path: "/dev/routes", label: "Dev route index (this page)", feature: "dev" },
 ];
 
@@ -96,6 +97,10 @@ const apiRoutes: { methods: string; path: string; feature: string }[] = [
   { methods: "PATCH", path: "/api/events/[id]", feature: "007/011" },
   // Feature 011 — Venue-scoped rent
   { methods: "GET, POST", path: "/api/venue-rents", feature: "011" },
+  // Feature 016 — Authorization (access control; President/VP)
+  { methods: "GET, POST, DELETE", path: "/api/access/volunteers", feature: "016" },
+  { methods: "POST", path: "/api/access/volunteers/[id]/approve", feature: "016" },
+  { methods: "POST, DELETE", path: "/api/access/grants", feature: "016" },
 ];
 
 export default function DevRoutesPage() {

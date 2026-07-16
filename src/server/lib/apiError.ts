@@ -26,7 +26,11 @@ export type ApiErrorCode =
   | "VALIDATION_ERROR"
   | "UNAUTHENTICATED"
   | "UNAUTHORIZED"
-  | "FIELD_NOT_PERMITTED";
+  | "FIELD_NOT_PERMITTED"
+  | "EXCLUSIVE_ROLE_CONFLICT"
+  | "GRANT_REQUIRES_VOLUNTEER"
+  | "ROLE_NOT_UI_GRANTABLE"
+  | "GRANT_NOT_FOUND";
 
 export class ApiError extends Error {
   readonly code: ApiErrorCode;
@@ -91,6 +95,28 @@ export const errors = {
   sameContact: () =>
     new ApiError("SAME_CONTACT", 422, "Canonical and merged contacts must differ."),
   validation: (message: string) => new ApiError("VALIDATION_ERROR", 422, message),
+  /**
+   * FR-005a: President / VP / Treasurer are mutually exclusive — separation of authority from money.
+   * A cross-ROW invariant on the contact, so it cannot be a row CHECK; enforced in grantService and
+   * on every path including the CLI (FR-033). Names the conflicting role held.
+   */
+  exclusiveRoleConflict: (held: string) =>
+    new ApiError(
+      "EXCLUSIVE_ROLE_CONFLICT",
+      422,
+      `President, VP and Treasurer are mutually exclusive; this contact already holds ${held}.`,
+    ),
+  /** R3: only a volunteer may hold grants (the retired roles_require_volunteer, re-expressed here). */
+  grantRequiresVolunteer: () =>
+    new ApiError(
+      "GRANT_REQUIRES_VOLUNTEER",
+      422,
+      "Roles may only be granted to a volunteer; designate the contact first.",
+    ),
+  /** FR-030a: Super-user is grantable from no screen, by nobody — only the operator CLI. */
+  roleNotUiGrantable: (role: string) =>
+    new ApiError("ROLE_NOT_UI_GRANTABLE", 422, `${role} may only be granted from the operator CLI.`),
+  grantNotFound: () => new ApiError("GRANT_NOT_FOUND", 404, "Grant not found."),
   seriesNotFound: () => new ApiError("SERIES_NOT_FOUND", 404, "Series not found."),
   eventGroupNotFound: () => new ApiError("EVENT_GROUP_NOT_FOUND", 404, "Event group not found."),
   eventNotFound: () => new ApiError("EVENT_NOT_FOUND", 404, "Event not found."),
