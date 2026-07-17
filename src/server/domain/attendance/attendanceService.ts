@@ -117,14 +117,25 @@ export async function recordAttendance(
     .update(events)
     .set({ attendanceCount: sql`${events.attendanceCount} + ${1 + childrenCount}` })
     .where(eq(events.id, eventId));
-  // B36: an open-band musician is comped. The comp is a PERSISTED count on the door record
-  // (open_band_count) — separate from comp_count and surviving the 90-day purge — so the report reads
-  // it as effective comps = comp_count + open_band_count.
-  if (isOpenBand) {
+
+  // B29/B36: comp, gift-card redemption, and open-band are per-check-in booleans that MATERIALIZE into
+  // persisted door-record counts (counts-only, never attributed — so nothing is stored on the row). All
+  // survive the 90-day attendance purge; the FS may override comp/gift on /gate. open_band_count is kept
+  // separate so the report can read effective comps = comp_count + open_band_count.
+  const isComp = "isComp" in input ? (input.isComp ?? false) : false;
+  const redeemedGiftCard = "redeemedGiftCard" in input ? (input.redeemedGiftCard ?? false) : false;
+  if (isOpenBand || isComp || redeemedGiftCard) {
     const dr = await ensureDoorRecord(db, eventId, "door");
     await db
       .update(doorRecords)
-      .set({ openBandCount: sql`${doorRecords.openBandCount} + 1`, updatedAt: new Date() })
+      .set({
+        ...(isOpenBand ? { openBandCount: sql`${doorRecords.openBandCount} + 1` } : {}),
+        ...(isComp ? { compCount: sql`${doorRecords.compCount} + 1` } : {}),
+        ...(redeemedGiftCard
+          ? { giftCardRedemptionCount: sql`${doorRecords.giftCardRedemptionCount} + 1` }
+          : {}),
+        updatedAt: new Date(),
+      })
       .where(eq(doorRecords.id, dr.id));
   }
   return row;

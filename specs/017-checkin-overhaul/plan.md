@@ -5,6 +5,12 @@
 
 **Input**: Feature specification from `specs/017-checkin-overhaul/spec.md`
 
+> **Refined post-implementation (2026-07-17):** B29 comp/gift capture shipped as **per-check-in boolean
+> checkboxes** on the attendance endpoint (`isComp`/`redeemedGiftCard` → increment the door-record counts),
+> not the standalone `checkin-counts` endpoint/`checkinCountsSchema`/`recordCheckinCounts` shown in the tree
+> below (those were removed). No migration was needed for B29 — the count columns already existed. See the
+> spec Clarifications (2026-07-17).
+
 ## Summary
 
 Overhaul the Door Attendant's `/checkin` workflow (Phase 3 package P3-3), bundling five backlog items in the

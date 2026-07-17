@@ -156,9 +156,14 @@ paying-dancer count each rise by `1 + N`.
 
 ## Phase 6: User Story 4 — Comp & gift-card counts captured at check-in (Priority: P4)
 
+> **Refined post-implementation (2026-07-17):** comp/gift capture became **per-check-in boolean checkboxes**
+> on the attendance endpoint (`isComp`/`redeemedGiftCard`, materializing into the door-record counts), and
+> the standalone `checkin-counts` endpoint/service/schema were **removed**. The tasks below record the
+> original approach; see the spec Clarifications (2026-07-17) and [contracts/attendance-checkin.md](contracts/attendance-checkin.md).
+
 **Goal (B29, resolves B21)**: The Door Attendant records comp and gift-card redemption counts at check-in
 (materialized on the door record) via an `attendance.write` path — never `/gate`. The FS confirms/edits on
-`/gate` (`gate.write`). See [contracts/checkin-counts.md](contracts/checkin-counts.md) and research R4.
+`/gate` (`gate.write`).
 
 **Independent Test**: Post comp/gift counts at check-in as a Door Attendant; confirm they land on the door
 record and are visible/editable to the FS on `/gate`; comp still reduces paying dancers as in feature 014.

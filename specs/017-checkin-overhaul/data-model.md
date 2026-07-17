@@ -23,8 +23,8 @@ Constraints:
 
 | Column | Type | Default | Notes |
 |---|---|---|---|
-| *(existing)* `comp_count` | `integer NOT NULL` | `0` | **B29 capture point moves to check-in.** Still the FS-confirmable count of *non-open-band* free admissions ("next dance free", performer plus-ones). Now written by the Door Attendant (`attendance.write`) at check-in **and** editable by the FS on `/gate` (`gate.write`). |
-| *(existing)* `gift_card_redemption_count` | `integer NOT NULL` | `0` | **B29 / resolves B21.** Gains its capture point at check-in (was orphaned). Redeemers stay counted as paying (unchanged). |
+| *(existing)* `comp_count` | `integer NOT NULL` | `0` | **B29 capture point moves to check-in.** FS-confirmable count of *non-open-band* free admissions ("next dance free", performer plus-ones). **Incremented** by a per-check-in `isComp` boolean via the attendance endpoint (`attendance.write`) and editable by the FS on `/gate` (`gate.write`). Counts-only — no attribution stored. |
+| *(existing)* `gift_card_redemption_count` | `integer NOT NULL` | `0` | **B29 / resolves B21.** Gains its capture point at check-in (was orphaned): incremented by a per-check-in `redeemedGiftCard` boolean. Redeemers stay counted as paying (unchanged). |
 | **`open_band_count`** | `integer NOT NULL` | `0` | **B36.** Persisted count of open-band musicians comped at this event. Separate from `comp_count` so the FS's absolute `comp_count` edit never clobbers per-person open-band increments. Survives the attendance purge → the report can read it for historical quarters. |
 
 ## Derivations (behaviour, not storage)
@@ -57,20 +57,19 @@ payingDancers  = max(0, attendance_count − distinct_performers − 1 − effec
 
 - `newContact` variant: add `lastName` (optional in schema; **required in the check-in UI** per FR-001) and
   `displayNameOverride?: string (trimmed, min 1 when present)`.
-- existing-contact (`{ contactId }`) and `newContact` variants: add `childrenCount?: int >= 0` (default 0).
-- add optional `isOpenBand?: boolean` to the existing-contact and new-contact variants (a musician is a real
-  person, matched or newly added; not the `unmatched` path).
-- `unmatched` variant: unchanged (no children, no open-band, no override).
+- **person-extras** (existing-contact + `newContact` only): `childrenCount?: int >= 0` (B35) and
+  `isOpenBand?: boolean` (B36) — a family/musician is a real person, so these are rejected on `unmatched`
+  (that variant is `.strict()`).
+- **count-extras** (all variants, incl. `unmatched`): `isComp?: boolean` and `redeemedGiftCard?: boolean`
+  (B29) — counts-only booleans that increment the door-record counts; never stored on the row.
 
-### `checkinCountsSchema` (new — B29)
+### B29 comp/gift capture (no dedicated schema)
 
-```text
-{ compCount: int >= 0 (optional), giftCardRedemptionCount: int >= 0 (optional) }
-```
-
-At least the count(s) being set are provided; omitted fields leave the door record's current value. Mirrors
-the count fields of `doorRecordPatchSchema` but carries **no money fields** — the Door Attendant never sets
-money.
+Comp and gift-card redemption are **per-check-in booleans on `attendanceSchema`** (above), not a separate
+endpoint. Each `true` increments `door_records.comp_count` / `gift_card_redemption_count` inside
+`recordAttendance` (door record ensured if absent), counts-only. The FS overrides via `doorRecordPatchSchema`
+on `/gate`. *(The earlier standalone `checkinCountsSchema` + `/checkin-counts` endpoint were removed in the
+2026-07-17 refinement.)*
 
 ## Entity relationships (unchanged shape)
 

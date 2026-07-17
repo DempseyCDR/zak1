@@ -28,6 +28,12 @@
   edit/override on `/gate`.** Check-in pre-populates the counts onto the door record; `/gate` stays writable
   for these fields (as it is today for the comp count), so the FS confirms by accepting or adjusting during
   money reconciliation.
+- Q: B29 — how does the Door Attendant capture comps/gift-card redemptions at check-in? → A (refinement
+  2026-07-17): **per-check-in boolean checkboxes**, not typed aggregate counts. Each ticked box on a
+  check-in **materializes** into the door record's count (`comp_count` / `gift_card_redemption_count`) by
+  incrementing it — still counts-only, never attributed (nothing stored on the attendance row). This is
+  carried on the existing attendance check-in call (any path, including an anonymous `unmatched` admission),
+  so the earlier standalone `checkin-counts` endpoint was **removed**. The `/gate` FS override is unchanged.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -124,24 +130,24 @@ total and derived paying-dancer count both increase by the parent plus N childre
 ### User Story 4 - Comp and gift-card counts captured at check-in for FS confirmation (Priority: P4)
 
 The Door Attendant is the person who actually sees who is admitted **free** (a "next dance free" card, a
-performer's "plus one") and who **redeems a gift card**. They record these as **counts** during check-in.
-The counts are carried onto the event's door record; later, when the FS opens that door record to reconcile
-money, they **see the counts and confirm them** with the Door Attendant. Counts only are captured — never
-which attendee was comped or redeemed.
+performer's "plus one") and who **redeems a gift card**. They tick a **comp** and/or **gift-card-redeemed**
+checkbox on that person's check-in; each tick **increments** the event's door-record count. Later, when the
+FS opens that door record to reconcile money, they **see the materialized counts and confirm/override them**.
+Counts only are captured — never which attendee was comped or redeemed.
 
 **Why this priority**: This relocates comp capture from `/gate` (feature 014) to `/checkin`, aligning
 capture with the role that observes it and honouring the Door Attendant's `/gate` exclusion. It also gives
 the long-orphaned gift-card **redemption count** its capture point (resolves B21). It is sequenced before
 US5 because the open-band group comp extends the comp model this story relocates.
 
-**Independent Test**: At check-in, enter a comp count and a gift-card redemption count; confirm both land on
-the event's door record and are visible to the FS on `/gate` for confirmation, and that the comp count still
-reduces paying dancers exactly as it did when captured at `/gate`.
+**Independent Test**: At check-in, tick the comp and gift-card boxes on some check-ins; confirm the door
+record's counts increment accordingly, are visible to the FS on `/gate` for confirmation/override, and that
+comps still reduce paying dancers exactly as when captured at `/gate`.
 
 **Acceptance Scenarios**:
 
-1. **Given** the Door Attendant at check-in, **When** they record a comp count and a gift-card redemption
-   count for the event, **Then** both are stored on the event's door record.
+1. **Given** the Door Attendant at check-in, **When** they tick the comp box and the gift-card box on
+   check-ins, **Then** the event's door-record `comp_count` and `gift_card_redemption_count` each increment.
 2. **Given** counts captured at check-in, **When** the FS opens the event on `/gate`, **Then** the FS sees
    the materialized comp and gift-card redemption counts to confirm.
 3. **Given** a comp count captured at check-in, **When** paying dancers are derived, **Then** comps reduce
@@ -246,9 +252,11 @@ involved.
 
 #### Comp & gift-card capture relocation (B29, resolves B21)
 
-- **FR-013**: The Door Attendant MUST be able to record, at check-in, a **comp count** and a **gift-card
-  redemption count** for the current event.
-- **FR-014**: Both counts MUST be **materialized on the event's door record** so the FS can review them.
+- **FR-013**: The Door Attendant MUST be able to mark each check-in with a **comp** boolean and a
+  **gift-card-redeemed** boolean (checkboxes), for any check-in path including an anonymous unmatched one.
+- **FR-014**: Each ticked box MUST **materialize** into the event's door record by **incrementing** the
+  respective count (`comp_count` / `gift_card_redemption_count`) — counts-only, never attributed to the
+  attendee (nothing is stored on the attendance row).
 - **FR-015**: The FS MUST see the captured comp and gift-card redemption counts on `/gate` for
   **confirmation** during money reconciliation, and MUST be able to **edit/override** them there (check-in
   pre-populates; the fields stay writable on `/gate`).

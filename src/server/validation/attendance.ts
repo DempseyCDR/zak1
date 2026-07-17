@@ -1,14 +1,22 @@
 import { z } from "zod";
 
-// Feature 017: fields shared by the two "real person" check-in paths (existing contact / new contact).
-// B35 children count + B36 open-band flag ride on a check-in of an actual person, never on `unmatched`.
-const checkinExtras = {
+// Feature 017 per-check-in extras, split by what they attach to:
+// - personExtras (B35 children count, B36 open-band flag) describe an actual person, so they ride ONLY
+//   on the existing-contact / new-contact paths, never on `unmatched`.
+// - countExtras (B29 comp + gift-card redemption) are **counts-only, never attributed** — booleans the
+//   Door Attendant ticks per check-in that materialize into the door record's counts. They may apply to
+//   ANY check-in, including an anonymous `unmatched` admission, and are never stored on the row.
+const personExtras = {
   childrenCount: z.number().int().min(0).optional(),
   isOpenBand: z.boolean().optional(),
 };
+const countExtras = {
+  isComp: z.boolean().optional(),
+  redeemedGiftCard: z.boolean().optional(),
+};
 
 export const attendanceSchema = z.union([
-  z.object({ contactId: z.string().uuid(), ...checkinExtras }),
+  z.object({ contactId: z.string().uuid(), ...personExtras, ...countExtras }),
   z.object({
     newContact: z.object({
       firstName: z.string().trim().min(1),
@@ -18,11 +26,12 @@ export const attendanceSchema = z.union([
       email: z.string().trim().email().optional(),
       phone: z.string().trim().min(1).optional(),
     }),
-    ...checkinExtras,
+    ...personExtras,
+    ...countExtras,
   }),
   // `.strict()` so a children count / open-band flag on an unmatched placeholder is rejected, not
-  // silently dropped (feature 017): those belong to a real person's check-in.
-  z.object({ unmatched: z.literal(true) }).strict(),
+  // silently dropped (feature 017); the comp/gift booleans ARE allowed here (an anonymous free admission).
+  z.object({ unmatched: z.literal(true), ...countExtras }).strict(),
 ]);
 
 export type AttendanceInput = z.infer<typeof attendanceSchema>;

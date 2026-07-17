@@ -71,6 +71,14 @@ rejected in `/speckit-clarify`.
 
 ## R4 — B29 comp/gift capture is an `attendance.write` concern, distinct from `gate.write`
 
+> **Refined 2026-07-17:** the mechanism below (a standalone `recordCheckinCounts` service +
+> `POST /api/events/[id]/checkin-counts` endpoint) was **replaced** by **per-check-in boolean checkboxes**
+> (`isComp`/`redeemedGiftCard`) on the existing attendance endpoint, each **incrementing** the door-record
+> count (counts-only, nothing stored on the row). The endpoint/service/schema were removed. The
+> `attendance.write`-not-`gate.write` conclusion still holds — the attendance endpoint already requires
+> `attendance.write`, so the Door Attendant captures comps with no `/gate` access. See spec Clarifications
+> (2026-07-17).
+
 **Decision**: New service `recordCheckinCounts(db, eventId, { compCount, giftCardRedemptionCount }, actor,
 authz)` and route `POST /api/events/[id]/checkin-counts` requiring `attendance.write`. It `ensureDoorRecord`s
 the event, asserts `attendance.write` event scope (layer 2), sets **only** `comp_count` and

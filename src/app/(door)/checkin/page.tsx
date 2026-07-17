@@ -35,9 +35,10 @@ export default function CheckinPage() {
   const [childrenCount, setChildrenCount] = useState("");
   const [isOpenBand, setIsOpenBand] = useState(false);
 
-  // Comp + gift-card redemption counts captured at check-in (B29).
-  const [compCount, setCompCount] = useState("");
-  const [giftCount, setGiftCount] = useState("");
+  // Per-check-in comp / gift-card redemption booleans (B29): each ticked box materializes a count on
+  // the door record (counts-only, never attributed). The FS confirms/overrides on the Gate page.
+  const [isComp, setIsComp] = useState(false);
+  const [redeemedGiftCard, setRedeemedGiftCard] = useState(false);
 
   // Checked-in roster (B33).
   const [roster, setRoster] = useState<Attendee[]>([]);
@@ -94,11 +95,19 @@ export default function CheckinPage() {
     );
   }
 
-  const extras = () => {
+  // Comp / gift booleans may ride on ANY check-in (including an anonymous unmatched admission).
+  const countExtras = () => ({
+    ...(isComp ? { isComp: true } : {}),
+    ...(redeemedGiftCard ? { redeemedGiftCard: true } : {}),
+  });
+
+  // Children / open-band describe a real person, so they ride only on the contact / new-contact paths.
+  const personExtras = () => {
     const children = Number(childrenCount) || 0;
     return {
       ...(children > 0 ? { childrenCount: children } : {}),
       ...(isCommunityDance && isOpenBand ? { isOpenBand: true } : {}),
+      ...countExtras(),
     };
   };
 
@@ -112,6 +121,8 @@ export default function CheckinPage() {
     setNewPhone("");
     setChildrenCount("");
     setIsOpenBand(false);
+    setIsComp(false);
+    setRedeemedGiftCard(false);
   }
 
   async function record(body: unknown, label: string, successNote?: string) {
@@ -132,7 +143,7 @@ export default function CheckinPage() {
   }
 
   function checkInExisting(c: Candidate) {
-    void record({ contactId: c.id, ...extras() }, c.displayName);
+    void record({ contactId: c.id, ...personExtras() }, c.displayName);
   }
 
   function recordNewContact() {
@@ -147,30 +158,13 @@ export default function CheckinPage() {
           ...(newEmail.trim() ? { email: newEmail.trim() } : {}),
           ...(newPhone.trim() ? { phone: newPhone.trim() } : {}),
         },
-        ...extras(),
+        ...personExtras(),
       },
       label,
       hasContactInfo
         ? undefined
         : `Recorded: ${label} — no email or phone on file, flagged for follow-up.`,
     );
-  }
-
-  async function saveCounts() {
-    if (!eventId) return setMessage("Pick an event first");
-    const res = await fetch(`/api/events/${eventId}/checkin-counts`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        compCount: Number(compCount) || 0,
-        giftCardRedemptionCount: Number(giftCount) || 0,
-      }),
-    });
-    if (!res.ok) {
-      const b = await res.json().catch(() => null);
-      return setMessage(b?.error?.message ?? "Could not save counts");
-    }
-    setMessage("Comp / gift-card counts saved — the FS confirms these on the Gate page.");
   }
 
   return (
@@ -209,6 +203,18 @@ export default function CheckinPage() {
             onChange={(e) => setChildrenCount(e.target.value)}
             style={{ width: 64 }}
           />
+        </label>
+        <label style={{ marginLeft: 16 }}>
+          <input type="checkbox" checked={isComp} onChange={(e) => setIsComp(e.target.checked)} />{" "}
+          Comp (admitted free)
+        </label>
+        <label style={{ marginLeft: 16 }}>
+          <input
+            type="checkbox"
+            checked={redeemedGiftCard}
+            onChange={(e) => setRedeemedGiftCard(e.target.checked)}
+          />{" "}
+          Gift card redeemed
         </label>
         {isCommunityDance && (
           <label style={{ marginLeft: 16 }}>
@@ -268,38 +274,8 @@ export default function CheckinPage() {
         <button onClick={recordNewContact} disabled={!newFirst.trim()}>
           Create + check in
         </button>
-        <button onClick={() => record({ unmatched: true }, "unmatched")}>
+        <button onClick={() => record({ unmatched: true, ...countExtras() }, "unmatched")}>
           Declined / unmatched
-        </button>
-      </div>
-
-      <h2>Comp &amp; gift-card counts</h2>
-      <p style={{ margin: "4px 0", color: "#555" }}>
-        <small>Recorded here by the Door Attendant; the FS confirms them on the Gate page.</small>
-      </p>
-      <div style={{ display: "grid", gap: 6, maxWidth: 360 }}>
-        <label>
-          Comps (admitted free):{" "}
-          <input
-            type="number"
-            min={0}
-            value={compCount}
-            onChange={(e) => setCompCount(e.target.value)}
-            style={{ width: 64 }}
-          />
-        </label>
-        <label>
-          Gift cards redeemed:{" "}
-          <input
-            type="number"
-            min={0}
-            value={giftCount}
-            onChange={(e) => setGiftCount(e.target.value)}
-            style={{ width: 64 }}
-          />
-        </label>
-        <button onClick={saveCounts} disabled={!eventId}>
-          Save counts
         </button>
       </div>
 

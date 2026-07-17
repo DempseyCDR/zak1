@@ -37,9 +37,10 @@ The suite must cover, at minimum:
    order correctly with a deterministic tiebreak and nulls last.
 3. **B35** — checking in a parent with `childrenCount: N` raises `events.attendance_count` by `1 + N`, and
    the organizer report's paying dancers rise by `1 + N` (children counted as paying, not comped).
-4. **B29** — `POST /api/events/[id]/checkin-counts` as a Door Attendant sets `comp_count` and
-   `gift_card_redemption_count`; the FS then sees them on `/gate` and can edit them (`gate.write`); paying
-   dancers drop by the comp count exactly as feature 014 did.
+4. **B29** — a check-in with `isComp: true` / `redeemedGiftCard: true` (per-check-in booleans on
+   `POST /api/events/[id]/attendance`) **increments** `comp_count` / `gift_card_redemption_count` on the door
+   record (counts-only, not stored on the row; allowed on `unmatched` too); the FS then sees them on `/gate`
+   and can override them (`gate.write`); paying dancers drop by the comp count exactly as feature 014 did.
 5. **B29 boundary** — a Door Attendant calling any `gate.write` path (`PATCH /api/door-records/[id]`,
    `PUT …/gate-sales`) is refused (`403`), and the refusal is audited. `/checkin` never exposes money.
 6. **B36** — an open-band check-in at a `community_dance` event: `is_open_band = true` on the row,
@@ -58,7 +59,7 @@ As the **Door Attendant** on `/checkin`:
    "Jane Smith (+3)").
 4. On a **community dance** event, check in an attendee with the **open-band** flag; confirm it is recorded
    and the flag does not appear/take effect on a non-community event.
-5. Enter **comp** and **gift-card redemption** counts; save. Confirm no money field is anywhere on `/checkin`
+5. Tick the **comp** and/or **gift-card redeemed** checkbox on a check-in. Confirm no money field is anywhere on `/checkin`
    and that navigating to `/gate` is refused for this role.
 
 As the **FS** on `/gate` for the same event:
