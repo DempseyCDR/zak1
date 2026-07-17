@@ -5,6 +5,7 @@ import { makeEvent, makeDoorRecord, makePerformer } from "./helpers/factories";
 import { attendance, events } from "@/server/db/schema";
 import { updateDoorRecord } from "@/server/domain/door/doorRecordService";
 import { createBooking } from "@/server/domain/bookings/bookingService";
+import { createContact } from "@/server/domain/contacts/contactService";
 import { recordAttendance } from "@/server/domain/attendance/attendanceService";
 import { purgeOldAttendance } from "@/server/domain/attendance/retentionService";
 import { assembleOrganizerReport } from "@/server/domain/organizer/reportService";
@@ -42,6 +43,31 @@ describe("organizer report", () => {
     expect(row.dancers).toBe(18);
     expect(row.caller).toBe("Cal Caller");
     expect((row.performers as unknown[]).length).toBe(1);
+  });
+
+  it("counts a family's children as paying dancers (B35)", async () => {
+    const evt = await makeEvent({ seriesKey: "tnc", eventDate: "2026-06-18" });
+    const parent = await createContact(db, { firstName: "Fam", lastName: "Ily" });
+    await recordAttendance(db, evt.id, { contactId: parent.id, childrenCount: 3 });
+
+    const report = await assembleOrganizerReport(db, "tnc", year);
+    const row = report.perDanceRows[0] as { dancers: number };
+    // attendance = 4 (parent + 3 children); dancers = 4 − 0 performers − 1 door = 3.
+    // Without counting children it would be 1 − 0 − 1 = 0, so the children are counted as paying.
+    expect(row.dancers).toBe(3);
+  });
+
+  it("counts an open-band musician as attending but not paying (B36)", async () => {
+    const evt = await makeEvent({ seriesKey: "community_dance", eventDate: "2026-06-18" });
+    const musician = await createContact(db, { firstName: "Ollie", lastName: "Openband" });
+    await recordAttendance(db, evt.id, { contactId: musician.id, isOpenBand: true });
+    for (let i = 0; i < 5; i++) await recordAttendance(db, evt.id, { unmatched: true });
+
+    const report = await assembleOrganizerReport(db, "community_dance", year);
+    const row = report.perDanceRows[0] as { dancers: number };
+    // attendance = 6 (musician + 5); effective comps = 0 manual + 1 open-band; performers = 0.
+    // dancers = 6 − 0 − 1 door − 1 comp = 4 (the musician attends but does not pay).
+    expect(row.dancers).toBe(4);
   });
 
   it("TNC report includes same-evening Community Dance events (FR-001)", async () => {

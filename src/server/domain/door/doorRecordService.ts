@@ -8,7 +8,11 @@ import type { Actor } from "@/server/auth/actor";
 import { writeAudit } from "@/server/lib/audit";
 import { dollarsToCents, centsToDollars } from "@/server/lib/money";
 import { depositCents, posFeeCents } from "./calc";
-import type { DoorRecordPatchInput, GateSalesPutInput } from "@/server/validation/door";
+import type {
+  CheckinCountsInput,
+  DoorRecordPatchInput,
+  GateSalesPutInput,
+} from "@/server/validation/door";
 
 /**
  * Assert a gate write against the door record's event scope (FR-020). A door record belongs to an
@@ -36,6 +40,7 @@ export type DoorRecordView = {
   deposit: number;
   giftCardRedemptionCount: number;
   compCount: number;
+  openBandCount: number; // feature 017 (B36): open-band comps; FS sees it read-only on /gate
 };
 
 function toView(row: DoorRecordRow): DoorRecordView {
@@ -51,6 +56,7 @@ function toView(row: DoorRecordRow): DoorRecordView {
     deposit: centsToDollars(row.depositCents),
     giftCardRedemptionCount: row.giftCardRedemptionCount,
     compCount: row.compCount,
+    openBandCount: row.openBandCount,
   };
 }
 
@@ -151,6 +157,56 @@ export async function updateDoorRecord(
     kind: "door_record.updated",
     actor,
     details: { doorRecordId: id, posFeeCents: row.posFeeCents, depositCents: row.depositCents },
+  });
+  return toView(row);
+}
+
+/**
+ * Feature 017 (B29): the Door Attendant captures comp + gift-card redemption COUNTS at check-in. This
+ * is an `attendance.write` concern, NOT `gate.write` — the door record's counts vs. its money are
+ * written by different roles (see capabilities.ts). It ensures the door record, sets ONLY the two
+ * counts, and never touches money, `open_band_count`, or the derived deposit/fee. The FS later
+ * confirms/edits the same two fields on /gate via `updateDoorRecord` (`gate.write`, FR-015).
+ */
+export async function recordCheckinCounts(
+  db: Db,
+  eventId: string,
+  input: CheckinCountsInput,
+  actor: string | null = null,
+  authz?: Actor,
+): Promise<DoorRecordView> {
+  const event = await db.query.events.findFirst({ where: eq(events.id, eventId) });
+  if (!event) throw errors.eventNotFound();
+  // Layer 2: the Door Attendant's attendance.write, scoped to this event's series/group.
+  if (authz) {
+    assertEventScope(authz, "attendance.write", {
+      seriesId: event.seriesId,
+      groupId: event.groupId,
+    });
+  }
+
+  const dr = await ensureDoorRecord(db, eventId, actor);
+  const [row] = await db
+    .update(doorRecords)
+    .set({
+      compCount: input.compCount ?? dr.compCount,
+      giftCardRedemptionCount: input.giftCardRedemptionCount ?? dr.giftCardRedemptionCount,
+      updatedAt: new Date(),
+    })
+    .where(eq(doorRecords.id, dr.id))
+    .returning();
+  if (!row) throw errors.doorRecordNotFound();
+
+  await db.insert(doorRecordAudit).values({
+    doorRecordId: dr.id,
+    action: "checkin_counts",
+    actor,
+    details: { fields: Object.keys(input) },
+  });
+  writeAudit({
+    kind: "door_record.checkin_counts",
+    actor,
+    details: { doorRecordId: dr.id, eventId },
   });
   return toView(row);
 }

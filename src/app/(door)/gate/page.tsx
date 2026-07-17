@@ -43,6 +43,10 @@ export default function GatePage() {
   const [cashPaidOut, setCashPaidOut] = useState("");
   const [cashPaidOutReason, setCashPaidOutReason] = useState("");
   const [compCount, setCompCount] = useState("");
+  // Feature 017 (B29/B36): counts the Door Attendant captured at check-in; the FS confirms comp/gift
+  // (editable) and sees the open-band comp count (read-only).
+  const [giftCount, setGiftCount] = useState("");
+  const [openBandCount, setOpenBandCount] = useState(0);
   const [deposit, setDeposit] = useState<number | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   // contact search for adding a named line
@@ -89,6 +93,10 @@ export default function GatePage() {
     if (!res.ok) return setMessage("Could not open door record");
     const data = await res.json();
     setDoorRecordId(data.doorRecord.id);
+    // Pre-fill the counts the Door Attendant captured at check-in, for the FS to confirm (FR-015).
+    setCompCount(String(data.doorRecord.compCount ?? 0));
+    setGiftCount(String(data.doorRecord.giftCardRedemptionCount ?? 0));
+    setOpenBandCount(data.doorRecord.openBandCount ?? 0);
 
     // Load this event's bookings that need a check, for check-number entry.
     const bRes = await fetch(`/api/events/${selectedEventId}/bookings`);
@@ -179,6 +187,7 @@ export default function GatePage() {
         seedFloat: Number(seedFloat) || 0,
         cashPaidOut: Number(cashPaidOut) || 0,
         compCount: Number(compCount) || 0,
+        giftCardRedemptionCount: Number(giftCount) || 0,
         ...(cashPaidOutReason ? { cashPaidOutReason } : {}),
       }),
     });
@@ -345,6 +354,16 @@ export default function GatePage() {
           Comps (admitted free){" "}
           <input value={compCount} onChange={(e) => setCompCount(e.target.value)} />
         </label>
+        <label>
+          Gift cards redeemed{" "}
+          <input value={giftCount} onChange={(e) => setGiftCount(e.target.value)} />
+        </label>
+        <p style={{ margin: "4px 0", color: "#555" }}>
+          <small>
+            Open-band comps (from check-in, read-only): <strong>{openBandCount}</strong> — added to
+            comps when deriving paying dancers.
+          </small>
+        </p>
         <button onClick={save} disabled={!doorRecordId}>
           Save
         </button>

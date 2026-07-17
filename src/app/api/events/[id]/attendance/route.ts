@@ -15,8 +15,10 @@ export const POST = withAuth<{ id: string }>({ requires: "attendance.write" }, a
   return NextResponse.json(row, { status: 201 });
 });
 
-export const GET = withAuth<{ id: string }>({ requires: "base" }, async (_req, ctx) => {
+export const GET = withAuth<{ id: string }>({ requires: "base" }, async (req, ctx) => {
   const { id } = await ctx.params;
-  const view = await listEventAttendance(db, id);
+  // B33: roster sort by first or last name (default last).
+  const sort = new URL(req.url).searchParams.get("sort") === "first" ? "first" : "last";
+  const view = await listEventAttendance(db, id, sort);
   return NextResponse.json(view);
 });

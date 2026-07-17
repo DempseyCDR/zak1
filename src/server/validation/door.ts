@@ -39,6 +39,16 @@ export const doorRecordPatchSchema = z.object({
   compCount: z.number().int().min(0).optional(),
 });
 
+// Feature 017 (B29): the Door Attendant captures comp + gift-card redemption COUNTS at check-in
+// (`attendance.write`), materialized on the door record for the FS to confirm on /gate. No money
+// fields — the Door Attendant never sets money (FR-018).
+export const checkinCountsSchema = z.object({
+  compCount: z.number().int().min(0).optional(),
+  giftCardRedemptionCount: z.number().int().min(0).optional(),
+});
+
+export type CheckinCountsInput = z.infer<typeof checkinCountsSchema>;
+
 // Admission is never an entered gate line — it is derived in the report.
 const gateCategory = z.enum([
   "merchandise",

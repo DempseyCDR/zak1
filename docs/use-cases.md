@@ -292,8 +292,13 @@ authenticated roles inherit the Organizer base. ⚠️ = inferred or still open.
 >
 > What makes the series special is a **rule, not a shape**: it runs on a mix of **paid musicians** (booked)
 > plus **open-band musicians** (unpaid volunteers), and an open-band musician is **comp'd into all events of
-> the event group**, not merely the one they played (B36). ⚠️ Feature 014's `door_records.comp_count` is a
-> *single-event* counter and cannot express that — the comp model must become event-group-aware.
+> the event group**, not merely the one they played (B36). **Resolved in feature 017** (not by making the
+> counter event-group-aware): the comp is recorded **per event on redemption** — a persisted
+> `door_records.open_band_count` sits beside `comp_count` (kept separate so the FS's comp edit never
+> clobbers it and so it survives the 90-day attendance purge), and the report subtracts effective comps =
+> `comp_count + open_band_count`. Each event still tallies its own comps; there is no cross-event counter or
+> per-musician entitlement ledger. An open-band flag is **rejected for a booked performer** for the event
+> (they are already counted as a performer).
 >
 > Family check-in with a children count is **not** specific to this series; it applies to **every** series
 > (B35).

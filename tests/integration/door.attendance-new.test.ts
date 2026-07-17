@@ -53,4 +53,41 @@ describe("POST /api/events/:id/attendance (new contact)", () => {
     );
     expect(res.status).toBe(201);
   });
+
+  // Feature 017 (B34): first + last name and an editable display name at the door.
+  it("persists first and last name, deriving display_name = 'first last'", async () => {
+    const evt = await makeEvent();
+    const res = await ATTEND(
+      jsonReq("POST", `/api/events/${evt.id}/attendance`, {
+        newContact: { firstName: "Jane", lastName: "Smith" },
+      }),
+      ctx({ id: evt.id }),
+    );
+    expect(res.status).toBe(201);
+    const att = await res.json();
+
+    const contact = await db.query.contacts.findFirst({ where: eq(contacts.id, att.contactId) });
+    expect(contact?.firstName).toBe("Jane");
+    expect(contact?.lastName).toBe("Smith");
+    expect(contact?.displayNameOverride).toBeNull();
+    expect(contact?.displayName).toBe("Jane Smith");
+  });
+
+  it("persists an edited display name as the override, keeping first/last separate", async () => {
+    const evt = await makeEvent();
+    const res = await ATTEND(
+      jsonReq("POST", `/api/events/${evt.id}/attendance`, {
+        newContact: { firstName: "Jane", lastName: "Smith", displayNameOverride: "DJ Jane" },
+      }),
+      ctx({ id: evt.id }),
+    );
+    expect(res.status).toBe(201);
+    const att = await res.json();
+
+    const contact = await db.query.contacts.findFirst({ where: eq(contacts.id, att.contactId) });
+    expect(contact?.firstName).toBe("Jane");
+    expect(contact?.lastName).toBe("Smith");
+    expect(contact?.displayNameOverride).toBe("DJ Jane");
+    expect(contact?.displayName).toBe("DJ Jane");
+  });
 });

@@ -34,9 +34,9 @@ files**, which are genuinely independent. This ordering also honours the spec's 
 
 **Purpose**: Confirm a clean baseline before touching anything.
 
-- [ ] T001 Confirm baseline green on `main`: `pnpm test`, `pnpm exec tsc --noEmit`, `pnpm run lint` all pass
+- [x] T001 Confirm baseline green on `main`: `pnpm test`, `pnpm exec tsc --noEmit`, `pnpm run lint` all pass
   (run with Node 24: `export NVM_DIR="$HOME/.nvm"; . "$NVM_DIR/nvm.sh"; nvm use 24`).
-- [ ] T002 (Optional) Snapshot `zak1_dev` before the migration: source env, then
+- [x] T002 (Optional) Snapshot `zak1_dev` before the migration: source env, then
   `pg_dump -Fc "$DATABASE_URL" -f ~/zak1_pre_0022.dump`.
 
 ---
@@ -49,14 +49,14 @@ additive (contrast 016's destructive `0021`).
 
 **⚠️ CRITICAL**: Complete before US3 and US5.
 
-- [ ] T003 Create migration `src/server/db/migrations/0022_checkin_overhaul.sql` adding, idempotently,
+- [x] T003 Create migration `src/server/db/migrations/0022_checkin_overhaul.sql` adding, idempotently,
   `attendance.children_count int NOT NULL DEFAULT 0`, `attendance.is_open_band boolean NOT NULL DEFAULT
   false`, and `door_records.open_band_count int NOT NULL DEFAULT 0`.
-- [ ] T004 [P] Extend Drizzle schema `src/server/db/schema/attendance.ts`: add `childrenCount`
+- [x] T004 [P] Extend Drizzle schema `src/server/db/schema/attendance.ts`: add `childrenCount`
   (`children_count`) and `isOpenBand` (`is_open_band`) columns matching the migration.
-- [ ] T005 [P] Extend Drizzle schema `src/server/db/schema/door.ts`: add `openBandCount`
+- [x] T005 [P] Extend Drizzle schema `src/server/db/schema/door.ts`: add `openBandCount`
   (`open_band_count`) column matching the migration.
-- [ ] T006 Apply and verify: `pnpm run db:migrate` (zak1_dev) and confirm `zak1_test` auto-migrates on the
+- [x] T006 Apply and verify: `pnpm run db:migrate` (zak1_dev) and confirm `zak1_test` auto-migrates on the
   next test run; `pnpm exec tsc --noEmit` clean with the new columns.
 
 **Checkpoint**: Schema ready — all stories can proceed in priority order.
@@ -73,21 +73,21 @@ the contact persists first/last + chosen display name and is checked in.
 
 ### Tests for User Story 1 ⚠️ (write first, confirm they FAIL)
 
-- [ ] T007 [P] [US1] Extend `tests/integration/door.attendance-new.test.ts`: a `newContact` with `lastName`
+- [x] T007 [P] [US1] Extend `tests/integration/door.attendance-new.test.ts`: a `newContact` with `lastName`
   persists `first_name`/`last_name`; a `displayNameOverride` sets `display_name` (override wins) while
   first/last are preserved; omitted override → `display_name = "first last"`; contact is checked in.
-- [ ] T008 [P] [US1] Add unit test `tests/unit/contacts.deriveNames.test.ts` for `deriveContactNames` at the
+- [x] T008 [P] [US1] Add unit test `tests/unit/contacts.deriveNames.test.ts` for `deriveContactNames` at the
   door: override wins for `displayName`/`nameNormalized`; `dedupNormalized` ignores the override; blank last
   name → first-name-only display.
 
 ### Implementation for User Story 1
 
-- [ ] T009 [US1] Extend `src/server/validation/attendance.ts` `newContact` variant: add `lastName`
+- [x] T009 [US1] Extend `src/server/validation/attendance.ts` `newContact` variant: add `lastName`
   (schema-optional, UI-required) and `displayNameOverride?` (trimmed, min 1 when present).
-- [ ] T010 [US1] Update `recordAttendance` in `src/server/domain/attendance/attendanceService.ts`: pass
+- [x] T010 [US1] Update `recordAttendance` in `src/server/domain/attendance/attendanceService.ts`: pass
   `lastName` + `displayNameOverride` into `deriveContactNames` and persist `display_name_override` on the
   created contact.
-- [ ] T011 [US1] Update `src/app/(door)/checkin/page.tsx` new-contact form: add a required **Last name** field
+- [x] T011 [US1] Update `src/app/(door)/checkin/page.tsx` new-contact form: add a required **Last name** field
   and an editable **Display name** field pre-filled with "First Last"; include `lastName`/`displayNameOverride`
   in the `newContact` body.
 
@@ -105,19 +105,19 @@ ordering.
 
 ### Tests for User Story 2 ⚠️ (write first, confirm they FAIL)
 
-- [ ] T012 [P] [US2] Extend `tests/integration/attendance.list.test.ts`: the response now carries
+- [x] T012 [P] [US2] Extend `tests/integration/attendance.list.test.ts`: the response now carries
   `firstName`/`lastName` (plus `childrenCount`/`isOpenBand`); `?sort=first` and `?sort=last` order by the
   chosen field with the other as tiebreak and unmatched placeholders last.
 
 ### Implementation for User Story 2
 
-- [ ] T013 [US2] Update `listEventAttendance` in `src/server/domain/attendance/attendanceService.ts`: select
+- [x] T013 [US2] Update `listEventAttendance` in `src/server/domain/attendance/attendanceService.ts`: select
   `first_name`/`last_name`/`children_count`/`is_open_band`; accept a `sort: "first" | "last"` argument and
   order in SQL (tiebreak on the other name; nulls last). Keep `count`/`displayName` (contact-tracing consumer
   unaffected).
-- [ ] T014 [US2] Update `GET` in `src/app/api/events/[id]/attendance/route.ts`: parse `?sort=first|last`
+- [x] T014 [US2] Update `GET` in `src/app/api/events/[id]/attendance/route.ts`: parse `?sort=first|last`
   (default `last`) and pass to the service.
-- [ ] T015 [US2] Add a roster panel to `src/app/(door)/checkin/page.tsx`: fetch `GET …/attendance`, render
+- [x] T015 [US2] Add a roster panel to `src/app/(door)/checkin/page.tsx`: fetch `GET …/attendance`, render
   the list with a first/last sort toggle, and show a family "(+N)" badge and an open-band marker per row.
 
 **Checkpoint**: Roster visible and sortable; US1 + US2 both work.
@@ -134,20 +134,20 @@ paying-dancer count each rise by `1 + N`.
 
 ### Tests for User Story 3 ⚠️ (write first, confirm they FAIL)
 
-- [ ] T016 [P] [US3] New `tests/integration/checkin.family.test.ts`: a check-in with `childrenCount: N` stores
+- [x] T016 [P] [US3] New `tests/integration/checkin.family.test.ts`: a check-in with `childrenCount: N` stores
   `children_count = N` on the parent's attendance row and increments `events.attendance_count` by `1 + N`;
   `childrenCount` is rejected on the `unmatched` variant.
-- [ ] T017 [P] [US3] Extend an organizer test (`tests/unit/organizer.metrics.test.ts` or the relevant
+- [x] T017 [P] [US3] Extend an organizer test (`tests/unit/organizer.metrics.test.ts` or the relevant
   integration test) proving paying dancers rise by `1 + N` for a family (children counted as paying, not
   comped) with the `payingDancers` formula unchanged.
 
 ### Implementation for User Story 3
 
-- [ ] T018 [US3] Extend `src/server/validation/attendance.ts`: add `childrenCount?` (int ≥ 0, default 0) to
+- [x] T018 [US3] Extend `src/server/validation/attendance.ts`: add `childrenCount?` (int ≥ 0, default 0) to
   the existing-contact (`{ contactId }`) and `newContact` variants only (NOT `unmatched`).
-- [ ] T019 [US3] Update `recordAttendance` in `src/server/domain/attendance/attendanceService.ts`: store
+- [x] T019 [US3] Update `recordAttendance` in `src/server/domain/attendance/attendanceService.ts`: store
   `children_count` on the attendance row and increment `events.attendance_count` by `1 + childrenCount`.
-- [ ] T020 [US3] Update `src/app/(door)/checkin/page.tsx`: add a **children count** input on the
+- [x] T020 [US3] Update `src/app/(door)/checkin/page.tsx`: add a **children count** input on the
   existing-contact and new-contact check-in paths; include it in the request body.
 
 **Checkpoint**: Families check in as one row + count; paying-dancer math correct.
@@ -165,30 +165,30 @@ record and are visible/editable to the FS on `/gate`; comp still reduces paying 
 
 ### Tests for User Story 4 ⚠️ (write first, confirm they FAIL)
 
-- [ ] T021 [P] [US4] New `tests/integration/checkin.counts.test.ts`: `POST /api/events/[id]/checkin-counts`
+- [x] T021 [P] [US4] New `tests/integration/checkin.counts.test.ts`: `POST /api/events/[id]/checkin-counts`
   ensures the door record and sets `comp_count` + `gift_card_redemption_count` (money fields and
   `open_band_count` untouched); the FS then reads them via `/gate` and can edit them; paying dancers drop by
   the comp count.
-- [ ] T022 [P] [US4] Boundary test (new `tests/integration/checkin.counts.boundary.test.ts` or extend
+- [x] T022 [P] [US4] Boundary test (new `tests/integration/checkin.counts.boundary.test.ts` or extend
   `tests/integration/authz.boundaries.test.ts`): a Door Attendant is refused every `gate.write` path
   (`PATCH /api/door-records/[id]`, `PUT …/gate-sales`) with `403` and an audited refusal, while
   `POST …/checkin-counts` is allowed under `attendance.write`.
 
 ### Implementation for User Story 4
 
-- [ ] T023 [US4] Add `checkinCountsSchema` to `src/server/validation/door.ts`: `compCount?`,
+- [x] T023 [US4] Add `checkinCountsSchema` to `src/server/validation/door.ts`: `compCount?`,
   `giftCardRedemptionCount?` (int ≥ 0), no money fields.
-- [ ] T024 [US4] Add `recordCheckinCounts(db, eventId, input, actor, authz)` to
+- [x] T024 [US4] Add `recordCheckinCounts(db, eventId, input, actor, authz)` to
   `src/server/domain/door/doorRecordService.ts`: `ensureDoorRecord`, `assertEventScope(actor,
   "attendance.write", { seriesId, groupId })`, set only `comp_count`/`gift_card_redemption_count`, write a
   `door_record_audit` row (`action: "checkin_counts"`) + `writeAudit`. Do NOT touch money, `open_band_count`,
   or recompute deposit/fee.
-- [ ] T025 [US4] Add route `src/app/api/events/[id]/checkin-counts/route.ts`: `POST` with
+- [x] T025 [US4] Add route `src/app/api/events/[id]/checkin-counts/route.ts`: `POST` with
   `withAuth({ requires: "attendance.write" })`, parse `checkinCountsSchema`, call `recordCheckinCounts` with
   `ctx.actor`.
-- [ ] T026 [US4] Update `src/app/(door)/checkin/page.tsx`: add **comp** and **gift-card redemption** count
+- [x] T026 [US4] Update `src/app/(door)/checkin/page.tsx`: add **comp** and **gift-card redemption** count
   inputs that POST to `…/checkin-counts`; keep the page free of any money field.
-- [ ] T027 [US4] Update `src/app/(door)/gate/page.tsx`: show the materialized `comp_count` **and add a
+- [x] T027 [US4] Update `src/app/(door)/gate/page.tsx`: show the materialized `comp_count` **and add a
   gift-card-redemption-count input** (the page has none today — only a comp input and a gift-card *sales*
   dollar line). Wire the redemption count into the existing `gate.write` PATCH body so the FS can
   edit/override it per FR-015 (`doorRecordPatchSchema`/`updateDoorRecord` already accept
@@ -212,32 +212,32 @@ rejected on a non-`community_dance` event.
 
 ### Tests for User Story 5 ⚠️ (write first, confirm they FAIL)
 
-- [ ] T028 [P] [US5] New `tests/integration/checkin.openBand.test.ts`: an open-band check-in at a
+- [x] T028 [P] [US5] New `tests/integration/checkin.openBand.test.ts`: an open-band check-in at a
   `community_dance` event sets `is_open_band = true`, increments `events.attendance_count` by 1 and
   `door_records.open_band_count` by 1 (door record ensured); the flag is rejected on a non-`community_dance`
   event (FR-022); it is accepted on existing-contact and new-contact paths, not `unmatched`; **and it is
   rejected when the contact is a booked performer for that event (FR-022a)**.
-- [ ] T029 [P] [US5] Extend an organizer test proving `effectiveComps = comp_count + open_band_count` feeds
+- [x] T029 [P] [US5] Extend an organizer test proving `effectiveComps = comp_count + open_band_count` feeds
   `payingDancers`, so an open-band musician counts as attending but not paying, and totals stay correct.
 
 ### Implementation for User Story 5
 
-- [ ] T030 [US5] Extend `src/server/validation/attendance.ts`: add `isOpenBand?` (boolean) to the
+- [x] T030 [US5] Extend `src/server/validation/attendance.ts`: add `isOpenBand?` (boolean) to the
   existing-contact and `newContact` variants (not `unmatched`).
-- [ ] T031 [US5] Update `recordAttendance` in `src/server/domain/attendance/attendanceService.ts`: when
+- [x] T031 [US5] Update `recordAttendance` in `src/server/domain/attendance/attendanceService.ts`: when
   `isOpenBand`, verify the event's series `key === "community_dance"` (else reject) **and verify the contact
   is not a booked performer for that event (else reject — FR-022a)**; within one transaction set
   `is_open_band` on the row, increment `attendance_count` by 1, `ensureDoorRecord`, and increment
   `open_band_count` by 1.
-- [ ] T032 [US5] Update the paying-dancer computation in `src/server/domain/organizer/reportService.ts`
+- [x] T032 [US5] Update the paying-dancer computation in `src/server/domain/organizer/reportService.ts`
   (the **only** caller of `payingDancers`, at line ~54): pass `effectiveComps = comp_count + open_band_count`
   as the `compCount` arg (`src/server/domain/organizer/danceResult.ts` signature unchanged). Also carry
   `open_band_count` into `src/server/domain/gate/eventMoney.ts`'s view **only if** the `/gate` page displays
   paying dancers from it — `eventMoney` currently just exposes `compCount` as a field and does not call
   `payingDancers`, so this is a display-consistency change, not a correctness one. Verify before editing.
-- [ ] T033 [US5] Update `src/app/(door)/gate/page.tsx`: show `open_band_count` read-only alongside comp/gift
+- [x] T033 [US5] Update `src/app/(door)/gate/page.tsx`: show `open_band_count` read-only alongside comp/gift
   so the FS sees the full comp picture.
-- [ ] T034 [US5] Update `src/app/(door)/checkin/page.tsx`: offer the **open-band** flag only when the selected
+- [x] T034 [US5] Update `src/app/(door)/checkin/page.tsx`: offer the **open-band** flag only when the selected
   event is in the `community_dance` series; include it in the check-in body.
 
 **Checkpoint**: All five stories functional and independently tested.
@@ -246,20 +246,20 @@ rejected on a non-`community_dance` event.
 
 ## Phase 8: Polish & Cross-Cutting Concerns
 
-- [ ] T035 Run `tests/integration/auth.routeInventory.test.ts` — confirm the new `checkin-counts` route is
+- [x] T035 Run `tests/integration/auth.routeInventory.test.ts` — confirm the new `checkin-counts` route is
   auto-discovered with its declared `attendance.write` requirement (self-maintaining; no hand edit — CLAUDE.md
   convention).
-- [ ] T036 [P] Update `specs/BACKLOG.md`: mark **B34, B33, B35, B36, B29** done → feature 017 and note **B21**
+- [x] T036 [P] Update `specs/BACKLOG.md`: mark **B34, B33, B35, B36, B29** done → feature 017 and note **B21**
   resolved via B29 (per the file's "when a backlog item is picked up" rule).
-- [ ] T037 [P] Review `docs/use-cases.md`: confirm the Door Attendant's comp/gift capture and open-band flag,
+- [x] T037 [P] Review `docs/use-cases.md`: confirm the Door Attendant's comp/gift capture and open-band flag,
   and the FS's `/gate` confirmation, are consistent with the matrix (update wording only if needed).
-- [ ] T038 [P] (Optional) Update `src/server/db/seed.ts` to exercise the new fields for the demo (a family
+- [x] T038 [P] (Optional) Update `src/server/db/seed.ts` to exercise the new fields for the demo (a family
   check-in with children; an open-band musician at a community dance) so `zak1_dev` shows the behaviour.
-- [ ] T039 Full gate green: `pnpm test`, `pnpm exec tsc --noEmit`, `pnpm run lint`, `pnpm exec prettier
+- [x] T039 Full gate green: `pnpm test`, `pnpm exec tsc --noEmit`, `pnpm run lint`, `pnpm exec prettier
   --check .`.
-- [ ] T040 Run the [quickstart.md](quickstart.md) walkthrough via `preview_start {name:"dev"}` — verify the
+- [x] T040 Run the [quickstart.md](quickstart.md) walkthrough via `preview_start {name:"dev"}` — verify the
   Door Attendant flow end-to-end and the `/gate` exclusion, capture a screenshot as proof.
-- [ ] T041 Author the next project-context snapshot (e.g. `zak1_Project_Context_v1.7.md`) recording P3-3
+- [x] T041 Author the next project-context snapshot (e.g. `zak1_Project_Context_v1.7.md`) recording P3-3
   shipped, and update the auto-memory status file; commit the feature as one atomic commit on `main` with the
   `Co-Authored-By` trailer (ask before pushing).
 

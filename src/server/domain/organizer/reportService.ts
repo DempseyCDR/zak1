@@ -51,7 +51,10 @@ export async function assembleOrganizerReport(
     const { bookings, performerTotal } = await getBookingsForEvent(db, ev.id);
     const performerTotalCents = bookings.reduce((a, b) => a + b.payCents, 0);
     const performerCount = new Set(bookings.map((b) => b.performerId)).size;
-    const dancers = payingDancers(ev.attendanceCount, performerCount, gate.compCount);
+    // B36: open-band musicians are comped too. Effective comps = manual comp count + open-band count
+    // (both persisted counters, so historical quarters stay correct after the 90-day attendance purge).
+    const effectiveComps = gate.compCount + gate.openBandCount;
+    const dancers = payingDancers(ev.attendanceCount, performerCount, effectiveComps);
 
     const rentCents = await resolveEventRentCents(db, ev);
     const ongoingCents = await resolveOngoingTotalCents(db, ev.seriesId, ev.eventDate);
