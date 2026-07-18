@@ -22,7 +22,7 @@ always **integer cents**. Single tenant.
 | Area | Choice |
 |---|---|
 | Language | TypeScript 5.7 (strictest) |
-| Framework | Next.js 15.1.3 (App Router, RSC) · React 19 |
+| Framework | Next.js 16.2.10 (App Router, RSC, Turbopack) · React 19.2 |
 | DB | PostgreSQL 16 (local Homebrew) |
 | ORM | Drizzle · hand-authored SQL migrations |
 | Validation | Zod at every API boundary |
@@ -33,6 +33,13 @@ always **integer cents**. Single tenant.
 **⚠️ Shell gotcha:** the Bash tool defaults to Node 18. Prefix every `node`/`pnpm`:
 `export NVM_DIR="$HOME/.nvm"; . "$NVM_DIR/nvm.sh"; nvm use 24 >/dev/null 2>&1`. For `psql`/`pg_dump`:
 `set -a; . ./.env; set +a`.
+
+**⚠️ Next 16 upgrade (2026-07-18):** bumped from 15.x to **16.2.10** (React already 19.2). Two fixes were
+needed: (1) `dev/routes/page.tsx` must NOT pass a dynamic-segment path (`/organizer/[seriesKey]`) to
+`<Link>` — App Router now hard-errors; dynamic paths render as plain text. (2) `.markdownlint-cli2.jsonc`
+now ignores `.next/**` — the Turbopack build vendors deps under `.next/node_modules` whose READMEs the
+`**/*.md` glob would otherwise lint. `pnpm run lint` uses `eslint` directly (not the removed `next lint`),
+so it was unaffected. Full suite (450), tsc, build all green on 16.
 
 ## 3. Databases
 

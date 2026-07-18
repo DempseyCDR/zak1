@@ -37,6 +37,9 @@
   // Vendored/tool-managed and generated content.
   "ignores": [
     "node_modules/**",
+    // Next.js build output. As of Next 16 the Turbopack build vendors deps under .next/node_modules
+    // (e.g. pino's README), so a bare glob would lint third-party markdown; never lint the build dir.
+    ".next/**",
     // SpecKit owns these; they are overwritten on upgrade, so our style must not fight theirs.
     ".specify/**",
     ".claude/**"

@@ -44,7 +44,9 @@ export default async function DevRoutesPage() {
       <ul>
         {ui.map((p) => (
           <li key={p.path}>
-            <Link href={p.path}>{p.path}</Link>
+            {/* A dynamic-segment path (e.g. /organizer/[seriesKey]) is a template, not a navigable
+                URL — the App Router rejects it as a <Link> href, so show it as plain text. */}
+            {p.path.includes("[") ? <code>{p.path}</code> : <Link href={p.path}>{p.path}</Link>}
           </li>
         ))}
       </ul>
