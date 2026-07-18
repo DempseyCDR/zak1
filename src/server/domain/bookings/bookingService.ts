@@ -9,6 +9,7 @@ import { writeAudit } from "@/server/lib/audit";
 import { centsToDollars, dollarsToCents } from "@/server/lib/money";
 import { PERFORMER_RULES, bookingRequiresCheck } from "@/server/domain/performers/performerRules";
 import { resolveParameterCents } from "@/server/domain/parameters/seriesParameterService";
+import { isAllowedBookingTransition } from "./bookingStatus";
 import type { BookingCreateInput, BookingPatchInput } from "@/server/validation/performers";
 
 /** Types that are always free regardless of input. */
@@ -140,6 +141,58 @@ export async function patchBooking(
   await assertBookingScope(db, authz, id);
 
   const type = current.performerType;
+
+  // B23 re-point: change the performer on this same slot → a fresh `proposed` booking for the new
+  // performer. Clear the check number (U1: a payment to the previous performer must never carry over) and
+  // reset pay/override/donated to the slot's standard rate.
+  if (input.performerId !== undefined && input.performerId !== current.performerId) {
+    const newPerformer = await db.query.performers.findFirst({
+      where: eq(performers.id, input.performerId),
+    });
+    if (!newPerformer) throw errors.performerNotFound();
+    const event = await db.query.events.findFirst({ where: eq(events.id, current.eventId) });
+    if (!event) throw errors.eventNotFound();
+    const rule = PERFORMER_RULES[type];
+    let payCents = 0;
+    if (!isForcedFree(type) && rule.rateKind) {
+      payCents = await resolveParameterCents(db, {
+        category: "rate",
+        kind: rule.rateKind,
+        seriesId: event.seriesId,
+        onDate: event.eventDate,
+      });
+    }
+    const [row] = await db
+      .update(bookings)
+      .set({
+        performerId: input.performerId,
+        status: "proposed",
+        checkNumber: null,
+        isOverridden: false,
+        isDonated: false,
+        payCents,
+        requiresCheck: bookingRequiresCheck(type, payCents),
+        ...(input.note !== undefined ? { note: input.note } : {}),
+        updatedAt: new Date(),
+      })
+      .where(eq(bookings.id, id))
+      .returning();
+    if (!row) throw errors.bookingNotFound();
+    writeAudit({ kind: "booking.updated", actor, details: { bookingId: id, repointed: true } });
+    return row;
+  }
+
+  // B23 status transition (no performer change): validate proposed→requested→confirmed / →declined.
+  let status = current.status;
+  if (input.status !== undefined && input.status !== current.status) {
+    if (!isAllowedBookingTransition(current.status, input.status)) {
+      throw errors.validation(
+        `Illegal booking status transition: ${current.status} → ${input.status}.`,
+      );
+    }
+    status = input.status;
+  }
+
   let payCents = current.payCents;
   let isDonated = current.isDonated;
   let isOverridden = current.isOverridden;
@@ -162,6 +215,7 @@ export async function patchBooking(
   const [row] = await db
     .update(bookings)
     .set({
+      status,
       payCents,
       isDonated,
       isOverridden,

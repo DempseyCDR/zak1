@@ -20,10 +20,13 @@ export async function groupEventBookingsForDisplay(
   eventId: string,
 ): Promise<EventPublicPerformers> {
   const { bookings } = await getBookingsForEvent(db, eventId);
+  // Feature 018 (FR-022): the public shows only CONFIRMED bookings — proposed/requested/declined
+  // performers are not advertised. (Internal reports still use all statuses via getBookingsForEvent.)
+  const confirmed = bookings.filter((b) => b.status === "confirmed");
 
-  const adHoc = bookings.filter((b) => b.bandId === null);
+  const adHoc = confirmed.filter((b) => b.bandId === null);
   const bandIds = [
-    ...new Set(bookings.filter((b) => b.bandId !== null).map((b) => b.bandId as string)),
+    ...new Set(confirmed.filter((b) => b.bandId !== null).map((b) => b.bandId as string)),
   ];
 
   const bandBlocks: BandBlock[] = [];

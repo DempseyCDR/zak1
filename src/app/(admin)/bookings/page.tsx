@@ -20,6 +20,13 @@ type Booking = {
   payCents: number;
   requiresCheck: boolean;
   isDonated: boolean;
+  status: string;
+};
+
+// Feature 018 (B23): the next forward status, if any (proposed → requested → confirmed).
+const NEXT_STATUS: Record<string, string | undefined> = {
+  proposed: "requested",
+  requested: "confirmed",
 };
 
 const TYPES = [
@@ -165,6 +172,22 @@ export default function BookingsPage() {
     void loadBookings(eventId);
   }
 
+  // B23: advance/decline status, or re-point the slot to a different performer.
+  async function patchBooking(bookingId: string, body: Record<string, unknown>) {
+    setError(null);
+    const res = await fetch(`/api/bookings/${bookingId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) {
+      const b = await res.json().catch(() => null);
+      setError(b?.error?.message ?? "Failed");
+      return;
+    }
+    void loadBookings(eventId);
+  }
+
   return (
     <main style={{ padding: 24, maxWidth: 760 }}>
       <h1>Bookings</h1>
@@ -221,9 +244,36 @@ export default function BookingsPage() {
 
       <ul>
         {bookings.map((b) => (
-          <li key={b.id}>
+          <li key={b.id} style={{ marginBottom: 4 }}>
             {b.performerName} — {b.performerType} — ${(b.payCents / 100).toFixed(2)}
             {b.isDonated ? " (donated)" : ""} {b.requiresCheck ? "• check" : ""}{" "}
+            <strong>[{b.status}]</strong>{" "}
+            {NEXT_STATUS[b.status] && (
+              <button onClick={() => patchBooking(b.id, { status: NEXT_STATUS[b.status] })}>
+                → {NEXT_STATUS[b.status]}
+              </button>
+            )}{" "}
+            {b.status !== "declined" && (
+              <button onClick={() => patchBooking(b.id, { status: "declined" })}>Decline</button>
+            )}{" "}
+            {b.status === "declined" && (
+              <button onClick={() => patchBooking(b.id, { status: "proposed" })}>Revive</button>
+            )}{" "}
+            <select
+              defaultValue=""
+              onChange={(e) => {
+                if (e.target.value) patchBooking(b.id, { performerId: e.target.value });
+              }}
+            >
+              <option value="">re-point…</option>
+              {performers
+                .filter((p) => p.id !== b.performerId)
+                .map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.displayName}
+                  </option>
+                ))}
+            </select>{" "}
             <button onClick={() => removeBooking(b.id)}>Remove</button>
           </li>
         ))}

@@ -2,6 +2,7 @@ import { asc, eq, gte } from "drizzle-orm";
 import type { Db } from "@/server/db/client";
 import { events, series, venues } from "@/server/db/schema";
 import { groupEventBookingsForDisplay } from "@/server/domain/bands/publicDisplay";
+import { centsToDollars } from "@/server/lib/money";
 import { mapPublicPerformers, type PublicPerformer } from "./performerDisplay";
 import { venueMapUrl } from "./venueMap";
 import { formatWallClock } from "./wallClock";
@@ -13,6 +14,8 @@ export type PublicScheduleItem = {
   venueName: string | null;
   label: string | null;
   startTime: string | null; // display-formatted wall-clock (e.g. "7:30 PM"), venue-local
+  cancelled: boolean; // feature 018 (B25): still listed, shown with a cancelled marker
+  advertisedPrice: number | null; // feature 018 (B27): public display price in dollars; null = not shown
 };
 
 export type PublicBandBlock = { name: string; bio: string | null; photoUrl: string | null };
@@ -25,6 +28,8 @@ export type PublicEventDetail = {
   label: string | null;
   startTime: string | null; // display-formatted wall-clock, venue-local
   description: string | null;
+  cancelled: boolean; // feature 018 (B25)
+  advertisedPrice: number | null; // feature 018 (B27), dollars; display-only
   bandBlocks: PublicBandBlock[];
   performers: PublicPerformer[];
 };
@@ -50,13 +55,20 @@ export async function getPublicSchedule(
       venueName: venues.name,
       label: events.label,
       startTime: events.startTime,
+      status: events.status,
+      advertisedPriceCents: events.advertisedPriceCents,
     })
     .from(events)
     .innerJoin(series, eq(series.id, events.seriesId))
     .leftJoin(venues, eq(venues.id, events.venueId))
     .where(gte(events.eventDate, from))
     .orderBy(asc(events.eventDate));
-  return rows.map((r) => ({ ...r, startTime: formatWallClock(r.startTime) }));
+  return rows.map(({ status, advertisedPriceCents, ...r }) => ({
+    ...r,
+    startTime: formatWallClock(r.startTime),
+    cancelled: status === "cancelled",
+    advertisedPrice: advertisedPriceCents === null ? null : centsToDollars(advertisedPriceCents),
+  }));
 }
 
 /** Public event detail (FR-002/FR-003): venue + map + public performer/band display. Null if unknown. */
@@ -73,6 +85,8 @@ export async function getPublicEventDetail(
       label: events.label,
       startTime: events.startTime,
       description: events.description,
+      status: events.status,
+      advertisedPriceCents: events.advertisedPriceCents,
     })
     .from(events)
     .innerJoin(series, eq(series.id, events.seriesId))
@@ -99,6 +113,9 @@ export async function getPublicEventDetail(
     label: row.label,
     startTime: formatWallClock(row.startTime),
     description: row.description,
+    cancelled: row.status === "cancelled",
+    advertisedPrice:
+      row.advertisedPriceCents === null ? null : centsToDollars(row.advertisedPriceCents),
     bandBlocks: grouped.bandBlocks.map((b) => ({ name: b.name, bio: b.bio, photoUrl: b.photoUrl })),
     performers,
   };

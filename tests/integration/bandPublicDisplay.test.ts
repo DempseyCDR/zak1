@@ -1,10 +1,18 @@
 import { beforeAll, beforeEach, afterAll, describe, expect, it } from "vitest";
+import { eq } from "drizzle-orm";
 import { ensureSchema, resetDb, closeDb, db } from "./helpers/db";
 import { makeEvent, makePerformer } from "./helpers/factories";
 import { createBand, patchBand } from "@/server/domain/bands/bandService";
 import { bookBand } from "@/server/domain/bands/bookBand";
 import { createBooking } from "@/server/domain/bookings/bookingService";
 import { groupEventBookingsForDisplay } from "@/server/domain/bands/publicDisplay";
+import { bookings } from "@/server/db/schema";
+
+// Public display shows only CONFIRMED bookings (feature 018, FR-022); confirm an event's bookings so the
+// display-grouping assertions below (which predate the lifecycle) see them.
+async function confirmAll(eventId: string): Promise<void> {
+  await db.update(bookings).set({ status: "confirmed" }).where(eq(bookings.eventId, eventId));
+}
 
 // FR-007, FR-008; US3 scenarios 1/3/4/5; live-identity clarify
 describe("groupEventBookingsForDisplay", () => {
@@ -29,6 +37,7 @@ describe("groupEventBookingsForDisplay", () => {
     await bookBand(db, evt.id, band.id);
     await createBooking(db, evt.id, { performerId: adHoc.id, performerType: "caller", pay: 100 });
 
+    await confirmAll(evt.id);
     const grouped = await groupEventBookingsForDisplay(db, evt.id);
     expect(grouped.bandBlocks).toHaveLength(1);
     expect(grouped.bandBlocks[0]).toMatchObject({
@@ -52,6 +61,7 @@ describe("groupEventBookingsForDisplay", () => {
 
     await patchBand(db, band.id, { name: "New Name", photoUrl: "https://example.com/new.jpg" });
 
+    await confirmAll(evt.id);
     const grouped = await groupEventBookingsForDisplay(db, evt.id);
     expect(grouped.bandBlocks[0]?.name).toBe("New Name");
     expect(grouped.bandBlocks[0]?.photoUrl).toBe("https://example.com/new.jpg");
@@ -72,6 +82,7 @@ describe("groupEventBookingsForDisplay", () => {
     await bookBand(db, evt.id, bandA.id);
     await bookBand(db, evt.id, bandB.id);
 
+    await confirmAll(evt.id);
     const grouped = await groupEventBookingsForDisplay(db, evt.id);
     expect(grouped.bandBlocks.map((b) => b.name).sort()).toEqual(["Headliner", "Opener"]);
     expect(grouped.adHoc).toHaveLength(0);

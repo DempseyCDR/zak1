@@ -7,7 +7,7 @@ import { parseBody } from "@/server/lib/parseBody";
 import { errors } from "@/server/lib/apiError";
 import { assignVenueSchema } from "@/server/validation/venues";
 import { assignVenueToEvent, setEventRent } from "@/server/domain/venues/venueService";
-import { updateEventDetails } from "@/server/domain/events/eventService";
+import { deleteEvent, updateEventDetails } from "@/server/domain/events/eventService";
 import { assertFields } from "@/server/auth/fields";
 
 // An event is written by TWO roles for different reasons (matrix row 2): the Webmaster owns its public
@@ -19,6 +19,10 @@ const EVENT_FIELDS = {
   startTime: "event.public.write",
   venueId: "event.write",
   rentCents: "event.write",
+  // Feature 018: the Booker owns the date + cancelled state; the price is a public field both hold.
+  eventDate: "event.write",
+  status: "event.write",
+  advertisedPriceCents: "event.public.write",
 } as const;
 
 export const PATCH = withAuth<{ id: string }>(
@@ -44,12 +48,18 @@ export const PATCH = withAuth<{ id: string }>(
     if (
       input.label !== undefined ||
       input.startTime !== undefined ||
-      input.description !== undefined
+      input.description !== undefined ||
+      input.eventDate !== undefined ||
+      input.status !== undefined ||
+      input.advertisedPriceCents !== undefined
     ) {
       await updateEventDetails(db, id, {
         label: input.label,
         startTime: input.startTime,
         description: input.description,
+        eventDate: input.eventDate,
+        status: input.status,
+        advertisedPriceCents: input.advertisedPriceCents,
       });
     }
     const event = await db.query.events.findFirst({ where: eq(events.id, id) });
@@ -57,3 +67,11 @@ export const PATCH = withAuth<{ id: string }>(
     return NextResponse.json(event);
   },
 );
+
+// Feature 018 (B25): hard-delete an event (Booker, scoped) — refused when it has history (cancel instead).
+export const DELETE = withAuth<{ id: string }>({ requires: "event.write" }, async (req, ctx) => {
+  const { id } = await ctx.params;
+  const actor = req.headers.get("x-actor") ?? "admin";
+  await deleteEvent(db, id, actor, ctx.actor);
+  return new NextResponse(null, { status: 204 });
+});

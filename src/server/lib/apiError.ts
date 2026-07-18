@@ -30,7 +30,9 @@ export type ApiErrorCode =
   | "EXCLUSIVE_ROLE_CONFLICT"
   | "GRANT_REQUIRES_VOLUNTEER"
   | "ROLE_NOT_UI_GRANTABLE"
-  | "GRANT_NOT_FOUND";
+  | "GRANT_NOT_FOUND"
+  | "EVENT_HAS_HISTORY"
+  | "RECURRENCE_TOO_LARGE";
 
 export class ApiError extends Error {
   readonly code: ApiErrorCode;
@@ -124,6 +126,18 @@ export const errors = {
   seriesNotFound: () => new ApiError("SERIES_NOT_FOUND", 404, "Series not found."),
   eventGroupNotFound: () => new ApiError("EVENT_GROUP_NOT_FOUND", 404, "Event group not found."),
   eventNotFound: () => new ApiError("EVENT_NOT_FOUND", 404, "Event not found."),
+  eventHasHistory: () =>
+    new ApiError(
+      "EVENT_HAS_HISTORY",
+      409,
+      "This event has a door record, attendance, or a paid booking — cancel it instead of deleting.",
+    ),
+  recurrenceTooLarge: (cap: number) =>
+    new ApiError(
+      "RECURRENCE_TOO_LARGE",
+      422,
+      `That range would generate more than ${cap} events; narrow it or split into runs.`,
+    ),
   doorRecordExists: () =>
     new ApiError("DOOR_RECORD_EXISTS", 409, "This event already has a door record."),
   doorRecordNotFound: () => new ApiError("DOOR_RECORD_NOT_FOUND", 404, "Door record not found."),

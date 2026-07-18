@@ -47,6 +47,9 @@ export type AuditEvent = {
     | "venue.updated"
     | "venue_rent.created"
     | "event.rent_set"
+    | "event.deleted"
+    | "event.generated"
+    | "event.status_changed"
     // Feature 015 — staff authentication.
     | "auth.bootstrap.designated"
     | "auth.identity.created"

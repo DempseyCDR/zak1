@@ -2,8 +2,9 @@
 
 import { useCallback, useEffect, useState } from "react";
 
-type Venue = { id: string; name: string; address: string };
+type Venue = { id: string; name: string; address: string; landlordContactId: string | null };
 type EventRow = { id: string; eventDate: string; venueId: string | null };
+type Contact = { id: string; displayName: string };
 
 export default function VenuesPage() {
   const [venues, setVenues] = useState<Venue[]>([]);
@@ -13,6 +14,36 @@ export default function VenuesPage() {
   const [eventId, setEventId] = useState("");
   const [venueId, setVenueId] = useState("");
   const [message, setMessage] = useState<string | null>(null);
+  // Feature 018 (B22): venue landlord contact (search picker, B39 convention).
+  const [landlordVenueId, setLandlordVenueId] = useState("");
+  const [lq, setLq] = useState("");
+  const [lresults, setLresults] = useState<Contact[]>([]);
+
+  useEffect(() => {
+    if (!lq.trim()) {
+      setLresults([]);
+      return;
+    }
+    void fetch(`/api/contacts?q=${encodeURIComponent(lq)}`)
+      .then((r) => r.json())
+      .then((d) => setLresults(d.items ?? []));
+  }, [lq]);
+
+  async function setLandlord(venue: string, landlordContactId: string | null) {
+    const res = await fetch(`/api/venues/${venue}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ landlordContactId }),
+    });
+    if (!res.ok) {
+      setMessage((await res.json().catch(() => null))?.error?.message ?? "Failed to set landlord");
+      return;
+    }
+    setLq("");
+    setLresults([]);
+    setMessage(landlordContactId ? "Landlord set." : "Landlord cleared.");
+    void load();
+  }
 
   const load = useCallback(async () => {
     const [v, e] = await Promise.all([
@@ -67,10 +98,44 @@ export default function VenuesPage() {
         {venues.map((v) => (
           <li key={v.id}>
             {v.name} — {v.address}
+            {v.landlordContactId ? " · landlord set" : ""}
           </li>
         ))}
         {venues.length === 0 && <li style={{ color: "#888" }}>No venues</li>}
       </ul>
+
+      <h2 style={{ marginTop: 24 }}>Venue landlord</h2>
+      <div style={{ display: "grid", gap: 6, maxWidth: 420 }}>
+        <select value={landlordVenueId} onChange={(e) => setLandlordVenueId(e.target.value)}>
+          <option value="">— venue —</option>
+          {venues.map((v) => (
+            <option key={v.id} value={v.id}>
+              {v.name}
+              {v.landlordContactId ? " (has landlord)" : ""}
+            </option>
+          ))}
+        </select>
+        {landlordVenueId && (
+          <>
+            <input
+              placeholder="Search a contact…"
+              value={lq}
+              onChange={(e) => setLq(e.target.value)}
+            />
+            <ul>
+              {lresults.map((c) => (
+                <li key={c.id}>
+                  {c.displayName}{" "}
+                  <button onClick={() => setLandlord(landlordVenueId, c.id)}>
+                    Set as landlord
+                  </button>
+                </li>
+              ))}
+            </ul>
+            <button onClick={() => setLandlord(landlordVenueId, null)}>Clear landlord</button>
+          </>
+        )}
+      </div>
 
       <h2>Add venue</h2>
       <form onSubmit={createVenue} style={{ display: "grid", gap: 6, maxWidth: 420 }}>

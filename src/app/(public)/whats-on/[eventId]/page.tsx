@@ -20,7 +20,12 @@ export default async function PublicEventPage({
       <p style={{ color: "#444" }}>
         {detail.date}
         {detail.startTime ? ` · ${detail.startTime}` : ""}
+        {detail.advertisedPrice != null ? ` · $${detail.advertisedPrice.toFixed(2)}` : ""}
       </p>
+
+      {detail.cancelled && (
+        <p style={{ color: "crimson", fontWeight: "bold" }}>This event has been cancelled.</p>
+      )}
 
       {detail.description && (
         <p style={{ whiteSpace: "pre-line", margin: "12px 0" }}>{detail.description}</p>

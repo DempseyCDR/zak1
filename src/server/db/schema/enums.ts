@@ -49,6 +49,20 @@ export const performerTypeEnum = pgEnum("performer_type", [
 
 export type PerformerType = (typeof performerTypeEnum.enumValues)[number];
 
+// Feature 018 (B23): per-booking lifecycle.
+export const bookingStatusEnum = pgEnum("booking_status", [
+  "proposed",
+  "requested",
+  "confirmed",
+  "declined",
+]);
+
+// Feature 018 (B25): a cancelled event is retained and shown (marked) on the public site.
+export const eventStatusEnum = pgEnum("event_status", ["scheduled", "cancelled"]);
+
+export type BookingStatus = (typeof bookingStatusEnum.enumValues)[number];
+export type EventStatus = (typeof eventStatusEnum.enumValues)[number];
+
 export type GateCategory = (typeof gateCategoryEnum.enumValues)[number];
 export type PaymentMethod = (typeof paymentMethodEnum.enumValues)[number];
 

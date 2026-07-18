@@ -70,7 +70,22 @@ export const gateSalesPutSchema = z.object({
 });
 
 export type EventGroupCreateInput = z.infer<typeof eventGroupCreateSchema>;
+// Feature 018 (B26): recurring event generation — first date, every-N-weeks step, last date.
+export const recurringEventsSchema = z.object({
+  seriesKey: z.string().min(1),
+  firstDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "firstDate must be YYYY-MM-DD"),
+  lastDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "lastDate must be YYYY-MM-DD"),
+  everyNWeeks: z.number().int().min(1).default(1),
+  startTime: z
+    .string()
+    .regex(/^\d{2}:\d{2}$/, "startTime must be HH:MM")
+    .optional(),
+  groupId: z.string().uuid().optional(),
+  chargesAdmission: z.boolean().default(true),
+});
+
 export type EventCreateInput = z.infer<typeof eventCreateSchema>;
+export type RecurringEventsInput = z.infer<typeof recurringEventsSchema>;
 export type DoorRecordCreateInput = z.infer<typeof doorRecordCreateSchema>;
 export type DoorRecordPatchInput = z.infer<typeof doorRecordPatchSchema>;
 export type GateSalesPutInput = z.infer<typeof gateSalesPutSchema>;

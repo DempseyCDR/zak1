@@ -1,5 +1,6 @@
 import { boolean, date, integer, pgTable, text, time, timestamp, uuid } from "drizzle-orm/pg-core";
 import { venues } from "./venues";
+import { eventStatusEnum } from "./enums";
 
 export const series = pgTable("series", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -31,6 +32,10 @@ export const events = pgTable("events", {
   startTime: time("start_time"),
   description: text("description"),
   chargesAdmission: boolean("charges_admission").notNull().default(true),
+  // Feature 018 (B25): cancelled is a retained, public-visible state (not a delete).
+  status: eventStatusEnum("status").notNull().default("scheduled"),
+  // Feature 018 (B27): public display admission price; NEVER an accounting input. Nullable = not shown.
+  advertisedPriceCents: integer("advertised_price_cents"),
   // Per-event rent override / direct rent (feature 011). NULL = resolve from venue_rents layers.
   rentCents: integer("rent_cents"),
   // Persisted per-event attendance count (survives the 90-day purge); source for paying dancers.

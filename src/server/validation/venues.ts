@@ -12,6 +12,8 @@ export const venuePatchSchema = z.object({
   address: z.string().trim().min(1).optional(),
   latitude: z.number().nullable().optional(),
   longitude: z.number().nullable().optional(),
+  // Feature 018 (B22): optional landlord contact (the party the Booker negotiates rent with); null clears.
+  landlordContactId: z.string().uuid().nullable().optional(),
 });
 
 // Event PATCH (feature 007 venue assignment; 011 per-event rent; 013 label/start time/description).
@@ -26,6 +28,14 @@ export const assignVenueSchema = z.object({
     .nullable()
     .optional(),
   description: z.string().trim().min(1).nullable().optional(),
+  // Feature 018: reschedule (B25, event.write), cancel/revive (B25, event.write), advertised price
+  // (B27, event.public.write). Field-level authorization is enforced by `assertFields` in the route.
+  eventDate: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "eventDate must be YYYY-MM-DD")
+    .optional(),
+  status: z.enum(["scheduled", "cancelled"]).optional(),
+  advertisedPriceCents: z.number().int().min(0).nullable().optional(),
 });
 
 export type VenueCreateInput = z.infer<typeof venueCreateSchema>;

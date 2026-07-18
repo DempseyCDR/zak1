@@ -15,6 +15,8 @@ type EventRow = {
   label: string | null;
   startTime: string | null;
   description: string | null;
+  status: string;
+  advertisedPriceCents: number | null;
 };
 
 export default function EventsPage() {
@@ -33,6 +35,67 @@ export default function EventsPage() {
   const [rentEventId, setRentEventId] = useState("");
   const [rentAmount, setRentAmount] = useState("");
   const [error, setError] = useState<string | null>(null);
+  // Feature 018: manage an existing event (reschedule / cancel / delete / advertised price).
+  const [manageId, setManageId] = useState("");
+  const [manageDate, setManageDate] = useState("");
+  const [managePrice, setManagePrice] = useState("");
+  // Feature 018 (B26): recurring generation.
+  const [recSeriesKey, setRecSeriesKey] = useState("");
+  const [recFirst, setRecFirst] = useState("");
+  const [recLast, setRecLast] = useState("");
+  const [recEveryN, setRecEveryN] = useState("1");
+  const [recStart, setRecStart] = useState("");
+  const [recMessage, setRecMessage] = useState<string | null>(null);
+
+  async function patchEvent(id: string, body: Record<string, unknown>) {
+    setError(null);
+    const res = await fetch(`/api/events/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) {
+      setError((await res.json().catch(() => null))?.error?.message ?? "Failed");
+      return;
+    }
+    void loadEvents();
+  }
+
+  async function deleteEvent(id: string) {
+    setError(null);
+    const res = await fetch(`/api/events/${id}`, { method: "DELETE" });
+    if (!res.ok) {
+      setError(
+        (await res.json().catch(() => null))?.error?.message ??
+          "Could not delete — cancel it instead if it has history.",
+      );
+      return;
+    }
+    if (manageId === id) setManageId("");
+    void loadEvents();
+  }
+
+  async function generateRecurring() {
+    setRecMessage(null);
+    const res = await fetch("/api/events/recurring", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        seriesKey: recSeriesKey,
+        firstDate: recFirst,
+        lastDate: recLast,
+        everyNWeeks: Number(recEveryN) || 1,
+        ...(recStart ? { startTime: recStart } : {}),
+      }),
+    });
+    if (!res.ok) {
+      setRecMessage((await res.json().catch(() => null))?.error?.message ?? "Failed to generate");
+      return;
+    }
+    const { events: created } = await res.json();
+    setRecMessage(`Generated ${created.length} event(s).`);
+    void loadEvents();
+  }
 
   async function setEventRent(clear: boolean) {
     if (!rentEventId) return;
@@ -64,7 +127,10 @@ export default function EventsPage() {
       .then((r) => r.json())
       .then((d) => {
         setSeries(d.items ?? []);
-        if (d.items?.[0]) setSeriesKey(d.items[0].key);
+        if (d.items?.[0]) {
+          setSeriesKey(d.items[0].key);
+          setRecSeriesKey(d.items[0].key);
+        }
       });
     void loadGroups();
     void loadEvents();
@@ -132,10 +198,123 @@ export default function EventsPage() {
               ? ` · group ${groups.find((g) => g.id === ev.groupId)?.name ?? ev.groupId}`
               : ""}
             {ev.rentCents != null ? ` · rent $${(ev.rentCents / 100).toFixed(2)}` : ""}
+            {ev.advertisedPriceCents != null
+              ? ` · $${(ev.advertisedPriceCents / 100).toFixed(2)} advertised`
+              : ""}
+            {ev.status === "cancelled" ? " · CANCELLED" : ""}
           </li>
         ))}
         {events.length === 0 && <li style={{ color: "#888" }}>No events</li>}
       </ul>
+
+      <h2>Manage event</h2>
+      <div style={{ display: "grid", gap: 6, maxWidth: 480 }}>
+        <select
+          value={manageId}
+          onChange={(e) => {
+            setManageId(e.target.value);
+            const ev = events.find((x) => x.id === e.target.value);
+            setManageDate(ev?.eventDate ?? "");
+            setManagePrice(
+              ev?.advertisedPriceCents != null ? (ev.advertisedPriceCents / 100).toFixed(2) : "",
+            );
+          }}
+        >
+          <option value="">— select an event —</option>
+          {events.map((ev) => (
+            <option key={ev.id} value={ev.id}>
+              {ev.eventDate} — {seriesKeyById(ev.seriesId)}
+              {ev.status === "cancelled" ? " (cancelled)" : ""}
+            </option>
+          ))}
+        </select>
+        {manageId && (
+          <>
+            <label>
+              Reschedule to{" "}
+              <input
+                type="date"
+                value={manageDate}
+                onChange={(e) => setManageDate(e.target.value)}
+              />{" "}
+              <button onClick={() => patchEvent(manageId, { eventDate: manageDate })}>
+                Save date
+              </button>
+            </label>
+            <label>
+              Advertised price ($, public){" "}
+              <input
+                type="number"
+                step="0.01"
+                value={managePrice}
+                onChange={(e) => setManagePrice(e.target.value)}
+                style={{ width: 90 }}
+              />{" "}
+              <button
+                onClick={() =>
+                  patchEvent(manageId, {
+                    advertisedPriceCents: managePrice
+                      ? Math.round(Number(managePrice) * 100)
+                      : null,
+                  })
+                }
+              >
+                Save price
+              </button>
+            </label>
+            <div style={{ display: "flex", gap: 6 }}>
+              {events.find((x) => x.id === manageId)?.status === "cancelled" ? (
+                <button onClick={() => patchEvent(manageId, { status: "scheduled" })}>
+                  Revive
+                </button>
+              ) : (
+                <button onClick={() => patchEvent(manageId, { status: "cancelled" })}>
+                  Cancel
+                </button>
+              )}
+              <button onClick={() => deleteEvent(manageId)}>Delete</button>
+            </div>
+          </>
+        )}
+      </div>
+
+      <h2>Generate recurring events</h2>
+      <div style={{ display: "grid", gap: 6, maxWidth: 480 }}>
+        <select value={recSeriesKey} onChange={(e) => setRecSeriesKey(e.target.value)}>
+          {series.map((s) => (
+            <option key={s.id} value={s.key}>
+              {s.name}
+            </option>
+          ))}
+        </select>
+        <label>
+          First date{" "}
+          <input type="date" value={recFirst} onChange={(e) => setRecFirst(e.target.value)} />
+        </label>
+        <label>
+          Last date{" "}
+          <input type="date" value={recLast} onChange={(e) => setRecLast(e.target.value)} />
+        </label>
+        <label>
+          Every{" "}
+          <input
+            type="number"
+            min={1}
+            value={recEveryN}
+            onChange={(e) => setRecEveryN(e.target.value)}
+            style={{ width: 56 }}
+          />{" "}
+          week(s)
+        </label>
+        <label>
+          Start time (optional){" "}
+          <input type="time" value={recStart} onChange={(e) => setRecStart(e.target.value)} />
+        </label>
+        <button onClick={generateRecurring} disabled={!recSeriesKey || !recFirst || !recLast}>
+          Generate
+        </button>
+        {recMessage && <p style={{ color: "#333" }}>{recMessage}</p>}
+      </div>
 
       <h2>Create event</h2>
       <form onSubmit={createEvent} style={{ display: "grid", gap: 6, maxWidth: 420 }}>

@@ -21,6 +21,8 @@ export default async function WhatsOnPage() {
               {s.startTime ? ` ${s.startTime}` : ""} — {s.activity}
               {s.label ? ` · ${s.label}` : ""}
               {s.venueName ? ` @ ${s.venueName}` : ""}
+              {s.advertisedPrice != null ? ` · $${s.advertisedPrice.toFixed(2)}` : ""}
+              {s.cancelled ? " · CANCELLED" : ""}
             </Link>
           </li>
         ))}

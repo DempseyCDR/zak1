@@ -50,6 +50,9 @@ export async function patchVenue(
       ...(input.address !== undefined ? { address: input.address } : {}),
       ...(input.latitude !== undefined ? { latitude: input.latitude } : {}),
       ...(input.longitude !== undefined ? { longitude: input.longitude } : {}),
+      ...(input.landlordContactId !== undefined
+        ? { landlordContactId: input.landlordContactId }
+        : {}),
       updatedAt: new Date(),
     })
     .where(eq(venues.id, id))

@@ -13,8 +13,11 @@ implementing this document).
 > 2026-07-15). This document is now *enforced behavior*, not a target: role grants carry scope
 > (`role_grants`), the capability catalog lives in `src/server/auth/capabilities.ts`, and routes + services
 > gate on it. The old `volunteer_role` enum was retired in migration 0021. A few rows describe capabilities
-> whose underlying features are not built yet (booking status, cancel/delete, membership enrollment) — those
-> arrive with P3-3/P3-4/P3-5 and plug into the same framework.
+> whose underlying features are built out per package: P3-3 (check-in, feature 017) and **P3-4 (booking &
+> event management — booking status, cancel/delete/reschedule, recurrence, venue landlord, advertised price;
+> feature 018)** have shipped; membership enrollment arrives with P3-5. All plug into the same framework.
+> Note (feature 018): the public site (`/whats-on`) shows **only confirmed bookings** and never performer
+> pay; the cross-event bookings report is staff-only (any authenticated volunteer) and shows all statuses.
 
 ---
 

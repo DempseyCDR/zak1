@@ -2,7 +2,7 @@ import { beforeAll, beforeEach, afterAll, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
 import { ensureSchema, resetDb, closeDb, db } from "./helpers/db";
 import { makeEvent, makePerformer } from "./helpers/factories";
-import { performers } from "@/server/db/schema";
+import { bookings, performers } from "@/server/db/schema";
 import { createBooking } from "@/server/domain/bookings/bookingService";
 import { createBand } from "@/server/domain/bands/bandService";
 import { bookBand } from "@/server/domain/bands/bookBand";
@@ -61,6 +61,9 @@ describe("getPublicEventDetail", () => {
       ],
     });
     await bookBand(db, evt.id, band.id);
+
+    // Public display shows only CONFIRMED bookings (feature 018, FR-022).
+    await db.update(bookings).set({ status: "confirmed" }).where(eq(bookings.eventId, evt.id));
 
     const detail = await getPublicEventDetail(db, evt.id);
     expect(detail).not.toBeNull();

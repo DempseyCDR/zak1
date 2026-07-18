@@ -45,6 +45,9 @@ export const bookingPatchSchema = z.object({
   pay: z.number().min(0).optional(),
   isDonated: z.boolean().optional(),
   note: z.string().nullable().optional(),
+  // Feature 018 (B23): advance/decline the lifecycle, or re-point the slot to a different performer.
+  status: z.enum(["proposed", "requested", "confirmed", "declined"]).optional(),
+  performerId: z.string().uuid().optional(),
 });
 
 export type PerformerCreateInput = z.infer<typeof performerCreateSchema>;

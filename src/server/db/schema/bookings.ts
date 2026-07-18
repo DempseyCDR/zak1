@@ -2,7 +2,7 @@ import { boolean, integer, pgTable, text, timestamp, uuid } from "drizzle-orm/pg
 import { events } from "./events";
 import { performers } from "./performers";
 import { bands } from "./bands";
-import { performerTypeEnum } from "./enums";
+import { bookingStatusEnum, performerTypeEnum } from "./enums";
 
 export const bookings = pgTable("bookings", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -15,6 +15,8 @@ export const bookings = pgTable("bookings", {
   // Set only for bookings created via book-as-unit (feature 008); null = ad-hoc.
   bandId: uuid("band_id").references(() => bands.id),
   performerType: performerTypeEnum("performer_type").notNull(),
+  // Feature 018 (B23): lifecycle status; new bookings default proposed (existing backfilled to confirmed).
+  status: bookingStatusEnum("status").notNull().default("proposed"),
   payCents: integer("pay_cents").notNull().default(0),
   isDonated: boolean("is_donated").notNull().default(false),
   isOverridden: boolean("is_overridden").notNull().default(false),
