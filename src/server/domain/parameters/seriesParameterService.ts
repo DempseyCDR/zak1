@@ -9,6 +9,7 @@ import { writeAudit } from "@/server/lib/audit";
 import { dollarsToCents } from "@/server/lib/money";
 import type { RateParameterCreateInput } from "@/server/validation/performers";
 import type { ExpenseParameterCreateInput } from "@/server/validation/organizer";
+import type { DoorParameterCreateInput } from "@/server/validation/door";
 
 /**
  * Resolve the amount (cents) in effect for (category, kind, series, date): the row with the
@@ -33,6 +34,33 @@ export async function resolveParameterCents(
     .orderBy(desc(seriesParameters.effectiveDate))
     .limit(1);
   return row?.amountCents ?? 0;
+}
+
+/**
+ * Feature 019 US5 (R4): like `resolveParameterCents`, but returns `null` when NOTHING is configured —
+ * distinct from a configured `0`. The seed float needs this distinction: unconfigured means "apply the
+ * club default" (FR-024), whereas a configured `$0` means a series that runs no float. Collapsing them (as
+ * the `?? 0` resolver does) would silently open a door record at $0 and over-report the deposit. The
+ * existing resolver is deliberately left unchanged — its `0` is correct for rates and expenses.
+ */
+export async function resolveParameterCentsOrNull(
+  db: DbOrTx,
+  input: { category: ParameterCategory; kind: ParameterKind; seriesId: string; onDate: string },
+): Promise<number | null> {
+  const [row] = await db
+    .select({ amountCents: seriesParameters.amountCents })
+    .from(seriesParameters)
+    .where(
+      and(
+        eq(seriesParameters.category, input.category),
+        eq(seriesParameters.kind, input.kind),
+        eq(seriesParameters.seriesId, input.seriesId),
+        lte(seriesParameters.effectiveDate, input.onDate),
+      ),
+    )
+    .orderBy(desc(seriesParameters.effectiveDate))
+    .limit(1);
+  return row?.amountCents ?? null;
 }
 
 /**
@@ -113,7 +141,12 @@ async function createSeriesParameter(
       actor,
     });
     writeAudit({
-      kind: input.category === "rate" ? "rate_parameter.created" : "expense_parameter.created",
+      kind:
+        input.category === "rate"
+          ? "rate_parameter.created"
+          : input.category === "door"
+            ? "door_parameter.created"
+            : "expense_parameter.created",
       actor,
       details: { seriesKey: input.seriesKey, kind: input.kind, amountCents: input.amountCents },
     });
@@ -156,6 +189,28 @@ export async function createExpenseParameter(
       kind: input.kind,
       amountCents: dollarsToCents(input.amount),
       label: input.label ?? null,
+      effectiveDate: input.effectiveDate,
+    },
+    actor,
+    authz,
+  );
+}
+
+/** Feature 019 US5 (FR-021/FR-026): the per-series seed float, gated by `parameter.write` like the rest. */
+export async function createDoorParameter(
+  db: Db,
+  input: DoorParameterCreateInput,
+  actor: string | null = null,
+  authz?: Actor,
+): Promise<SeriesParameterRow> {
+  return createSeriesParameter(
+    db,
+    {
+      category: "door",
+      seriesKey: input.seriesKey,
+      kind: "seed_float",
+      amountCents: dollarsToCents(input.amount),
+      label: null,
       effectiveDate: input.effectiveDate,
     },
     actor,

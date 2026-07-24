@@ -49,6 +49,32 @@ Templates updated (all verified this session):
     state no mocking policy)
   - README.md ✅ no change required (links to the constitution generically)
 Deferred TODOs: none
+
+Version change: 1.2.0 → 1.3.0 (2026-07-23)
+Modified sections:
+  - Development Workflow: replaced the unconditional feature-branch + PR-review + no-self-merge rules with
+    a two-mode rule — solo-maintainer mode (current reality) and multi-contributor mode (activates when a
+    second contributor, e.g. Zak, begins contributing).
+  - Governance → Compliance: "All PRs" wording generalized to cover solo-mode feature commits.
+Added sections: N/A
+Removed sections: N/A
+Reason: The old text mandated feature branches, pre-merge review, and forbade self-merging. The project has
+  had exactly one maintainer since inception; every feature (001–019 planning) landed as one atomic commit
+  direct to main, with the full gate suite (tests, tsc, lint, format, build, plan.md Constitution Check) run
+  locally. The rule as written was therefore violated by every compliant-in-spirit commit ever made — a
+  standing contradiction surfaced as finding C1 in feature 019's /speckit-analyze. Review by a second person
+  is not possible with one person; requiring it produced dead process, not quality. The multi-contributor
+  mode is written in NOW so the discipline is pre-committed rather than negotiated later: the moment a second
+  contributor lands work, branches + review become mandatory again without a further amendment.
+Version rationale: MINOR — same reasoning as 1.2.0: a section's provisions are materially rewritten, no core
+  principle (I–IV) is touched, and every previously-compliant behavior remains compliant (the change only
+  permits, never newly requires, until the second-contributor trigger fires).
+Templates updated (all verified this session):
+  - .specify/templates/plan-template.md ✅ no change required (Constitution Check derives from this file)
+  - .specify/templates/spec-template.md ✅ no change required (no workflow references)
+  - .specify/templates/tasks-template.md ✅ no change required (no workflow references)
+  - README.md ✅ no change required
+Deferred TODOs: none
 -->
 
 # zak1 Constitution
@@ -124,10 +150,31 @@ Observability is not optional and is not deferred to "after MVP."
 
 ## Development Workflow
 
+The workflow has two modes. The mode is determined by a simple fact, not a preference: **how many people are
+contributing code.**
+
+**Solo-maintainer mode** (in effect while the project has exactly one contributor):
+
+- One **atomic commit per feature**, made directly to `main`. Feature branches are optional; the
+  `###-feature-name` convention lives on in the spec directory names (`specs/###-feature-name/`).
+- Before committing, the full gate suite MUST pass locally: tests, type check, lint, formatting, production
+  build, and the `plan.md` Constitution Check sign-off. The gates replace the reviewer; they are not
+  optional because no one is watching.
+- Commits MUST be atomic and meaningful; no "WIP" commits on `main`.
+
+**Multi-contributor mode** (activates automatically when a second contributor — e.g. Zak — begins
+contributing code, and stays active thereafter):
+
 - Feature branches follow the naming convention `###-feature-name`.
 - Every PR MUST include: passing tests, no lint errors, and a Constitution Check sign-off.
-- Code review is required before merging; self-merging to main is not permitted.
+- Code review is required before merging; self-merging to `main` is not permitted.
 - Commits MUST be atomic and meaningful; squash "WIP" commits before requesting review.
+
+The switch is one-way and requires no further amendment: the first merged contribution from a second person
+puts the project in multi-contributor mode permanently.
+
+**Both modes**:
+
 - The implementation plan (`plan.md`) Constitution Check gate MUST be reviewed before
   Phase 0 research and re-verified after Phase 1 design.
 
@@ -148,7 +195,8 @@ document takes precedence.
 - MINOR — new principle or section added.
 - PATCH — clarifications, wording, or typo fixes.
 
-**Compliance**: All PRs must pass the Constitution Check in `plan.md` before merging.
+**Compliance**: Every feature commit (solo-maintainer mode) or PR (multi-contributor mode) must pass the
+Constitution Check in `plan.md` before landing on `main`.
 Exceptions require written justification in the Complexity Tracking table.
 
-**Version**: 1.2.0 | **Ratified**: 2026-06-16 | **Last Amended**: 2026-07-14
+**Version**: 1.3.0 | **Ratified**: 2026-06-16 | **Last Amended**: 2026-07-23

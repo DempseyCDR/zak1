@@ -1,7 +1,7 @@
-# Specification Quality Checklist: Performer Payments & Membership Acquisition
+# Specification Quality Checklist: Performer Payments, Membership Acquisition & Door-Record Fixes
 
 **Purpose**: Validate specification completeness and quality before proceeding to planning
-**Created**: 2026-07-18
+**Created**: 2026-07-18 · **Amended**: 2026-07-20 (US4/US5 folded in)
 **Feature**: [spec.md](../spec.md)
 
 ## Content Quality
@@ -38,4 +38,16 @@
      shared date), which introduces a **new club configuration** (FR-003a) for that boundary.
   3. **B30 online matching/verification** → verify each webhook's signature, auto-match by **payer email**;
      verified-but-unmatched payments are **parked for manual admin linking**.
-- All checklist items now pass. Ready for `/speckit-plan`.
+- **Amendment (2026-07-20)** — two Project Context v1.9 §9 issues folded in as **US4** (event-delete
+  guardrail, FR-017..FR-020) and **US5** (configurable seed float, FR-021..FR-026), with the scope forks
+  settled up front:
+  1. **Delete guardrail scope** → relax for an **empty door record *and* empty attendance**; gate sales,
+     non-zero money/counts, booking check numbers, and performer payments all still block. **Corrected on
+     review**: the first pass said "empty door record *and* empty attendance", but an attendance row has no
+     "empty" state to test — every row means someone was checked in — so FR-018 was untestable as written.
+     Now: the **empty door record is the whole test**, attendance never blocks, and a deletion discarding
+     attendance surfaces the attendee count for confirmation (FR-018a).
+  2. **Seed float scope** → a **per-series** effective-dated parameter (not a club-wide setting), keeping the
+     FS per-door-record override. Note this leaves the feature with **two** configuration scopes — club-wide
+     membership-year-end (FR-003a) and per-series seed float (FR-021) — deliberately, per Assumptions.
+- Re-validated after the amendment: all checklist items still pass. Ready for `/speckit-plan`.

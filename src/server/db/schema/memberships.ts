@@ -18,6 +18,11 @@ export const memberships = pgTable("memberships", {
     .references(() => payers.id),
   // date column, returned as 'YYYY-MM-DD' string.
   expiryDate: date("expiry_date").notNull(),
+  // Feature 019: acquisition-channel provenance. Both nullable — an admin-entered membership has neither.
+  // The partial unique indexes on these (migration 0024) make the door (replace-all gate save, R5) and
+  // online (webhook replay, FR-013) channels idempotent: a re-save/replay collides instead of duplicating.
+  sourceGateSaleId: uuid("source_gate_sale_id"),
+  sourceNotificationId: uuid("source_notification_id"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

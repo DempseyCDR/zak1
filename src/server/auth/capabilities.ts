@@ -67,6 +67,10 @@ type Catalog = Record<Role, Partial<Record<Capability, ScopeMode>>>;
 const FS_CAPABILITIES = {
   gate: "gate.write",
   payments: "performer_payment.write",
+  // Feature 019 (B28): the FS pays performers and enters substitute payees, so they must also correct the
+  // performer directory (fix a name, add an unknown substitute) — not only the Booker. Directory-wide, as
+  // `performer.write` has no create-only variant; the club accepts that (FS/Treasurer own performer money).
+  performer: "performer.write",
   attendance: "attendance.write",
   contact: "contact.write",
   membership: "membership.write",
@@ -108,6 +112,7 @@ export const CAPABILITIES: Catalog = {
   financial_secretary: {
     [FS_CAPABILITIES.gate]: "scoped",
     [FS_CAPABILITIES.payments]: "scoped",
+    [FS_CAPABILITIES.performer]: "scoped", // correct/add performers for their series (B28)
     [FS_CAPABILITIES.attendance]: "scoped",
     [FS_CAPABILITIES.contact]: "global",
     [FS_CAPABILITIES.membership]: "global",
@@ -118,6 +123,7 @@ export const CAPABILITIES: Catalog = {
   treasurer: {
     [FS_CAPABILITIES.gate]: "global",
     [FS_CAPABILITIES.payments]: "global",
+    [FS_CAPABILITIES.performer]: "global", // ⊇ FS: correct performers on any series (B28)
     [FS_CAPABILITIES.attendance]: "global",
     [FS_CAPABILITIES.contact]: "global",
     [FS_CAPABILITIES.membership]: "global",

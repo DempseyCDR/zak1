@@ -3,16 +3,17 @@ import { ensureSchema, resetDb, closeDb, db } from "./helpers/db";
 import { jsonReq, ctx } from "./helpers/http";
 import { makeEvent, makeDoorRecord, makePerformer } from "./helpers/factories";
 import { createBooking } from "@/server/domain/bookings/bookingService";
-import { PATCH as SET_CHECK } from "@/app/api/bookings/[id]/check/route";
+import { createPerformerPayment } from "@/server/domain/payments/performerPaymentService";
 import { GET as REPORT } from "@/app/api/events/[id]/treasurer-report/route";
 
-// FR-011
+// FR-011 / Feature 019 US2: the check number now lives on the recorded performer PAYMENT (payments are
+// separate from bookings), and the report surfaces it from there.
 describe("performer payments with check numbers", () => {
   beforeAll(ensureSchema);
   beforeEach(resetDb);
   afterAll(closeDb);
 
-  it("shows the check number set via PATCH /api/bookings/:id/check", async () => {
+  it("shows the check number recorded on the performer payment", async () => {
     const evt = await makeEvent();
     await makeDoorRecord(evt.id);
     const p = await makePerformer("Check Caller");
@@ -22,10 +23,13 @@ describe("performer payments with check numbers", () => {
       pay: 150,
     });
 
-    await SET_CHECK(
-      jsonReq("PATCH", `/api/bookings/${booking.id}/check`, { checkNumber: "1042" }),
-      ctx({ id: booking.id }),
-    );
+    await createPerformerPayment(db, {
+      eventId: evt.id,
+      payeePerformerId: p.id,
+      amount: 150,
+      checkNumber: "1042",
+      bookingIds: [booking.id],
+    });
 
     const res = await REPORT(
       jsonReq("GET", `/api/events/${evt.id}/treasurer-report`),

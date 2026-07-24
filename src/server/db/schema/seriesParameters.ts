@@ -1,13 +1,16 @@
 import { date, integer, pgEnum, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 import { series } from "./events";
 
-export const parameterCategoryEnum = pgEnum("parameter_category", ["rate", "expense"]);
+// Feature 019 (US5): 'door' category + 'seed_float' kind — the per-series till float joins the existing
+// effective-dated, audited parameter mechanism (see resolveParameterCentsOrNull).
+export const parameterCategoryEnum = pgEnum("parameter_category", ["rate", "expense", "door"]);
 export const parameterKindEnum = pgEnum("parameter_kind", [
   "caller",
   "sound_tech",
   "musician",
   "rent",
   "ongoing",
+  "seed_float",
 ]);
 
 export const seriesParameters = pgTable("series_parameters", {

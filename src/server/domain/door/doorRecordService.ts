@@ -1,14 +1,46 @@
-import { eq } from "drizzle-orm";
-import type { Db } from "@/server/db/client";
-import { doorRecordAudit, doorRecords, events, gateSales } from "@/server/db/schema";
+import { eq, sql } from "drizzle-orm";
+import type { Db, DbOrTx } from "@/server/db/client";
+import {
+  clubSettings,
+  contacts,
+  doorRecordAudit,
+  doorRecords,
+  events,
+  gateSales,
+  memberships,
+} from "@/server/db/schema";
 import type { DoorRecordRow, GateSaleRow } from "@/server/db/schema";
 import { errors } from "@/server/lib/apiError";
 import { assertEventScope } from "@/server/auth/can";
 import type { Actor } from "@/server/auth/actor";
 import { writeAudit } from "@/server/lib/audit";
 import { dollarsToCents, centsToDollars } from "@/server/lib/money";
+import {
+  createMembership,
+  ensurePayerForContact,
+} from "@/server/domain/membership/membershipService";
+import { nextMembershipYearEnd } from "@/server/domain/membership/membershipTerm";
+import { resolveParameterCentsOrNull } from "@/server/domain/parameters/seriesParameterService";
 import { depositCents, posFeeCents } from "./calc";
 import type { DoorRecordPatchInput, GateSalesPutInput } from "@/server/validation/door";
+
+/** Feature 019 US5 (FR-024): the documented club default when a series has no configured seed float. */
+export const CLUB_DEFAULT_SEED_FLOAT_CENTS = 1500;
+
+/**
+ * The seed float (cents) a NEW door record for this event should open with: the series' configured value in
+ * effect on the event date, or the club default when unconfigured (FR-022/FR-024). A configured $0 is
+ * honoured — `resolveParameterCentsOrNull` keeps it distinct from unconfigured (R4).
+ */
+async function resolveSeedFloatCents(db: Db, seriesId: string, onDate: string): Promise<number> {
+  const configured = await resolveParameterCentsOrNull(db, {
+    category: "door",
+    kind: "seed_float",
+    seriesId,
+    onDate,
+  });
+  return configured ?? CLUB_DEFAULT_SEED_FLOAT_CENTS;
+}
 
 /**
  * Assert a gate write against the door record's event scope (FR-020). A door record belongs to an
@@ -68,7 +100,9 @@ export async function createDoorRecord(
   });
   if (existing) throw errors.doorRecordExists();
 
-  const [row] = await db.insert(doorRecords).values({ eventId }).returning();
+  // Feature 019 US5: seed the float from the series parameter (copied once, at creation — FR-025).
+  const seedFloatCents = await resolveSeedFloatCents(db, event.seriesId, event.eventDate);
+  const [row] = await db.insert(doorRecords).values({ eventId, seedFloatCents }).returning();
   if (!row) throw new Error("door record insert failed");
   await db.insert(doorRecordAudit).values({ doorRecordId: row.id, action: "created", actor });
   writeAudit({ kind: "door_record.created", actor, details: { doorRecordId: row.id, eventId } });
@@ -87,7 +121,8 @@ export async function ensureDoorRecord(
   if (existing) return existing;
   const event = await db.query.events.findFirst({ where: eq(events.id, eventId) });
   if (!event) throw errors.eventNotFound();
-  const [row] = await db.insert(doorRecords).values({ eventId }).returning();
+  const seedFloatCents = await resolveSeedFloatCents(db, event.seriesId, event.eventDate);
+  const [row] = await db.insert(doorRecords).values({ eventId, seedFloatCents }).returning();
   if (!row) throw new Error("door record insert failed");
   await db.insert(doorRecordAudit).values({ doorRecordId: row.id, action: "created", actor });
   writeAudit({ kind: "door_record.created", actor, details: { doorRecordId: row.id, eventId } });
@@ -162,15 +197,16 @@ export async function putGateSales(
   doorRecordId: string,
   input: GateSalesPutInput,
   authz?: Actor,
-): Promise<GateSaleRow[]> {
+): Promise<{ sales: GateSaleRow[]; enrolled: DoorEnrollment[] }> {
   const dr = await db.query.doorRecords.findFirst({ where: eq(doorRecords.id, doorRecordId) });
   if (!dr) throw errors.doorRecordNotFound();
   await assertGateScope(db, authz, dr.eventId); // FR-020
 
+  const actorId = authz?.staff.contactId ?? null;
   return db.transaction(async (tx) => {
     await tx.delete(gateSales).where(eq(gateSales.doorRecordId, doorRecordId));
-    if (input.sales.length === 0) return [];
-    return tx
+    if (input.sales.length === 0) return { sales: [], enrolled: [] };
+    const inserted = await tx
       .insert(gateSales)
       .values(
         input.sales.map((s) => ({
@@ -182,7 +218,70 @@ export async function putGateSales(
         })),
       )
       .returning();
+    // Feature 019 US1 (B31): named membership lines create/renew memberships, in THIS transaction.
+    const enrolled = await enrollDoorMemberships(tx, dr.eventId, inserted, actorId);
+    return { sales: inserted, enrolled };
   });
+}
+
+/** A membership created/renewed by a door gate save — surfaced to the FS so they see it worked (T012). */
+export type DoorEnrollment = { contactId: string; displayName: string; expiryDate: string };
+
+/**
+ * Feature 019 (FR-001..FR-004): for each NAMED `membership` gate line just written, create or renew the
+ * contact's membership — inside the gate-sale transaction, so it is all-or-nothing (FR-001).
+ *
+ * Idempotency across the replace-all save (R5): the guard is (contact, target boundary), NOT the gate-sale
+ * id — because `putGateSales` deletes and re-inserts gate-sale rows on every save, so their ids are not
+ * stable. A contact who already holds a membership reaching the target boundary is skipped (renewal no-op,
+ * FR-004); a later payment past that boundary genuinely renews. `source_gate_sale_id` is recorded as
+ * provenance and backs a secondary unique index. Anonymous lines (no contactId) record money only (FR-002).
+ */
+async function enrollDoorMemberships(
+  tx: DbOrTx,
+  eventId: string,
+  sales: GateSaleRow[],
+  actorId: string | null,
+): Promise<DoorEnrollment[]> {
+  const named = sales.filter((s) => s.category === "membership" && s.contactId);
+  if (named.length === 0) return [];
+
+  const event = await tx.query.events.findFirst({ where: eq(events.id, eventId) });
+  if (!event) throw errors.eventNotFound();
+  const settingsRow = await tx.query.clubSettings.findFirst({ where: eq(clubSettings.id, 1) });
+  const boundary = settingsRow?.membershipYearEnd ?? "08-31";
+  const targetExpiry = nextMembershipYearEnd(event.eventDate, boundary);
+
+  const enrolled: DoorEnrollment[] = [];
+  for (const sale of named) {
+    const contactId = sale.contactId!;
+    // Renewal no-op: already covered to/past the target boundary → record money, create no membership.
+    const rows = await tx
+      .select({ maxExpiry: sql<string | null>`max(${memberships.expiryDate})` })
+      .from(memberships)
+      .where(eq(memberships.contactId, contactId));
+    const maxExpiry = rows[0]?.maxExpiry ?? null;
+    if (maxExpiry && maxExpiry >= targetExpiry) continue;
+
+    const contact = await tx.query.contacts.findFirst({ where: eq(contacts.id, contactId) });
+    const payer = await ensurePayerForContact(tx, contactId, contact?.displayName ?? "Member");
+    await createMembership(
+      tx,
+      { contactId, payerId: payer.id, expiryDate: targetExpiry, sourceGateSaleId: sale.id },
+      actorId,
+    );
+    writeAudit({
+      kind: "membership.door_enrollment",
+      actor: actorId,
+      details: { contactId, eventId, expiryDate: targetExpiry, gateSaleId: sale.id },
+    });
+    enrolled.push({
+      contactId,
+      displayName: contact?.displayName ?? "Member",
+      expiryDate: targetExpiry,
+    });
+  }
+  return enrolled;
 }
 
 export async function getDoorRecord(

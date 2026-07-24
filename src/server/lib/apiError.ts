@@ -32,7 +32,10 @@ export type ApiErrorCode =
   | "ROLE_NOT_UI_GRANTABLE"
   | "GRANT_NOT_FOUND"
   | "EVENT_HAS_HISTORY"
-  | "RECURRENCE_TOO_LARGE";
+  | "EVENT_HAS_ATTENDANCE"
+  | "RECURRENCE_TOO_LARGE"
+  | "PERFORMER_PAYMENT_NOT_FOUND"
+  | "BOOKING_EVENT_MISMATCH";
 
 export class ApiError extends Error {
   readonly code: ApiErrorCode;
@@ -48,8 +51,14 @@ export class ApiError extends Error {
     this.detail = detail;
   }
 
-  toResponseBody(): { error: { code: ApiErrorCode; message: string } } {
-    return { error: { code: this.code, message: this.message } };
+  toResponseBody(): { error: { code: ApiErrorCode; message: string; detail?: string } } {
+    return {
+      error: {
+        code: this.code,
+        message: this.message,
+        ...(this.detail !== undefined ? { detail: this.detail } : {}),
+      },
+    };
   }
 }
 
@@ -126,11 +135,23 @@ export const errors = {
   seriesNotFound: () => new ApiError("SERIES_NOT_FOUND", 404, "Series not found."),
   eventGroupNotFound: () => new ApiError("EVENT_GROUP_NOT_FOUND", 404, "Event group not found."),
   eventNotFound: () => new ApiError("EVENT_NOT_FOUND", 404, "Event not found."),
-  eventHasHistory: () =>
+  // Feature 019 US4 (FR-019): the refusal NAMES the blocker (gate sales / money / check / payment) so the
+  // organizer knows what to clear. `detail` carries the specific blocker.
+  eventHasHistory: (blocker: string) =>
     new ApiError(
       "EVENT_HAS_HISTORY",
       409,
-      "This event has a door record, attendance, or a paid booking — cancel it instead of deleting.",
+      `This event has ${blocker} — cancel it instead of deleting.`,
+      blocker,
+    ),
+  // Feature 019 US4 (FR-018a): attendance no longer hard-blocks; it must be confirmed. The count travels
+  // in `detail` so the UI can show it before the destructive retry with confirmDiscardAttendance.
+  eventHasAttendance: (attendeeCount: number) =>
+    new ApiError(
+      "EVENT_HAS_ATTENDANCE",
+      409,
+      `This event has ${attendeeCount} checked-in attendee(s). Confirm to delete and discard them.`,
+      String(attendeeCount),
     ),
   recurrenceTooLarge: (cap: number) =>
     new ApiError(
@@ -147,6 +168,15 @@ export const errors = {
     new ApiError("CASH_PAYOUT_REASON_REQUIRED", 422, "A reason is required for cash paid out."),
   performerNotFound: () => new ApiError("PERFORMER_NOT_FOUND", 404, "Performer not found."),
   bookingNotFound: () => new ApiError("BOOKING_NOT_FOUND", 404, "Booking not found."),
+  performerPaymentNotFound: () =>
+    new ApiError("PERFORMER_PAYMENT_NOT_FOUND", 404, "Performer payment not found."),
+  // Feature 019 US2: settlement is per event; a payment may not aggregate bookings across events.
+  bookingEventMismatch: () =>
+    new ApiError(
+      "BOOKING_EVENT_MISMATCH",
+      422,
+      "All bookings on a payment must belong to the payment's event.",
+    ),
   soundTechNotAllowed: () =>
     new ApiError(
       "SOUND_TECH_NOT_ALLOWED",

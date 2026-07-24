@@ -55,6 +55,25 @@ export function getAuthEnv(): AuthEnv {
   return cachedAuth;
 }
 
+// Feature 019 US3: PayPal webhook verification config. Separate from auth env so a missing PayPal setup
+// never blocks sign-in. Read only inside verifyPaypalWebhook (the network seam), never by tests.
+const paypalEnvSchema = z.object({
+  PAYPAL_WEBHOOK_ID: z.string().min(1),
+  PAYPAL_CLIENT_ID: z.string().min(1),
+  PAYPAL_CLIENT_SECRET: z.string().min(1),
+  PAYPAL_API_BASE: z.string().url().default("https://api-m.paypal.com"),
+});
+
+export type PaypalEnv = z.infer<typeof paypalEnvSchema>;
+
+export function getPaypalEnv(): PaypalEnv {
+  const parsed = paypalEnvSchema.safeParse(process.env);
+  if (!parsed.success) {
+    throw new Error(`Invalid PayPal environment: ${parsed.error.message}`);
+  }
+  return parsed.data;
+}
+
 /** The connection string to use for the current process (test DB when running tests). */
 export function resolveDatabaseUrl(): string {
   const env = getEnv();

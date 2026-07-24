@@ -1,11 +1,21 @@
-import { and, eq, gte, isNotNull, lte } from "drizzle-orm";
+import { and, eq, gte, isNotNull, lte, sql } from "drizzle-orm";
 import type { Db } from "@/server/db/client";
-import { attendance, bookings, doorRecords, eventGroups, events, series } from "@/server/db/schema";
+import {
+  attendance,
+  bookings,
+  doorRecords,
+  eventGroups,
+  events,
+  gateSales,
+  performerPayments,
+  series,
+} from "@/server/db/schema";
 import type { EventGroupRow, EventRow, EventStatus } from "@/server/db/schema";
 import { errors } from "@/server/lib/apiError";
 import { assertScope, assertEventScope } from "@/server/auth/can";
 import type { Actor } from "@/server/auth/actor";
 import { writeAudit } from "@/server/lib/audit";
+import { isEmptyDoorRecord } from "@/server/domain/door/calc";
 import type { EventCreateInput, EventGroupCreateInput } from "@/server/validation/door";
 
 export async function listSeries(db: Db): Promise<{ id: string; key: string; name: string }[]> {
@@ -102,11 +112,19 @@ export async function updateEventDetails(
  * a door record, any attendance row, or a booking with a check number (an actual recorded payment — a
  * non-zero booked rate alone does not block). For a real event that will not happen, use cancel (status).
  */
+/**
+ * Feature 019 US4 (FR-017..FR-020): delete an event that has NO real history. History means real
+ * financial or booking substance: a non-EMPTY door record (any gate sale or non-zero money/count — the
+ * seed float excluded), a booking with a check number, or a recorded performer payment. Each blocker is
+ * NAMED in the refusal. Attendance no longer hard-blocks (FR-018): it is discarded on an explicit
+ * confirm (FR-018a), and until then the count is surfaced. Everything cascades on delete.
+ */
 export async function deleteEvent(
   db: Db,
   eventId: string,
   actor: string | null = null,
   authz?: Actor,
+  opts: { confirmDiscardAttendance?: boolean } = {},
 ): Promise<void> {
   const event = await db.query.events.findFirst({ where: eq(events.id, eventId) });
   if (!event) throw errors.eventNotFound();
@@ -114,15 +132,39 @@ export async function deleteEvent(
     assertEventScope(authz, "event.write", { seriesId: event.seriesId, groupId: event.groupId });
   }
 
+  // Blocker 1: a non-empty door record (real takings). An empty one is not history (FR-017).
   const door = await db.query.doorRecords.findFirst({ where: eq(doorRecords.eventId, eventId) });
-  const attended = await db.query.attendance.findFirst({ where: eq(attendance.eventId, eventId) });
+  if (door) {
+    const saleCount = await db
+      .select({ n: sql<number>`count(*)::int` })
+      .from(gateSales)
+      .where(eq(gateSales.doorRecordId, door.id));
+    if (!isEmptyDoorRecord(door, saleCount[0]?.n ?? 0))
+      throw errors.eventHasHistory("gate takings");
+  }
+  // Blocker 2: a paid booking (check number written).
   const paidBooking = await db.query.bookings.findFirst({
     where: and(eq(bookings.eventId, eventId), isNotNull(bookings.checkNumber)),
   });
-  if (door || attended || paidBooking) throw errors.eventHasHistory();
+  if (paidBooking) throw errors.eventHasHistory("a paid booking (check number)");
+  // Blocker 3 (FR-019, new): a recorded performer payment.
+  const payment = await db.query.performerPayments.findFirst({
+    where: eq(performerPayments.eventId, eventId),
+  });
+  if (payment) throw errors.eventHasHistory("a recorded performer payment");
 
-  await db.delete(events).where(eq(events.id, eventId)); // FK cascades remove any proposed bookings
-  writeAudit({ kind: "event.deleted", actor, details: { eventId } });
+  // Attendance no longer blocks — but is confirmed before being discarded (FR-018a).
+  const attendanceCount = await db
+    .select({ attendees: sql<number>`count(*)::int` })
+    .from(attendance)
+    .where(eq(attendance.eventId, eventId));
+  const attendees = attendanceCount[0]?.attendees ?? 0;
+  if (attendees > 0 && !opts.confirmDiscardAttendance) {
+    throw errors.eventHasAttendance(attendees);
+  }
+
+  await db.delete(events).where(eq(events.id, eventId)); // FK cascades: door record, attendance, bookings
+  writeAudit({ kind: "event.deleted", actor, details: { eventId, discardedAttendees: attendees } });
 }
 
 /**

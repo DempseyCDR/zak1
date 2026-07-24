@@ -72,6 +72,9 @@ export const PATCH = withAuth<{ id: string }>(
 export const DELETE = withAuth<{ id: string }>({ requires: "event.write" }, async (req, ctx) => {
   const { id } = await ctx.params;
   const actor = req.headers.get("x-actor") ?? "admin";
-  await deleteEvent(db, id, actor, ctx.actor);
+  // Feature 019 US4 (FR-018a): confirm discarding attendance rows before they are deleted.
+  const confirmDiscardAttendance =
+    new URL(req.url).searchParams.get("confirmDiscardAttendance") === "true";
+  await deleteEvent(db, id, actor, ctx.actor, { confirmDiscardAttendance });
   return new NextResponse(null, { status: 204 });
 });

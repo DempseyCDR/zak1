@@ -35,6 +35,7 @@ export type AuditEvent = {
     | "booking.updated"
     | "booking.deleted"
     | "rate_parameter.created"
+    | "door_parameter.created"
     | "treasurer_report.generated"
     | "qbo_mapping.updated"
     | "expense_parameter.created"
@@ -64,7 +65,16 @@ export type AuditEvent = {
     | "volunteer.designated"
     | "volunteer.cleared"
     | "volunteer.approved"
-    | "pii.disclosed";
+    | "pii.disclosed"
+    // Feature 019 — payments & membership acquisition.
+    | "membership.door_enrollment"
+    | "membership.online_enrollment"
+    | "performer_payment.created"
+    | "performer_payment.updated"
+    | "performer_payment.deleted"
+    | "paypal.notification.parked"
+    | "paypal.notification.rejected"
+    | "paypal.notification.linked";
   actor: string | null;
   details: Record<string, unknown>;
 };

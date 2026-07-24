@@ -3,6 +3,7 @@ import { join, relative } from "node:path";
 import { describe, expect, it } from "vitest";
 import { CAPABILITIES } from "@/server/auth/capabilities";
 import { apiRouteFiles, exportedMethods } from "@/server/lib/routeInventory";
+import { PUBLIC_API_ROUTES } from "@/server/auth/withPublic";
 
 /**
  * FR-004 / SC-002: `/api/*` is default-deny — and, since feature 016, every method DECLARES what it
@@ -25,10 +26,20 @@ const KNOWN_CAPABILITIES = new Set<string>(
 const API_ROOT = join(process.cwd(), "src/app/api");
 const AUTH_PREFIX = join(API_ROOT, "auth");
 
+/** The `route.ts` file backing an allowlisted public API path (feature 019 US3, research R2). */
+function fileForPublicPath(apiPath: string): string {
+  return join(API_ROOT, apiPath.replace(/^\/api/, ""), "route.ts");
+}
+const PUBLIC_FILES = new Set(PUBLIC_API_ROUTES.map(fileForPublicPath));
+
 describe("API route inventory: default-deny (FR-004, SC-002)", () => {
   const all = apiRouteFiles();
-  const protectedRoutes = all.filter((f) => !f.startsWith(AUTH_PREFIX + "/"));
   const authRoutes = all.filter((f) => f.startsWith(AUTH_PREFIX + "/"));
+  // Non-auth, non-public routes must be withAuth; the enumerated public allowlist is checked separately.
+  const protectedRoutes = all.filter(
+    (f) => !f.startsWith(AUTH_PREFIX + "/") && !PUBLIC_FILES.has(f),
+  );
+  const publicRoutes = all.filter((f) => PUBLIC_FILES.has(f));
 
   it("finds the API surface (guards against the walker silently matching nothing)", () => {
     expect(all.length).toBeGreaterThan(30);
@@ -87,6 +98,34 @@ describe("API route inventory: default-deny (FR-004, SC-002)", () => {
       }
     }
     expect(bogus, `unknown requirements:\n${bogus.join("\n")}`).toEqual([]);
+  });
+
+  // Feature 019 US3 (research R2): the FIRST cracks in default-deny. The allowlist is the architecture —
+  // an enumerated set of exactly two routes, each declaring `withPublic` (deliberate publicity), so a
+  // third unauthenticated route cannot appear without editing PUBLIC_API_ROUTES and this test noticing.
+  it("the public allowlist is EXACTLY the two feature-019 routes", () => {
+    expect(PUBLIC_API_ROUTES.length).toBe(2);
+    expect(publicRoutes.length).toBe(PUBLIC_API_ROUTES.length);
+  });
+
+  it("every allowlisted public route is wrapped in withPublic, never withAuth", () => {
+    for (const file of publicRoutes) {
+      for (const { method, wrapper } of exportedMethods(readFileSync(file, "utf8"))) {
+        expect(wrapper, `${relative(process.cwd(), file)} → ${method} must be withPublic`).toBe(
+          "withPublic",
+        );
+      }
+    }
+  });
+
+  it("no route OUTSIDE the allowlist uses withPublic (default-deny holds)", () => {
+    const leaked: string[] = [];
+    for (const file of protectedRoutes) {
+      for (const { method, wrapper } of exportedMethods(readFileSync(file, "utf8"))) {
+        if (wrapper === "withPublic") leaked.push(`${relative(process.cwd(), file)} → ${method}`);
+      }
+    }
+    expect(leaked, `withPublic used off-allowlist:\n${leaked.join("\n")}`).toEqual([]);
   });
 
   it("auth routes stay PUBLIC — requiring a session there would deadlock sign-in", () => {

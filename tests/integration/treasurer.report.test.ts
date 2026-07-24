@@ -6,6 +6,7 @@ import { makeEvent, makeDoorRecord, makePerformer, contactRow } from "./helpers/
 import { contacts, treasurerReportAudit } from "@/server/db/schema";
 import { updateDoorRecord } from "@/server/domain/door/doorRecordService";
 import { createBooking } from "@/server/domain/bookings/bookingService";
+import { createPerformerPayment } from "@/server/domain/payments/performerPaymentService";
 import { GET as REPORT } from "@/app/api/events/[id]/treasurer-report/route";
 
 // FR-001/003/004/005/006/007/012/014
@@ -37,7 +38,18 @@ describe("GET /api/events/:id/treasurer-report", () => {
       posTransactionCount: 10,
     });
     const caller = await makePerformer("Pat Caller");
-    await createBooking(db, evt.id, { performerId: caller.id, performerType: "caller", pay: 150 });
+    const callerBooking = await createBooking(db, evt.id, {
+      performerId: caller.id,
+      performerType: "caller",
+      pay: 150,
+    });
+    // Feature 019 US2: the report now derives performer lines from ACTUAL payments, not booked pay.
+    await createPerformerPayment(db, {
+      eventId: evt.id,
+      payeePerformerId: caller.id,
+      amount: 150,
+      bookingIds: [callerBooking.id],
+    });
 
     const { status, body } = await report(evt.id);
     expect(status).toBe(200);

@@ -110,6 +110,14 @@ describe("can() — additive union, allow-wins (FR-004)", () => {
     expect(can(door, "attendance.write", { seriesId: ECD })).toBe(true);
   });
 
+  it("the FS may write performers on their own series but not another (B28)", () => {
+    // Feature 019: the FS pays performers and enters substitute payees, so they hold performer.write —
+    // scoped to their series, like the Booker's. Directory-wide (no create-only variant), by club policy.
+    const fsOfTnc: Grant[] = [{ role: "financial_secretary", seriesId: TNC, groupId: null }];
+    expect(can(fsOfTnc, "performer.write", { seriesId: TNC })).toBe(true);
+    expect(can(fsOfTnc, "performer.write", { seriesId: ECD })).toBe(false);
+  });
+
   it("the same role at two series covers both (FR-005)", () => {
     const twoSeries: Grant[] = [
       { role: "booker", seriesId: ECD, groupId: null },
@@ -125,6 +133,9 @@ describe("can() — the three supersets are flattened into the catalog (FR-009..
     const treasurer: Grant[] = [{ role: "treasurer", seriesId: null, groupId: null }];
     expect(can(treasurer, "gate.write", { seriesId: TNC })).toBe(true);
     expect(can(treasurer, "gate.write", { seriesId: ECD })).toBe(true);
+    // performer.write joined FS in feature 019, so the superset carries it club-wide too (B28).
+    expect(can(treasurer, "performer.write", { seriesId: TNC })).toBe(true);
+    expect(can(treasurer, "performer.write", { seriesId: ECD })).toBe(true);
   });
 
   it("VP holds every President capability", () => {

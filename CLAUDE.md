@@ -1,7 +1,7 @@
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan
-at specs/018-booking-event-mgmt/plan.md
+at specs/019-payments-membership/plan.md
 <!-- SPECKIT END -->
 
 ## Development conventions

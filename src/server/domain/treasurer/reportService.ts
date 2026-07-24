@@ -7,6 +7,8 @@ import {
   events,
   gateSales,
   nonDanceIncome,
+  paymentBookings,
+  performerPayments,
   performers,
   series,
   seriesQboMap,
@@ -17,6 +19,7 @@ import { errors } from "@/server/lib/apiError";
 import { writeAudit } from "@/server/lib/audit";
 import { centsToDollars } from "@/server/lib/money";
 import { computeEventGate } from "@/server/domain/gate/eventMoney";
+import { reconcilePayments } from "@/server/domain/payments/reconcile";
 import { loadAccountMap } from "./mappingService";
 
 // Anonymous non-admission categories shown on the gate receipt (admission is derived).
@@ -53,6 +56,9 @@ export type TreasurerReport = {
     class: string;
     checkNumber: string | null;
   }[];
+  // Feature 019 US2 (FR-008): expected (sum of booked obligations) vs. actual (sum of recorded payments).
+  // A non-zero delta surfaces a gap — e.g. performers booked but not yet paid.
+  performerReconciliation: { expected: number; actual: number; delta: number };
   deposit: { account: string; amount: number };
   fees: { account: string; doorFee: number; onlineFee: number; total: number };
   nonDanceIncome: {
@@ -163,26 +169,68 @@ export async function assembleTreasurerReport(
     amount: centsToDollars(n.amountCents),
   }));
 
+  // Feature 019 US2 (FR-008): performer lines now come from ACTUAL payments (performer_payments), not from
+  // the booking's expected pay. A payment's account maps from the performer type of a booking it settles —
+  // the one performed by the payee if present (the normal/backfilled case), else the first linked booking
+  // (an aggregated check across types; QBO reconciliation splits it). Booked pay feeds the reconciliation.
   const bookingRows = await db
     .select({
-      payee: performers.displayName,
+      id: bookings.id,
+      performerId: bookings.performerId,
       payCents: bookings.payCents,
       performerType: bookings.performerType,
-      checkNumber: bookings.checkNumber,
     })
     .from(bookings)
-    .innerJoin(performers, eq(performers.id, bookings.performerId))
     .where(eq(bookings.eventId, eventId));
+  const bookingById = new Map(bookingRows.map((b) => [b.id, b]));
 
-  const performerPayments = bookingRows
-    .filter((b) => b.payCents > 0)
-    .map((b) => ({
-      payee: b.payee,
-      amount: centsToDollars(b.payCents),
-      account: account(b.performerType),
+  const paymentRows = await db
+    .select({
+      id: performerPayments.id,
+      payee: performers.displayName,
+      payeePerformerId: performerPayments.payeePerformerId,
+      amountCents: performerPayments.amountCents,
+      checkNumber: performerPayments.checkNumber,
+    })
+    .from(performerPayments)
+    .innerJoin(performers, eq(performers.id, performerPayments.payeePerformerId))
+    .where(eq(performerPayments.eventId, eventId));
+
+  const links = await db
+    .select({ paymentId: paymentBookings.paymentId, bookingId: paymentBookings.bookingId })
+    .from(paymentBookings)
+    .innerJoin(bookings, eq(bookings.id, paymentBookings.bookingId))
+    .where(eq(bookings.eventId, eventId));
+  const bookingsForPayment = new Map<string, string[]>();
+  for (const l of links) {
+    const list = bookingsForPayment.get(l.paymentId) ?? [];
+    list.push(l.bookingId);
+    bookingsForPayment.set(l.paymentId, list);
+  }
+
+  const performerPaymentLines = paymentRows.map((p) => {
+    const linked = (bookingsForPayment.get(p.id) ?? []).map((id) => bookingById.get(id)!);
+    const forAccount = linked.find((b) => b.performerId === p.payeePerformerId) ?? linked[0];
+    return {
+      payee: p.payee,
+      amount: centsToDollars(p.amountCents),
+      account: forAccount ? account(forAccount.performerType) : "UNMAPPED",
       class: qboClass,
-      checkNumber: b.checkNumber,
-    }));
+      checkNumber: p.checkNumber,
+    };
+  });
+
+  const performerReconciliation = (() => {
+    const r = reconcilePayments(
+      bookingRows.map((b) => b.payCents),
+      paymentRows.map((p) => p.amountCents),
+    );
+    return {
+      expected: centsToDollars(r.expectedCents),
+      actual: centsToDollars(r.actualCents),
+      delta: centsToDollars(r.deltaCents),
+    };
+  })();
 
   const ndiRows = await db.select().from(nonDanceIncome).where(eq(nonDanceIncome.eventId, eventId));
   const ndiTotal = ndiRows.reduce((a, r) => a + r.amountCents, 0);
@@ -201,7 +249,8 @@ export async function assembleTreasurerReport(
       lines: gateLines,
     },
     namedCustomerReceipts,
-    performerPayments,
+    performerPayments: performerPaymentLines,
+    performerReconciliation,
     deposit: { account: account("deposit"), amount: centsToDollars(door.depositCents) },
     fees: {
       account: account("fees"),

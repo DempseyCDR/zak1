@@ -227,6 +227,50 @@ Each entry: plain-English definition, then **Files** (the code locations that ow
 
 ---
 
+## B2. Feature 019 — payments & membership acquisition
+
+- **Performer payment** — What was **actually disbursed** to a performer, recorded separately from the
+  booking (which keeps the *expected* rate). The payee MAY differ from the booked performer (a substitute
+  sat in), and one check may settle several bookings (aggregation).
+  **Files:** [`schema/performerPayments.ts`](src/server/db/schema/performerPayments.ts) ·
+  [`domain/payments/performerPaymentService.ts`](src/server/domain/payments/performerPaymentService.ts) ·
+  [`domain/payments/reconcile.ts`](src/server/domain/payments/reconcile.ts) · API
+  `src/app/api/performer-payments/**` · UI [`(admin)/payments`](<src/app/(admin)/payments/page.tsx>).
+- **Payment ↔ booking link** — The `payment_bookings` join that lets one payment cover several bookings.
+  **Files:** `schema/performerPayments.ts` (`paymentBookings`).
+- **Membership year-end** — The fixed, club-wide date all memberships expire on; a dues payment extends to
+  the next occurrence on/after the payment date. A club setting (`club_settings.membership_year_end`,
+  MM-DD), defaulted to a placeholder until set operationally.
+  **Files:** [`schema/clubSettings.ts`](src/server/db/schema/clubSettings.ts) ·
+  [`domain/membership/membershipTerm.ts`](src/server/domain/membership/membershipTerm.ts).
+- **Door membership enrollment** — A **named** `membership` gate line now creates/renews the member's record
+  atomically with the gate sale (idempotent across re-saves; anonymous lines record money only).
+  **Files:** [`domain/door/doorRecordService.ts`](src/server/domain/door/doorRecordService.ts)
+  (`enrollDoorMemberships`).
+- **Membership capture / parked payment** — Prospective-member info submitted on the public `/join` page,
+  awaiting a verified PayPal notification. A verified-but-unmatched payment is **parked** for an admin to
+  link by hand; a duplicate notification is idempotent (unique `provider_event_id`).
+  **Files:** [`schema/membershipCaptures.ts`](src/server/db/schema/membershipCaptures.ts) ·
+  [`schema/paypalNotifications.ts`](src/server/db/schema/paypalNotifications.ts) ·
+  [`domain/paypal/captureService.ts`](src/server/domain/paypal/captureService.ts) ·
+  [`domain/paypal/verify.ts`](src/server/domain/paypal/verify.ts) · public route
+  `src/app/api/public/membership`, webhook `src/app/api/webhooks/paypal` (both `withPublic`) · UI
+  [`(public)/join`](<src/app/(public)/join/page.tsx>).
+- **Seed float (configurable)** — The till float before doors open, now a per-series, effective-dated
+  parameter (`door`/`seed_float`) rather than a hard-coded $15; the FS still overrides per door record; a
+  new door record copies the value at creation (existing records keep theirs).
+  **Files:** `schema/seriesParameters.ts` ·
+  [`domain/parameters/seriesParameterService.ts`](src/server/domain/parameters/seriesParameterService.ts)
+  (`resolveParameterCentsOrNull`, `createDoorParameter`) · API `src/app/api/door-parameters` · UI
+  [`(admin)/door-parameters`](<src/app/(admin)/door-parameters/page.tsx>).
+- **Empty door record (deletability)** — A door record with no gate sales and every money field and count
+  zero (the seed float excluded) counts as "no history", so a never-held event stays deletable. Attendance
+  is discarded on confirmation, not blocked; gate sales / check numbers / performer payments still block.
+  **Files:** [`domain/door/calc.ts`](src/server/domain/door/calc.ts) (`isEmptyDoorRecord`) ·
+  [`domain/events/eventService.ts`](src/server/domain/events/eventService.ts) (`deleteEvent`).
+
+---
+
 ## C. Quick term → file lookup (compressed)
 
 | Term | Owning file(s) |
@@ -241,7 +285,11 @@ Each entry: plain-English definition, then **Files** (the code locations that ow
 | Door record / comps | `schema/door.ts` · `domain/door/` |
 | Gate money / admission | `domain/gate/eventMoney.ts` |
 | Performers / bands / bookings | `schema/{performers,bands,bookings}.ts` · `domain/{performers,bands,bookings}/` |
-| Rate/expense params | `schema/seriesParameters.ts` · `domain/parameters/` |
+| Rate/expense/door-float params | `schema/seriesParameters.ts` · `domain/parameters/` |
+| Performer payments / reconciliation | `schema/performerPayments.ts` · `domain/payments/` |
+| Online membership (capture/webhook) | `schema/{membershipCaptures,paypalNotifications}.ts` · `domain/paypal/` · `src/app/api/{public/membership,webhooks/paypal}` |
+| Membership year-end / term | `schema/clubSettings.ts` · `domain/membership/membershipTerm.ts` |
+| Public routes (declared) | `src/server/auth/withPublic.ts` (`PUBLIC_API_ROUTES`) |
 | Venues / rent | `schema/{venues,venueRents}.ts` · `domain/venues/` · `domain/parameters/rentService.ts` |
 | Treasurer / QBO | `domain/treasurer/` · `schema/qboMapping.ts` |
 | Organizer / paying dancers / Dance Net | `domain/organizer/danceResult.ts`, `reportService.ts` |

@@ -84,6 +84,14 @@ export const recurringEventsSchema = z.object({
   chargesAdmission: z.boolean().default(true),
 });
 
+// Feature 019 US5 (FR-021): the per-series seed float — category/kind are implied by the route.
+export const doorParameterCreateSchema = z.object({
+  seriesKey: z.string().min(1),
+  amount: z.number().min(0),
+  effectiveDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "effectiveDate must be YYYY-MM-DD"),
+});
+export type DoorParameterCreateInput = z.infer<typeof doorParameterCreateSchema>;
+
 export type EventCreateInput = z.infer<typeof eventCreateSchema>;
 export type RecurringEventsInput = z.infer<typeof recurringEventsSchema>;
 export type DoorRecordCreateInput = z.infer<typeof doorRecordCreateSchema>;

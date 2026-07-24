@@ -39,7 +39,8 @@ export default function GatePage() {
   const [posTxns, setPosTxns] = useState("");
   const [grossCash, setGrossCash] = useState("");
   const [pcGross, setPcGross] = useState("");
-  const [seedFloat, setSeedFloat] = useState("15");
+  // Feature 019 US5: initialised empty; pre-filled from the door record's configured seed float on load.
+  const [seedFloat, setSeedFloat] = useState("");
   const [cashPaidOut, setCashPaidOut] = useState("");
   const [cashPaidOutReason, setCashPaidOutReason] = useState("");
   const [compCount, setCompCount] = useState("");
@@ -93,6 +94,9 @@ export default function GatePage() {
     if (!res.ok) return setMessage("Could not open door record");
     const data = await res.json();
     setDoorRecordId(data.doorRecord.id);
+    // Feature 019 US5: the seed float now comes from the door record (seeded from the series parameter,
+    // FR-022), not a hard-coded 15. The FS can still override it for this record.
+    setSeedFloat(String(data.doorRecord.seedFloat ?? 15));
     // Pre-fill the counts the Door Attendant captured at check-in, for the FS to confirm (FR-015).
     setCompCount(String(data.doorRecord.compCount ?? 0));
     setGiftCount(String(data.doorRecord.giftCardRedemptionCount ?? 0));
@@ -176,6 +180,9 @@ export default function GatePage() {
       return setMessage("Only the Financial Secretary may record gate money for this event.");
     }
     if (!gsRes.ok) return setMessage("Gate sales failed");
+    // Feature 019 (B31): show which named contacts got a membership created/renewed by this save.
+    const gsBody = await gsRes.json().catch(() => null);
+    const enrolled: { displayName: string; expiryDate: string }[] = gsBody?.enrolled ?? [];
 
     const res = await fetch(`/api/door-records/${doorRecordId}`, {
       method: "PATCH",
@@ -200,7 +207,12 @@ export default function GatePage() {
     }
     const body = await res.json();
     setDeposit(body.deposit); // fee intentionally not returned
-    setMessage("Saved");
+    if (enrolled.length > 0) {
+      const who = enrolled.map((e) => `${e.displayName} (through ${e.expiryDate})`).join(", ");
+      setMessage(`Saved. Membership recorded: ${who}`);
+    } else {
+      setMessage("Saved");
+    }
   }
 
   return (

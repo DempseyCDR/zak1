@@ -8,6 +8,6 @@ import { putGateSales } from "@/server/domain/door/doorRecordService";
 export const PUT = withAuth<{ id: string }>({ requires: "gate.write" }, async (req, ctx) => {
   const { id } = await ctx.params;
   const input = await parseBody(req, gateSalesPutSchema);
-  const sales = await putGateSales(db, id, input, ctx.actor);
-  return NextResponse.json({ sales });
+  const { sales, enrolled } = await putGateSales(db, id, input, ctx.actor);
+  return NextResponse.json({ sales, enrolled });
 });

@@ -76,7 +76,7 @@ export async function recomputeContactStatus(
 }
 
 export async function createPayer(
-  db: Db,
+  db: DbOrTx,
   input: { name: string; contactId?: string | null },
 ): Promise<PayerRow> {
   const [row] = await db
@@ -87,8 +87,31 @@ export async function createPayer(
   return row;
 }
 
+/**
+ * The payer to attribute a dues payment to: reuse the contact's existing payer, or create one. A
+ * door/online dues payment implies a payer (the member or a party paying on their behalf); this keeps the
+ * shared membership path from tripping over `memberships.payer_id` being NOT NULL (analyze G1).
+ */
+export async function ensurePayerForContact(
+  db: DbOrTx,
+  contactId: string,
+  name: string,
+): Promise<PayerRow> {
+  const existing = await db.query.payers.findFirst({ where: eq(payers.contactId, contactId) });
+  return existing ?? createPayer(db, { name, contactId });
+}
+
+/**
+ * Create a membership and recompute the contact's status, atomically.
+ *
+ * Feature 019 (FR-015): accepts `DbOrTx`. Handed a plain `Db` this opens a real transaction (admin/API
+ * path, unchanged behaviour). Handed a `Tx` — the door flow calling from inside `putGateSales` (FR-001) —
+ * `.transaction()` opens a SAVEPOINT that participates in the caller's transaction, so the membership
+ * commits or rolls back together with the gate sale. Either way the insert + status recompute + audit are
+ * one atomic unit, and both acquisition channels share this single path.
+ */
 export async function createMembership(
-  db: Db,
+  db: DbOrTx,
   input: MembershipCreateInput,
   actor: string | null = null,
 ): Promise<MembershipRow> {
@@ -99,10 +122,11 @@ export async function createMembership(
         contactId: input.contactId,
         payerId: input.payerId,
         expiryDate: input.expiryDate,
+        sourceGateSaleId: input.sourceGateSaleId ?? null,
+        sourceNotificationId: input.sourceNotificationId ?? null,
       })
       .returning();
     if (!row) throw new Error("membership insert failed");
-    // Recompute uses the same transaction so status + audit are atomic with the insert.
     await recomputeContactStatus(tx, input.contactId, "membership_change", actor);
     return row;
   });

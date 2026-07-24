@@ -121,7 +121,7 @@ authenticated roles inherit the Organizer base. ⚠️ = inferred or still open.
 | 3 | Events — create / edit / **cancel** / **delete** / **reschedule** | **Booker** | ⬤ | B25 |
 | 4 | Recurring event generation | **Booker** | ⬤ | B26 |
 | 5 | Venues — create / edit, rents, landlord | **Booker + Treasurer** | ⬤ | B22 |
-| 6 | Performers & bands — directory / rosters | **Booker** | ⬤ | — |
+| 6 | Performers & bands — directory / rosters | **Booker + FS** (+ Treasurer ⬡) | ⬤ | B28 |
 | 7 | Bookings — assign + **status lifecycle** (proposed→requested→confirmed/declined) | **Booker** | ⬤ | B23 |
 | 8 | Per-booking **pay-rate override** | **Booker** | ⬤ | — |
 | 9 | Standard rate / expense **parameters** | **Booker** (own series) **+ Treasurer** (any series) | ⬤/⬡ | — |
@@ -266,6 +266,9 @@ authenticated roles inherit the Organizer base. ⚠️ = inferred or still open.
 5. Write performer checks per booked rates; record **check numbers**.
 6. **Override payment** — substitute payee (Audrey sits in for Eileen) or redirect/aggregate amounts
    (Ted's share → Cindy: one $250 check) (B28).
+6a. **Correct performer directory info** — fix a name or add an unknown substitute (`performer.write`,
+   scoped to their series; Treasurer club-wide). All performers are contacts, so a new substitute's contact
+   is created here too. Shared with the Booker, not exclusive to them (B28, feature 019).
 7. Enroll **door memberships** — enter a contact's name on `/gate` for cash/card/Venmo dues (B31).
 8. May also perform Door Attendant tasks (check-in).
 

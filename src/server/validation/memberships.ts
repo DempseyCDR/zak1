@@ -5,6 +5,10 @@ export const membershipCreateSchema = z.object({
   payerId: z.string().uuid(),
   // ISO calendar date (YYYY-MM-DD).
   expiryDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "expiryDate must be YYYY-MM-DD"),
+  // Feature 019: acquisition-channel provenance (door gate sale / online notification). Optional — an
+  // admin-entered membership has neither. Their partial unique indexes give per-channel idempotency.
+  sourceGateSaleId: z.string().uuid().optional(),
+  sourceNotificationId: z.string().uuid().optional(),
 });
 
 export type MembershipCreateInput = z.infer<typeof membershipCreateSchema>;

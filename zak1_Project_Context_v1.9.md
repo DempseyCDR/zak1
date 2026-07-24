@@ -59,13 +59,21 @@ pinned `^16.2.10` (still a caret — can float within 16.x).
 ## 4. SpecKit & governance
 
 Pipeline `/speckit-specify → clarify → plan → tasks → analyze → implement`. Active pointer
-`.specify/feature.json` → **`specs/019-payments-membership`**. **Constitution v1.2.0** (non-negotiable):
+`.specify/feature.json` → **`specs/019-payments-membership`**. **Constitution v1.3.0** (non-negotiable):
 I Test-First (Red-Green-Refactor), II YAGNI, III Type Safety (Zod at boundaries), IV Observability.
 Testing standard: integration against **real** local infra; DBs never mocked; third-party services (Google)
-exercised at their **boundary**, never production endpoints. **Suite: 450 tests / 137 files green.** tsc,
+exercised at their **boundary**, never production endpoints. **Suite: 451 tests / 137 files green.** tsc,
 eslint, markdownlint, prettier, production build all clean on Next 16.
 
-**Commits:** one atomic commit per feature, direct to `main`, trailer
+**⚠️ Constitution amended 1.2.0 → 1.3.0 (2026-07-23):** §Development Workflow is now **two-mode** — the
+mode is set by how many people write code, not by preference. **Solo-maintainer mode** (current reality):
+one atomic commit per feature direct to `main`, with the full local gate suite standing in for a reviewer;
+feature branches optional. **Multi-contributor mode**: feature branches + mandatory PR review, no
+self-merge — activates permanently and without further amendment the moment a **second contributor (e.g.
+Zak)** lands work. Prompted by feature 019's `/speckit-analyze` finding C1 (every feature 001–019 violated
+the old letter that mandated review no solo maintainer could perform).
+
+**Commits:** one atomic commit per feature, direct to `main` (solo-maintainer mode, above), trailer
 `Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>`. Ask before pushing (routine).
 
 ## 5. Repo layout (key paths)

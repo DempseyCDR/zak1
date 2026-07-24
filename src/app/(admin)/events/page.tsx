@@ -61,18 +61,35 @@ export default function EventsPage() {
     void loadEvents();
   }
 
-  async function deleteEvent(id: string) {
+  async function deleteEvent(id: string, confirmDiscardAttendance = false) {
     setError(null);
-    const res = await fetch(`/api/events/${id}`, { method: "DELETE" });
-    if (!res.ok) {
-      setError(
-        (await res.json().catch(() => null))?.error?.message ??
-          "Could not delete — cancel it instead if it has history.",
-      );
+    const q = confirmDiscardAttendance ? "?confirmDiscardAttendance=true" : "";
+    const res = await fetch(`/api/events/${id}${q}`, { method: "DELETE" });
+    if (res.ok) {
+      if (manageId === id) setManageId("");
+      void loadEvents();
       return;
     }
-    if (manageId === id) setManageId("");
-    void loadEvents();
+    const body = await res.json().catch(() => null);
+    const err = body?.error;
+    // Feature 019 US4: attendance no longer blocks — confirm the count, then retry discarding it (FR-018a).
+    if (err?.code === "EVENT_HAS_ATTENDANCE") {
+      const count = err.detail ?? "some";
+      if (
+        window.confirm(
+          `This event has ${count} checked-in attendee(s). Delete anyway and discard them?`,
+        )
+      ) {
+        void deleteEvent(id, true);
+      }
+      return;
+    }
+    // FR-019: name the blocker so the organizer knows what to clear.
+    if (err?.code === "EVENT_HAS_HISTORY") {
+      setError(`Cannot delete: this event has ${err.detail ?? "history"}. Cancel it instead.`);
+      return;
+    }
+    setError(err?.message ?? "Could not delete this event.");
   }
 
   async function generateRecurring() {
