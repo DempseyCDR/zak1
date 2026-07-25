@@ -1,11 +1,13 @@
 .claude/
 .DS_Store
-node_modules/
 .next/
-dist/
+.postman/
 build/
-out/
 coverage/
+dist/
+node_modules/
+out/
+postman/
 *.log
 .env
 .env.*
