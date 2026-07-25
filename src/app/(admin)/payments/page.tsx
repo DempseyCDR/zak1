@@ -51,13 +51,14 @@ export default function PaymentsPage() {
   }, []);
 
   useEffect(() => {
+    // Both endpoints return { items: [...] } (feature 016 convention).
     void fetch("/api/events")
       .then((r) => r.json())
-      .then((d) => setEvents(d.events ?? d ?? []))
+      .then((d) => setEvents(Array.isArray(d.items) ? d.items : []))
       .catch(() => setError("Could not load events"));
     void fetch("/api/performers")
       .then((r) => r.json())
-      .then((d) => setPerformers(d.performers ?? d ?? []))
+      .then((d) => setPerformers(Array.isArray(d.items) ? d.items : []))
       .catch(() => setError("Could not load performers"));
     void loadParked();
   }, [loadParked]);
@@ -94,9 +95,9 @@ export default function PaymentsPage() {
       fetch(`/api/events/${id}/performer-payments`),
     ]);
     const bBody = await bRes.json();
-    setBookings(bBody.bookings ?? bBody ?? []);
+    setBookings(Array.isArray(bBody.bookings) ? bBody.bookings : []);
     const pBody = await pRes.json();
-    setPayments(pBody.payments ?? []);
+    setPayments(Array.isArray(pBody.payments) ? pBody.payments : []);
     setRecon(pBody.reconciliation ?? null);
   }, []);
 
