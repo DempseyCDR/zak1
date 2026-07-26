@@ -271,6 +271,39 @@ Each entry: plain-English definition, then **Files** (the code locations that ow
 
 ---
 
+## B3. Feature 020 — Booker experience
+
+- **Tentative (booking status)** — a performer's "maybe": a status between `requested` and `confirmed`,
+  skippable (`requested → confirmed` still allowed). Internal only — the public site shows confirmed
+  bookings.
+  **Files:** enum [`schema/enums.ts`](src/server/db/schema/enums.ts) · transitions
+  [`domain/bookings/bookingStatus.ts`](src/server/domain/bookings/bookingStatus.ts).
+- **Status letter** — the report tags each performer with P/R/T/C/D (proposed/requested/tentative/confirmed/
+  declined); the letter carries the meaning, color reinforces (accessibility).
+  **Files:** [`(admin)/bookings-report/page.tsx`](<src/app/(admin)/bookings-report/page.tsx>).
+- **Venue short name** — a compact label for the report ("German House" → "GH"); defaults to the name's
+  initials, editable, non-unique.
+  **Files:** `schema/venues.ts` · `venueShortNameDefault` in
+  [`domain/venues/venueService.ts`](src/server/domain/venues/venueService.ts).
+- **Performer typeahead / add-performer** — the booking modal's payee picker searches performers
+  (`searchPerformers`, `GET /api/performers?q=`); an unknown substitute is added by linking an existing
+  contact (the first B39 pickers).
+  **Files:** [`domain/performers/performerService.ts`](src/server/domain/performers/performerService.ts) ·
+  [`(admin)/_modals/BookingModal.tsx`](<src/app/(admin)/_modals/BookingModal.tsx>).
+- **mailto (performer email)** — the modal offers a mailto link using the first active email whose purposes
+  include booking > personal > public_profile; PII, gated by `contact.pii.read`
+  (`GET /api/performers/[id]/mailto`).
+  **Files:** [`domain/contacts/mailtoEmail.ts`](src/server/domain/contacts/mailtoEmail.ts).
+- **Prior-event defaults** — a new event pre-fills venue + start time from the latest prior event in the
+  series (`priorEventDefaults`); recurrence generation is exempt.
+  **Files:** `domain/events/eventService.ts` · [`(admin)/_modals/EventModal.tsx`](<src/app/(admin)/_modals/EventModal.tsx>).
+- **Rent default (dynamic, Option A)** — the event modal shows the resolved rent default
+  (`resolveRentForVenue`) and stores no override when left at it (event tracks the venue/series default);
+  a typed value freezes a per-event override.
+  **Files:** [`domain/parameters/rentService.ts`](src/server/domain/parameters/rentService.ts).
+
+---
+
 ## C. Quick term → file lookup (compressed)
 
 | Term | Owning file(s) |

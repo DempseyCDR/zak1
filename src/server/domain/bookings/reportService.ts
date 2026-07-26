@@ -1,8 +1,9 @@
-import { and, asc, eq, gte, lte } from "drizzle-orm";
+import { and, asc, desc, eq, gte, lte } from "drizzle-orm";
 import type { SQL } from "drizzle-orm";
 import type { Db } from "@/server/db/client";
-import { bands, events, series } from "@/server/db/schema";
+import { bands, events, series, venues } from "@/server/db/schema";
 import type { BookingStatus, PerformerType } from "@/server/db/schema";
+import { venueShortNameDefault } from "@/server/domain/venues/venueService";
 import { getBookingsForEvent } from "./bookingService";
 
 /**
@@ -17,9 +18,12 @@ export type BookingsReportFilters = {
   caller?: string; // performer id
   band?: string; // band id
   musician?: string; // performer id
+  sort?: "asc" | "desc"; // by event date; feature 020 US1 (default asc)
 };
 
 export type BookingsReportBookingLine = {
+  bookingId: string; // feature 020: so the report UI can open THIS booking's modal (US2)
+  performerId: string;
   performer: string;
   type: PerformerType;
   status: BookingStatus;
@@ -29,6 +33,8 @@ export type BookingsReportRow = {
   eventId: string;
   date: string;
   series: string;
+  venueShortName: string | null; // feature 020 US1 (FR-002); derived initials when short_name is null
+  hasSoundTech: boolean; // feature 020 US1 (FR-004); false → no sound-tech slot (community_dance)
   caller: string | null;
   band: string | null; // first named band, if any
   musicians: string[];
@@ -57,12 +63,16 @@ export async function assembleBookingsReport(
       id: events.id,
       date: events.eventDate,
       seriesName: series.name,
+      hasSoundTech: series.hasSoundTech,
       status: events.status,
+      venueName: venues.name,
+      venueShort: venues.shortName,
     })
     .from(events)
     .innerJoin(series, eq(series.id, events.seriesId))
+    .leftJoin(venues, eq(venues.id, events.venueId))
     .where(conds.length ? and(...conds) : undefined)
-    .orderBy(asc(events.eventDate));
+    .orderBy(filters.sort === "desc" ? desc(events.eventDate) : asc(events.eventDate));
 
   const rows: BookingsReportRow[] = [];
   for (const ev of eventRows) {
@@ -98,16 +108,24 @@ export async function assembleBookingsReport(
       band = bandRow?.name ?? null;
     }
 
+    const venueShortName = ev.venueName
+      ? (ev.venueShort ?? (venueShortNameDefault(ev.venueName) || null))
+      : null;
+
     rows.push({
       eventId: ev.id,
       date: ev.date,
       series: ev.seriesName,
+      venueShortName,
+      hasSoundTech: ev.hasSoundTech,
       caller,
       band,
       musicians,
       soundTech,
       cancelled: ev.status === "cancelled",
       bookings: bookings.map((b) => ({
+        bookingId: b.id,
+        performerId: b.performerId,
         performer: b.performerName,
         type: b.performerType,
         status: b.status,

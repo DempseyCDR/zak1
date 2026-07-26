@@ -122,7 +122,7 @@ authenticated roles inherit the Organizer base. ⚠️ = inferred or still open.
 | 4 | Recurring event generation | **Booker** | ⬤ | B26 |
 | 5 | Venues — create / edit, rents, landlord | **Booker + Treasurer** | ⬤ | B22 |
 | 6 | Performers & bands — directory / rosters | **Booker + FS** (+ Treasurer ⬡) | ⬤ | B28 |
-| 7 | Bookings — assign + **status lifecycle** (proposed→requested→confirmed/declined) | **Booker** | ⬤ | B23 |
+| 7 | Bookings — assign + **status lifecycle** (proposed→requested→**tentative**→confirmed/declined; tentative is skippable) | **Booker** | ⬤ | B23 / 020 |
 | 8 | Per-booking **pay-rate override** | **Booker** | ⬤ | — |
 | 9 | Standard rate / expense **parameters** | **Booker** (own series) **+ Treasurer** (any series) | ⬤/⬡ | — |
 | 10 | Cross-event **bookings report** | — (Booker / Org read) | ⬤ | B24 |
@@ -245,10 +245,14 @@ authenticated roles inherit the Organizer base. ⚠️ = inferred or still open.
 5. Override standard **pay rate** per booking (negotiates fees with performers).
 6. Maintain the performer directory & band rosters.
 7. Update public performer profiles (co-editor; Webmaster also edits).
-8. Move each booking through **proposed → requested → confirmed / declined** (B23). On a decline, either
-   re-point the slot to another performer (→ proposed) or park it (→ declined); optionally note why.
-9. Review the **cross-event bookings report** — date · caller · band · musicians · sound tech — filtered
-   by caller / band / musician / series / date-range, for fair talent distribution (B24).
+8. Move each booking through **proposed → requested → tentative → confirmed / declined** (B23; **tentative**
+   = the performer's "maybe", skippable — feature 020). On a decline, either re-point the slot to another
+   performer (→ proposed) or park it (→ declined); optionally note why.
+9. Review the **cross-event bookings report** — date · **venue short name** · caller · band (stacked
+   musicians) · sound tech — filtered by caller / band / musician / series / date-range and **sortable by
+   date** (B24 / 020). Each performer shows a status **letter** (P/R/T/C/D); clicking a performer space or an
+   empty role slot opens the **booking modal**, and clicking a date opens the **event modal** (feature 020).
+   The modal's performer picker is a **typeahead**; an unknown substitute is added by linking a contact.
 10. Record internal per-booking notes (`bookings.note`).
 11. **Cancel** an event (retained + shown as cancelled on the public site) (B25).
 12. **Delete** an event (hard removal — a mistake) (B25).

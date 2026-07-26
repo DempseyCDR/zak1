@@ -15,6 +15,7 @@ export const GET = withAuth({ requires: "base" }, async (req) => {
     caller: p.get("caller") ?? undefined,
     band: p.get("band") ?? undefined,
     musician: p.get("musician") ?? undefined,
+    sort: p.get("sort") === "desc" ? "desc" : "asc", // feature 020 US1
   });
   return NextResponse.json(report);
 });

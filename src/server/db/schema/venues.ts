@@ -4,6 +4,9 @@ import { contacts } from "./contacts";
 export const venues = pgTable("venues", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: text("name").notNull(),
+  // Feature 020 (US5): compact label for the bookings report. Display-only, non-unique; defaults to the
+  // name's initials (venueShortNameDefault), with a runtime fallback to those initials when null.
+  shortName: text("short_name"),
   address: text("address").notNull(),
   latitude: doublePrecision("latitude"),
   longitude: doublePrecision("longitude"),

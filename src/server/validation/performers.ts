@@ -46,7 +46,7 @@ export const bookingPatchSchema = z.object({
   isDonated: z.boolean().optional(),
   note: z.string().nullable().optional(),
   // Feature 018 (B23): advance/decline the lifecycle, or re-point the slot to a different performer.
-  status: z.enum(["proposed", "requested", "confirmed", "declined"]).optional(),
+  status: z.enum(["proposed", "requested", "tentative", "confirmed", "declined"]).optional(),
   performerId: z.string().uuid().optional(),
 });
 

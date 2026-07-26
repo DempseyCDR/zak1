@@ -1,11 +1,12 @@
-import { and, eq, gte, lte, sql } from "drizzle-orm";
+import { and, eq, gte, ilike, lte, sql } from "drizzle-orm";
 import type { Db } from "@/server/db/client";
-import { bookings, contacts, events, performers } from "@/server/db/schema";
+import { bookings, contactEmails, contacts, events, performers } from "@/server/db/schema";
 import type { PerformerRow } from "@/server/db/schema";
 import { errors } from "@/server/lib/apiError";
 import { centsToDollars } from "@/server/lib/money";
 import { deriveContactNames } from "@/server/domain/contacts/normalize";
 import { addEmailInTx } from "@/server/domain/contacts/emailService";
+import { mailtoEmailFor } from "@/server/domain/contacts/mailtoEmail";
 import type { PerformerCreateInput, PerformerPatchInput } from "@/server/validation/performers";
 
 /**
@@ -60,6 +61,45 @@ export async function createPerformer(db: Db, input: PerformerCreateInput): Prom
 
 export async function listPerformers(db: Db): Promise<PerformerRow[]> {
   return db.select().from(performers);
+}
+
+export type PerformerSummary = { id: string; displayName: string };
+
+/**
+ * Feature 020 US2 (FR-012): typeahead over performers by display name — ILIKE, ordered by display name.
+ * ~30 performers, so a plain ILIKE (no trigram/normalized column) is ample. LIKE metacharacters in the
+ * query are escaped so a stray `%`/`_` matches literally, not as a wildcard (analyze L1). Empty query
+ * browses the full list ordered by display name. Returns a performer id — what a booking references.
+ */
+export async function searchPerformers(db: Db, q: string, limit = 20): Promise<PerformerSummary[]> {
+  const cols = { id: performers.id, displayName: performers.displayName };
+  const needle = q.trim();
+  if (!needle) {
+    return db.select(cols).from(performers).orderBy(performers.displayName).limit(limit);
+  }
+  const escaped = needle.replace(/[\\%_]/g, (c) => `\\${c}`);
+  return db
+    .select(cols)
+    .from(performers)
+    .where(ilike(performers.displayName, `%${escaped}%`))
+    .orderBy(performers.displayName)
+    .limit(limit);
+}
+
+/**
+ * Feature 020 US2 (FR-011): the email to put behind a performer's mailto link, or null. PII — the route
+ * exposing this is gated by `contact.pii.read` (the Booker holds it); the booking report itself is `base`
+ * and never carries emails.
+ */
+export async function getPerformerMailtoEmail(db: Db, performerId: string): Promise<string | null> {
+  const performer = await db.query.performers.findFirst({ where: eq(performers.id, performerId) });
+  if (!performer?.contactId) return null;
+  const rows = await db.query.contactEmails.findMany({
+    where: eq(contactEmails.contactId, performer.contactId),
+  });
+  return mailtoEmailFor(
+    rows.map((r) => ({ email: r.email, purposes: r.purposes, status: r.status })),
+  );
 }
 
 export type PerformerDetail = PerformerRow & {

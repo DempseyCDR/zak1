@@ -25,6 +25,15 @@ const EVENT_FIELDS = {
   advertisedPriceCents: "event.public.write",
 } as const;
 
+// Feature 020: the event modal fetches the event it edits. `base` — event structure is not PII, and the
+// modal is read-only for a non-Booker anyway (the write path stays gated).
+export const GET = withAuth<{ id: string }>({ requires: "base" }, async (_req, ctx) => {
+  const { id } = await ctx.params;
+  const event = await db.query.events.findFirst({ where: eq(events.id, id) });
+  if (!event) throw errors.eventNotFound();
+  return NextResponse.json(event);
+});
+
 export const PATCH = withAuth<{ id: string }>(
   { requires: "event.public.write" },
   async (req, ctx) => {

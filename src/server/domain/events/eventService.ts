@@ -1,4 +1,4 @@
-import { and, eq, gte, isNotNull, lte, sql } from "drizzle-orm";
+import { and, desc, eq, gte, isNotNull, lt, lte, sql } from "drizzle-orm";
 import type { Db } from "@/server/db/client";
 import {
   attendance,
@@ -20,6 +20,26 @@ import type { EventCreateInput, EventGroupCreateInput } from "@/server/validatio
 
 export async function listSeries(db: Db): Promise<{ id: string; key: string; name: string }[]> {
   return db.select({ id: series.id, key: series.key, name: series.name }).from(series);
+}
+
+/**
+ * Feature 020 US4 (FR-018): defaults for a NEW single event — the venue and start time of the latest event
+ * in the same series with `event_date < beforeDate`. Nulls when there is no prior event. Recurrence
+ * generation does not use this (it takes explicit venue/start time). Isolated so the "prior" rule can be
+ * revised in one place (spec Assumptions).
+ */
+export async function priorEventDefaults(
+  db: Db,
+  seriesId: string,
+  beforeDate: string,
+): Promise<{ venueId: string | null; startTime: string | null }> {
+  const [row] = await db
+    .select({ venueId: events.venueId, startTime: events.startTime })
+    .from(events)
+    .where(and(eq(events.seriesId, seriesId), lt(events.eventDate, beforeDate)))
+    .orderBy(desc(events.eventDate))
+    .limit(1);
+  return { venueId: row?.venueId ?? null, startTime: row?.startTime ?? null };
 }
 
 export async function listEventGroups(db: Db): Promise<EventGroupRow[]> {

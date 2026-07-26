@@ -6,15 +6,33 @@ import { errors } from "@/server/lib/apiError";
 import { writeAudit } from "@/server/lib/audit";
 import type { VenueCreateInput, VenuePatchInput } from "@/server/validation/venues";
 
+/**
+ * Feature 020 US5 (FR-024): the default short name for a venue — the uppercased first letter of each
+ * whitespace-delimited word ("German House" → "GH"). Pure; mirrored by the migration 0025 backfill SQL.
+ * Display-only and non-unique. Empty/whitespace name → "".
+ */
+export function venueShortNameDefault(name: string): string {
+  return name
+    .split(/\s+/)
+    .filter((w) => w.length > 0)
+    .map((w) => w[0]!.toUpperCase())
+    .join("");
+}
+
 export async function createVenue(
   db: Db,
   input: VenueCreateInput,
   actor: string | null = null,
 ): Promise<VenueRow> {
+  const shortName =
+    input.shortName && input.shortName.length > 0
+      ? input.shortName
+      : venueShortNameDefault(input.name);
   const [row] = await db
     .insert(venues)
     .values({
       name: input.name,
+      shortName,
       address: input.address,
       latitude: input.latitude ?? null,
       longitude: input.longitude ?? null,
@@ -53,6 +71,7 @@ export async function patchVenue(
       ...(input.landlordContactId !== undefined
         ? { landlordContactId: input.landlordContactId }
         : {}),
+      ...(input.shortName !== undefined ? { shortName: input.shortName } : {}),
       updatedAt: new Date(),
     })
     .where(eq(venues.id, id))

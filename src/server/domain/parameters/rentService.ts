@@ -48,6 +48,20 @@ export async function resolveEventRentCents(db: DbOrTx, event: EventRentInput): 
   return venueDefault ?? 0;
 }
 
+/**
+ * Feature 020 US4 (FR-019): the resolved rent (cents) for a HYPOTHETICAL (series, venue, date) with no
+ * per-event override — what the event modal shows as the default and re-computes when Sean changes the
+ * venue, before anything is saved. A null venue resolves to 0.
+ */
+export async function resolveRentForVenue(
+  db: DbOrTx,
+  seriesId: string,
+  venueId: string | null,
+  onDate: string,
+): Promise<number> {
+  return resolveEventRentCents(db, { rentCents: null, venueId, seriesId, eventDate: onDate });
+}
+
 /** Create a venue rent (venue default when seriesKey omitted; else series-at-venue). */
 export async function createVenueRent(
   db: Db,

@@ -2,7 +2,13 @@
 
 import { useCallback, useEffect, useState } from "react";
 
-type Venue = { id: string; name: string; address: string; landlordContactId: string | null };
+type Venue = {
+  id: string;
+  name: string;
+  shortName: string | null;
+  address: string;
+  landlordContactId: string | null;
+};
 type EventRow = { id: string; eventDate: string; venueId: string | null };
 type Contact = { id: string; displayName: string };
 
@@ -11,6 +17,7 @@ export default function VenuesPage() {
   const [events, setEvents] = useState<EventRow[]>([]);
   const [name, setName] = useState("");
   const [address, setAddress] = useState("");
+  const [shortName, setShortName] = useState(""); // Feature 020 US5: optional; defaults to initials
   const [eventId, setEventId] = useState("");
   const [venueId, setVenueId] = useState("");
   const [message, setMessage] = useState<string | null>(null);
@@ -64,7 +71,7 @@ export default function VenuesPage() {
     const res = await fetch("/api/venues", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, address }),
+      body: JSON.stringify({ name, address, ...(shortName ? { shortName } : {}) }),
     });
     if (!res.ok) {
       setMessage("Failed to create venue (name + address required)");
@@ -72,6 +79,19 @@ export default function VenuesPage() {
     }
     setName("");
     setAddress("");
+    setShortName("");
+    void load();
+  }
+
+  // Feature 020 US5: edit an existing venue's short name (display-only, non-unique).
+  async function saveShortName(id: string, value: string) {
+    setMessage(null);
+    const res = await fetch(`/api/venues/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ shortName: value }),
+    });
+    if (!res.ok) return setMessage("Failed to update short name");
     void load();
   }
 
@@ -97,8 +117,17 @@ export default function VenuesPage() {
       <ul>
         {venues.map((v) => (
           <li key={v.id}>
-            {v.name} — {v.address}
-            {v.landlordContactId ? " · landlord set" : ""}
+            <strong>{v.shortName ?? "—"}</strong> · {v.name} — {v.address}
+            {v.landlordContactId ? " · landlord set" : ""}{" "}
+            <input
+              aria-label={`Short name for ${v.name}`}
+              defaultValue={v.shortName ?? ""}
+              style={{ width: 90 }}
+              onBlur={(e) => {
+                if (e.target.value !== (v.shortName ?? ""))
+                  void saveShortName(v.id, e.target.value);
+              }}
+            />
           </li>
         ))}
         {venues.length === 0 && <li style={{ color: "#888" }}>No venues</li>}
@@ -141,6 +170,11 @@ export default function VenuesPage() {
       <form onSubmit={createVenue} style={{ display: "grid", gap: 6, maxWidth: 420 }}>
         <input placeholder="Name" value={name} onChange={(e) => setName(e.target.value)} />
         <input placeholder="Address" value={address} onChange={(e) => setAddress(e.target.value)} />
+        <input
+          placeholder="Short name (optional — defaults to initials, e.g. GH)"
+          value={shortName}
+          onChange={(e) => setShortName(e.target.value)}
+        />
         <button type="submit">Create venue</button>
       </form>
 

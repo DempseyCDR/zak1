@@ -49,10 +49,12 @@ export const performerTypeEnum = pgEnum("performer_type", [
 
 export type PerformerType = (typeof performerTypeEnum.enumValues)[number];
 
-// Feature 018 (B23): per-booking lifecycle.
+// Feature 018 (B23): per-booking lifecycle. Feature 020 (US3) adds 'tentative' — a performer's "maybe",
+// between requested and confirmed (skippable). Transitions are enforced in bookingStatus.ts.
 export const bookingStatusEnum = pgEnum("booking_status", [
   "proposed",
   "requested",
+  "tentative",
   "confirmed",
   "declined",
 ]);
