@@ -14,6 +14,9 @@ export const performerCreateSchema = z.object({
   contactId: z.string().uuid().optional(),
   // Only used when contactId is omitted, to seed the auto-created contact (FR-015).
   email: z.string().trim().email().optional(),
+  // Feature 020: purpose to label the seeded email with (the booking add-performer flow passes "booking";
+  // defaults to "personal" for other callers).
+  emailPurpose: z.enum(["personal", "booking", "public_profile", "other"]).optional(),
   phone: z.string().trim().min(1).optional(),
   bio: z.string().optional(),
   photoUrl: z.string().url().optional(),

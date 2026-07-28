@@ -38,7 +38,7 @@ export async function createPerformer(db: Db, input: PerformerCreateInput): Prom
       if (input.email) {
         await addEmailInTx(tx, contact, {
           address: input.email,
-          purposes: ["personal"],
+          purposes: [input.emailPurpose ?? "personal"],
           consentTopics: ["contact_tracing"],
           status: "active",
           isLogin: false,

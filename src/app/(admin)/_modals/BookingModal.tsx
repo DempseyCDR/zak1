@@ -52,6 +52,7 @@ export function BookingModal({ mode, eventId, eventDate, role, booking, onClose,
   const [hits, setHits] = useState<{ id: string; displayName: string }[]>([]);
   const [addingContactQ, setAddingContactQ] = useState<string | null>(null);
   const [contactHits, setContactHits] = useState<{ id: string; displayName: string }[]>([]);
+  const [newEmail, setNewEmail] = useState(""); // optional email for a brand-new performer's contact
 
   // mailto (edit/readonly): PII, fetched from a contact.pii.read endpoint
   const [mailto, setMailto] = useState<string | null>(null);
@@ -85,7 +86,7 @@ export function BookingModal({ mode, eventId, eventDate, role, booking, onClose,
     setContactHits((await res.json()).items ?? []);
   }
 
-  // Add-performer hand-off (FR-013): create a performer bound to an existing contact, then select it.
+  // Add-performer hand-off (FR-013): create a performer bound to an EXISTING contact, then select it.
   async function addPerformer(contactId: string, displayName: string) {
     const res = await fetch("/api/performers", {
       method: "POST",
@@ -96,6 +97,28 @@ export function BookingModal({ mode, eventId, eventDate, role, booking, onClose,
     const created = await res.json();
     pick(created.id, created.displayName ?? displayName);
     setAddingContactQ(null);
+  }
+
+  // Feature 020: the person isn't a contact yet → create a brand-new contact + performer inline. An
+  // optional email is labeled 'booking' (the purpose the performer mailto prefers). Named from the
+  // original performer query `q`. createPerformer creates the contact when no contactId is given.
+  async function createNewPerformer() {
+    const displayName = q.trim();
+    if (!displayName) return;
+    const res = await fetch("/api/performers", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        displayName,
+        ...(role ? { performerType: role } : {}),
+        ...(newEmail.trim() ? { email: newEmail.trim(), emailPurpose: "booking" } : {}),
+      }),
+    });
+    if (!res.ok) return setError("Could not create performer");
+    const created = await res.json();
+    pick(created.id, created.displayName ?? displayName);
+    setAddingContactQ(null);
+    setNewEmail("");
   }
 
   async function save() {
@@ -183,6 +206,23 @@ export function BookingModal({ mode, eventId, eventDate, role, booking, onClose,
                       </li>
                     ))}
                   </ul>
+                  {addingContactQ.trim().length >= 2 && contactHits.length === 0 && (
+                    <div style={{ marginTop: 6 }}>
+                      <p style={{ margin: "4px 0", color: "#555" }}>
+                        No contact found — create “{q}” as a new performer and contact:
+                      </p>
+                      <input
+                        aria-label="New performer email"
+                        type="email"
+                        placeholder="Email (optional)"
+                        value={newEmail}
+                        onChange={(e) => setNewEmail(e.target.value)}
+                      />{" "}
+                      <button type="button" onClick={() => void createNewPerformer()}>
+                        Create performer “{q}”
+                      </button>
+                    </div>
+                  )}
                 </>
               )}
             </div>

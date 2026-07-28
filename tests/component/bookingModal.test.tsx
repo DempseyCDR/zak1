@@ -61,6 +61,53 @@ describe("BookingModal", () => {
     });
   });
 
+  it("add-performer: a brand-new person (no contact match) is created inline with a booking email", async () => {
+    const calls: { url: string; init?: RequestInit }[] = [];
+    vi.stubGlobal(
+      "fetch",
+      stubFetch(calls, (url) => {
+        if (url.includes("/api/performers?q=")) return { items: [] }; // no performer match
+        if (url.includes("/api/contacts?q=")) return { items: [] }; // no contact match either
+        if (url.includes("/api/performers")) return { id: "pNew", displayName: "Micah Wiesner" };
+        return {};
+      }),
+    );
+    const user = userEvent.setup();
+    render(
+      <BookingModal
+        mode="create"
+        eventId="e1"
+        eventDate="2026-06-18"
+        role="musician"
+        onClose={() => {}}
+        onSaved={() => {}}
+      />,
+    );
+
+    await user.type(screen.getByLabelText(/search performer/i), "Micah Wiesner");
+    // No performer → "Add performer" opens the contact search; still empty → create-new appears.
+    await user.click(await screen.findByRole("button", { name: /Add performer/i }));
+    await user.type(screen.getByLabelText(/new performer email/i), "micah@ex.com");
+    await user.click(await screen.findByRole("button", { name: /Create performer/i }));
+
+    await waitFor(() =>
+      expect(calls.some((c) => c.init?.method === "POST" && c.url === "/api/performers")).toBe(
+        true,
+      ),
+    );
+    const post = calls.find((c) => c.init?.method === "POST" && c.url === "/api/performers")!;
+    const body = JSON.parse(post.init!.body as string);
+    expect(body).toMatchObject({
+      displayName: "Micah Wiesner",
+      performerType: "musician",
+      email: "micah@ex.com",
+      emailPurpose: "booking",
+    });
+    expect(body.contactId).toBeUndefined(); // brand-new: no contact linked
+    // The new performer is selected for the booking.
+    expect(screen.getByText(/Selected: Micah Wiesner/)).toBeInTheDocument();
+  });
+
   it("edit: Save issues one PATCH; Cancel issues none", async () => {
     const calls: { url: string; init?: RequestInit }[] = [];
     vi.stubGlobal(

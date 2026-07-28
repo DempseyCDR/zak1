@@ -43,6 +43,20 @@ describe("performer → contact", () => {
       where: eq(contactEmails.contactId, p.contactId!),
     });
     expect(emails?.email).toBe("email-fiddle@example.com");
+    expect(emails?.purposes).toContain("personal"); // default purpose
+  });
+
+  it("labels the seeded email 'booking' when emailPurpose is given (feature 020 add-performer)", async () => {
+    const p = await createPerformer(db, {
+      displayName: "Micah Wiesner",
+      email: "micah@example.com",
+      emailPurpose: "booking",
+    });
+    const email = await db.query.contactEmails.findFirst({
+      where: eq(contactEmails.contactId, p.contactId!),
+    });
+    expect(email?.purposes).toContain("booking");
+    expect(email?.purposes).not.toContain("personal");
   });
 
   it("reuses an existing contact when one is provided", async () => {
