@@ -7,8 +7,8 @@ import { createBooking, patchBooking } from "@/server/domain/bookings/bookingSer
 import { getPublicEventDetail } from "@/server/domain/public/publicSchedule";
 
 // Feature 020 US3 (FR-015): a 'tentative' booking is internal only — the public path is confirmed-only, so
-// it is excluded with no code change. FR-016 (analyze U1): substituting a performer resets to proposed and
-// clears the check number, from any prior state.
+// it is excluded with no code change. FR-016 (analyze U1): substituting a performer resets to proposed,
+// from any prior state.
 describe("tentative status — internal only, and substitute reset", () => {
   beforeAll(ensureSchema);
   beforeEach(resetDb);
@@ -33,7 +33,7 @@ describe("tentative status — internal only, and substitute reset", () => {
     expect(JSON.stringify(await getPublicEventDetail(db, evt.id))).toContain("Tent Caller");
   });
 
-  it("resets a tentative booking to proposed and clears the check number on substitute (FR-016)", async () => {
+  it("resets a tentative booking to proposed on substitute (FR-016)", async () => {
     const evt = await makeEvent({ seriesKey: "tnc" });
     const booked = await makePerformer("Booked Bea");
     const sub = await makePerformer("Sub Sam");
@@ -42,10 +42,9 @@ describe("tentative status — internal only, and substitute reset", () => {
       performerType: "musician",
       pay: 125,
     });
-    // Drive it to tentative with a check number set.
+    // Drive it to tentative.
     await patchBooking(db, booking.id, { status: "requested" }, "test");
     await patchBooking(db, booking.id, { status: "tentative" }, "test");
-    await db.update(bookings).set({ checkNumber: "9001" }).where(eq(bookings.id, booking.id));
 
     // Substitute the performer → re-point.
     await patchBooking(db, booking.id, { performerId: sub.id }, "test");
@@ -53,6 +52,5 @@ describe("tentative status — internal only, and substitute reset", () => {
     const row = await db.query.bookings.findFirst({ where: eq(bookings.id, booking.id) });
     expect(row?.performerId).toBe(sub.id);
     expect(row?.status).toBe("proposed");
-    expect(row?.checkNumber).toBeNull();
   });
 });

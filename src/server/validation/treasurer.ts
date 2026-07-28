@@ -16,11 +16,6 @@ export const nonDanceIncomeCreateSchema = z.object({
   entryDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "entryDate must be YYYY-MM-DD"),
 });
 
-export const checkNumberPatchSchema = z.object({
-  checkNumber: z.string().trim().min(1).nullable(),
-});
-
 export type AccountMappingPutInput = z.infer<typeof accountMappingPutSchema>;
 export type SeriesQboPutInput = z.infer<typeof seriesQboPutSchema>;
 export type NonDanceIncomeCreateInput = z.infer<typeof nonDanceIncomeCreateSchema>;
-export type CheckNumberPatchInput = z.infer<typeof checkNumberPatchSchema>;

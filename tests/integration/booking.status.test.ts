@@ -46,19 +46,15 @@ describe("booking status lifecycle", () => {
     expect(declined.status).toBe("declined");
   });
 
-  it("re-points to a new performer: resets to proposed and clears a stale check number", async () => {
+  it("re-points to a new performer: resets to proposed", async () => {
     const { booking } = await makeBooking();
-    // Simulate a booking that had been confirmed and paid (check number recorded).
-    await db
-      .update(bookings)
-      .set({ status: "confirmed", checkNumber: "1234" })
-      .where(eq(bookings.id, booking.id));
+    // Simulate a booking that had been confirmed.
+    await db.update(bookings).set({ status: "confirmed" }).where(eq(bookings.id, booking.id));
 
     const other = await makePerformer("Ada Alternate");
     const repointed = await patchBooking(db, booking.id, { performerId: other.id });
 
     expect(repointed.performerId).toBe(other.id);
     expect(repointed.status).toBe("proposed");
-    expect(repointed.checkNumber).toBeNull(); // never carry the previous performer's check
   });
 });

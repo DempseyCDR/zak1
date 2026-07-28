@@ -143,8 +143,8 @@ export async function patchBooking(
   const type = current.performerType;
 
   // B23 re-point: change the performer on this same slot → a fresh `proposed` booking for the new
-  // performer. Clear the check number (U1: a payment to the previous performer must never carry over) and
-  // reset pay/override/donated to the slot's standard rate.
+  // performer, resetting pay/override/donated to the slot's standard rate. (A check number no longer lives
+  // on the booking — feature 021; payments live on performer_payments — so there is nothing to clear here.)
   if (input.performerId !== undefined && input.performerId !== current.performerId) {
     const newPerformer = await db.query.performers.findFirst({
       where: eq(performers.id, input.performerId),
@@ -167,7 +167,6 @@ export async function patchBooking(
       .set({
         performerId: input.performerId,
         status: "proposed",
-        checkNumber: null,
         isOverridden: false,
         isDonated: false,
         payCents,

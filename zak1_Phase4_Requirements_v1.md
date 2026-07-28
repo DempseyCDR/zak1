@@ -173,7 +173,8 @@ modals, gate, check-in) → **prioritize**.
 
 SpecKit assigns real numbers; provisional grouping:
 
-1. **019 correction — drop `bookings.check_number`** *(small, corrective, low-risk; do first to unblock B)*.
+1. **019 correction — drop `bookings.check_number`** — ✅ **SHIPPED as feature `021`** (migration `0026`;
+   `performer_payments` is now the sole check store). *(was: small, corrective, low-risk; do first to unblock B)*.
 2. **B41 — client 401 → `/login`** *(cross-cutting, prioritized; small; independent)*.
 3. **FS payments substrate + report re-keying** (Area B, minus B7 which is #1) — the largest; depends on #1.
    Establishes the check discriminator the booker amendments lean on.

@@ -1,8 +1,7 @@
-import { and, desc, eq, gte, isNotNull, lt, lte, sql } from "drizzle-orm";
+import { and, desc, eq, gte, lt, lte, sql } from "drizzle-orm";
 import type { Db } from "@/server/db/client";
 import {
   attendance,
-  bookings,
   doorRecords,
   eventGroups,
   events,
@@ -162,12 +161,8 @@ export async function deleteEvent(
     if (!isEmptyDoorRecord(door, saleCount[0]?.n ?? 0))
       throw errors.eventHasHistory("gate takings");
   }
-  // Blocker 2: a paid booking (check number written).
-  const paidBooking = await db.query.bookings.findFirst({
-    where: and(eq(bookings.eventId, eventId), isNotNull(bookings.checkNumber)),
-  });
-  if (paidBooking) throw errors.eventHasHistory("a paid booking (check number)");
-  // Blocker 3 (FR-019, new): a recorded performer payment.
+  // Blocker 2 (feature 019): a recorded performer payment. (The old booking-side "check number" blocker
+  // was removed in feature 021 — check numbers live only on performer_payments now, which this covers.)
   const payment = await db.query.performerPayments.findFirst({
     where: eq(performerPayments.eventId, eventId),
   });

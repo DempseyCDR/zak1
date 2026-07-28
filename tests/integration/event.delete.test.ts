@@ -3,7 +3,7 @@ import { eq } from "drizzle-orm";
 import { ensureSchema, resetDb, closeDb, db } from "./helpers/db";
 import { jsonReq, ctx } from "./helpers/http";
 import { makeEvent, makePerformer, makeDoorRecord } from "./helpers/factories";
-import { bookings, events } from "@/server/db/schema";
+import { events } from "@/server/db/schema";
 import { createBooking } from "@/server/domain/bookings/bookingService";
 import { createPerformerPayment } from "@/server/domain/payments/performerPaymentService";
 import { recordAttendance } from "@/server/domain/attendance/attendanceService";
@@ -46,21 +46,7 @@ describe("event delete guardrail (feature 019)", () => {
     expect((await del(evt.id)).status).toBe(204);
   });
 
-  it("refuses (409) when a booking has a check number", async () => {
-    const evt = await makeEvent({ seriesKey: "tnc" });
-    const caller = await makePerformer("Cal Caller");
-    const b = await createBooking(db, evt.id, {
-      performerId: caller.id,
-      performerType: "caller",
-      pay: 150,
-    });
-    await db.update(bookings).set({ checkNumber: "1234" }).where(eq(bookings.id, b.id));
-    const res = await del(evt.id);
-    expect(res.status).toBe(409);
-    expect((await res.json()).error.detail).toBe("a paid booking (check number)");
-  });
-
-  it("refuses (409) when a performer payment exists (FR-019)", async () => {
+  it("refuses (409) when a performer payment exists (feature 019; was 'a paid booking (check number)' pre-021)", async () => {
     const evt = await makeEvent({ seriesKey: "tnc" });
     const p = await makePerformer("Paid Pat");
     const b = await createBooking(db, evt.id, {
