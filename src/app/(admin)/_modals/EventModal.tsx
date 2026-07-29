@@ -1,4 +1,5 @@
 "use client";
+import { apiFetch } from "@/app/apiFetch";
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
@@ -52,7 +53,9 @@ export function EventModal({ mode, event, venues, onClose, onSaved }: Props) {
   useEffect(() => {
     if (mode !== "create" || prefilledRef.current) return;
     prefilledRef.current = true;
-    void fetch(`/api/events/prior-defaults?seriesKey=${event.seriesKey}&before=${event.eventDate}`)
+    void apiFetch(
+      `/api/events/prior-defaults?seriesKey=${event.seriesKey}&before=${event.eventDate}`,
+    )
       .then((r) => r.json())
       .then((d) => {
         if (d.venueId) setVenueId(d.venueId);
@@ -63,7 +66,7 @@ export function EventModal({ mode, event, venues, onClose, onSaved }: Props) {
 
   // Resolve the rent default for the current venue/date; re-runs when the venue changes (FR-019).
   const loadRentDefault = useCallback(async () => {
-    const res = await fetch(
+    const res = await apiFetch(
       `/api/events/rent-preview?seriesKey=${event.seriesKey}&venueId=${venueId}&date=${eventDate}`,
     );
     const d = await res.json();
@@ -91,7 +94,7 @@ export function EventModal({ mode, event, venues, onClose, onSaved }: Props) {
       description: description || null,
     };
     const url = mode === "create" ? "/api/events" : `/api/events/${event.id}`;
-    const res = await fetch(url, {
+    const res = await apiFetch(url, {
       method: mode === "create" ? "POST" : "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(mode === "create" ? { ...body, seriesKey: event.seriesKey } : body),

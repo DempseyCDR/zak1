@@ -1,4 +1,5 @@
 "use client";
+import { apiFetch } from "@/app/apiFetch";
 
 import { useCallback, useEffect, useState } from "react";
 
@@ -14,7 +15,7 @@ export default function PerformersPage() {
   const [warning, setWarning] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    const res = await fetch("/api/performers");
+    const res = await apiFetch("/api/performers");
     const data = await res.json();
     setItems(data.items ?? []);
   }, []);
@@ -28,7 +29,7 @@ export default function PerformersPage() {
     setError(null);
     setWarning(null);
     const hasContactInfo = email.trim() || phone.trim();
-    const res = await fetch("/api/performers", {
+    const res = await apiFetch("/api/performers", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

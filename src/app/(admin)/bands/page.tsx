@@ -1,4 +1,5 @@
 "use client";
+import { apiFetch } from "@/app/apiFetch";
 
 import { useCallback, useEffect, useState } from "react";
 
@@ -22,13 +23,13 @@ export default function BandsPage() {
   const [message, setMessage] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    const res = await fetch("/api/bands");
+    const res = await apiFetch("/api/bands");
     setBands((await res.json()).items ?? []);
   }, []);
 
   useEffect(() => {
     void load();
-    void fetch("/api/performers")
+    void apiFetch("/api/performers")
       .then((r) => r.json())
       .then((d) => setPerformers(d.items ?? []));
   }, [load]);
@@ -42,7 +43,7 @@ export default function BandsPage() {
   }
 
   async function edit(id: string) {
-    const res = await fetch(`/api/bands/${id}`);
+    const res = await apiFetch(`/api/bands/${id}`);
     const b = await res.json();
     setEditingId(id);
     setName(b.name);
@@ -69,7 +70,7 @@ export default function BandsPage() {
     e.preventDefault();
     setMessage(null);
     const body = { name, bio: bio || undefined, photoUrl: photoUrl || undefined, members: roster };
-    const res = await fetch(editingId ? `/api/bands/${editingId}` : "/api/bands", {
+    const res = await apiFetch(editingId ? `/api/bands/${editingId}` : "/api/bands", {
       method: editingId ? "PATCH" : "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
@@ -86,7 +87,7 @@ export default function BandsPage() {
   }
 
   async function archive(id: string) {
-    await fetch(`/api/bands/${id}`, { method: "DELETE" });
+    await apiFetch(`/api/bands/${id}`, { method: "DELETE" });
     if (editingId === id) resetForm();
     void load();
   }

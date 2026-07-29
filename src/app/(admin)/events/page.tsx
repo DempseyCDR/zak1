@@ -1,4 +1,5 @@
 "use client";
+import { apiFetch } from "@/app/apiFetch";
 
 import { useCallback, useEffect, useState } from "react";
 import { formatWallClock } from "@/server/domain/public/wallClock";
@@ -49,7 +50,7 @@ export default function EventsPage() {
 
   async function patchEvent(id: string, body: Record<string, unknown>) {
     setError(null);
-    const res = await fetch(`/api/events/${id}`, {
+    const res = await apiFetch(`/api/events/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
@@ -64,7 +65,7 @@ export default function EventsPage() {
   async function deleteEvent(id: string, confirmDiscardAttendance = false) {
     setError(null);
     const q = confirmDiscardAttendance ? "?confirmDiscardAttendance=true" : "";
-    const res = await fetch(`/api/events/${id}${q}`, { method: "DELETE" });
+    const res = await apiFetch(`/api/events/${id}${q}`, { method: "DELETE" });
     if (res.ok) {
       if (manageId === id) setManageId("");
       void loadEvents();
@@ -94,7 +95,7 @@ export default function EventsPage() {
 
   async function generateRecurring() {
     setRecMessage(null);
-    const res = await fetch("/api/events/recurring", {
+    const res = await apiFetch("/api/events/recurring", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -117,7 +118,7 @@ export default function EventsPage() {
   async function setEventRent(clear: boolean) {
     if (!rentEventId) return;
     const rentCents = clear ? null : Math.round(Number(rentAmount) * 100);
-    const res = await fetch(`/api/events/${rentEventId}`, {
+    const res = await apiFetch(`/api/events/${rentEventId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ rentCents }),
@@ -131,16 +132,16 @@ export default function EventsPage() {
   }
 
   const loadEvents = useCallback(async () => {
-    const res = await fetch("/api/events");
+    const res = await apiFetch("/api/events");
     setEvents((await res.json()).items ?? []);
   }, []);
   const loadGroups = useCallback(async () => {
-    const res = await fetch("/api/event-groups");
+    const res = await apiFetch("/api/event-groups");
     setGroups((await res.json()).items ?? []);
   }, []);
 
   useEffect(() => {
-    void fetch("/api/series")
+    void apiFetch("/api/series")
       .then((r) => r.json())
       .then((d) => {
         setSeries(d.items ?? []);
@@ -158,7 +159,7 @@ export default function EventsPage() {
   async function createEvent(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    const res = await fetch("/api/events", {
+    const res = await apiFetch("/api/events", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -184,7 +185,7 @@ export default function EventsPage() {
 
   async function createGroup() {
     if (!groupName.trim()) return;
-    const res = await fetch("/api/event-groups", {
+    const res = await apiFetch("/api/event-groups", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

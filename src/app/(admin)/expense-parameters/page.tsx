@@ -1,4 +1,5 @@
 "use client";
+import { apiFetch } from "@/app/apiFetch";
 
 import { useCallback, useEffect, useState } from "react";
 
@@ -17,7 +18,7 @@ export default function ExpenseParametersPage() {
   const [message, setMessage] = useState<string | null>(null);
 
   useEffect(() => {
-    void fetch("/api/series")
+    void apiFetch("/api/series")
       .then((r) => r.json())
       .then((d: { items: Series[] }) => {
         setSeriesList(d.items);
@@ -27,7 +28,7 @@ export default function ExpenseParametersPage() {
 
   const loadResolved = useCallback(async () => {
     if (!seriesKey) return;
-    const r = await fetch(
+    const r = await apiFetch(
       `/api/expense-parameters?seriesKey=${seriesKey}&kind=ongoing&on=${effectiveDate}`,
     );
     const d = await r.json();
@@ -41,7 +42,7 @@ export default function ExpenseParametersPage() {
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setMessage(null);
-    const res = await fetch("/api/expense-parameters", {
+    const res = await apiFetch("/api/expense-parameters", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

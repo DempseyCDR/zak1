@@ -1,4 +1,5 @@
 "use client";
+import { apiFetch } from "@/app/apiFetch";
 
 import { useCallback, useEffect, useState } from "react";
 
@@ -58,7 +59,7 @@ export function BookingModal({ mode, eventId, eventDate, role, booking, onClose,
   const [mailto, setMailto] = useState<string | null>(null);
   useEffect(() => {
     if (!booking?.performerId) return;
-    void fetch(`/api/performers/${booking.performerId}/mailto`)
+    void apiFetch(`/api/performers/${booking.performerId}/mailto`)
       .then((r) => r.json())
       .then((d) => setMailto(d.email ?? null))
       .catch(() => setMailto(null));
@@ -68,7 +69,7 @@ export function BookingModal({ mode, eventId, eventDate, role, booking, onClose,
     setQ(value);
     setAddingContactQ(null);
     if (value.trim().length < 1) return setHits([]);
-    const res = await fetch(`/api/performers?q=${encodeURIComponent(value)}`);
+    const res = await apiFetch(`/api/performers?q=${encodeURIComponent(value)}`);
     setHits((await res.json()).items ?? []);
   }, []);
 
@@ -82,13 +83,13 @@ export function BookingModal({ mode, eventId, eventDate, role, booking, onClose,
   async function searchContacts(value: string) {
     setAddingContactQ(value);
     if (value.trim().length < 2) return setContactHits([]);
-    const res = await fetch(`/api/contacts?q=${encodeURIComponent(value)}`);
+    const res = await apiFetch(`/api/contacts?q=${encodeURIComponent(value)}`);
     setContactHits((await res.json()).items ?? []);
   }
 
   // Add-performer hand-off (FR-013): create a performer bound to an EXISTING contact, then select it.
   async function addPerformer(contactId: string, displayName: string) {
-    const res = await fetch("/api/performers", {
+    const res = await apiFetch("/api/performers", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ displayName, contactId, ...(role ? { performerType: role } : {}) }),
@@ -105,7 +106,7 @@ export function BookingModal({ mode, eventId, eventDate, role, booking, onClose,
   async function createNewPerformer() {
     const displayName = q.trim();
     if (!displayName) return;
-    const res = await fetch("/api/performers", {
+    const res = await apiFetch("/api/performers", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -125,7 +126,7 @@ export function BookingModal({ mode, eventId, eventDate, role, booking, onClose,
     setError(null);
     if (mode === "create") {
       if (!performerId) return setError("Choose a performer");
-      const res = await fetch(`/api/events/${eventId}/bookings`, {
+      const res = await apiFetch(`/api/events/${eventId}/bookings`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -137,7 +138,7 @@ export function BookingModal({ mode, eventId, eventDate, role, booking, onClose,
       if (res.status === 403) return setError("Only the Booker may create bookings.");
       if (!res.ok) return setError("Could not create booking");
     } else if (booking) {
-      const res = await fetch(`/api/bookings/${booking.id}`, {
+      const res = await apiFetch(`/api/bookings/${booking.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

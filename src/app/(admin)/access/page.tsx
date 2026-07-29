@@ -1,4 +1,5 @@
 "use client";
+import { apiFetch } from "@/app/apiFetch";
 
 import { useCallback, useEffect, useState } from "react";
 import ContactPicker from "@/app/ContactPicker";
@@ -54,7 +55,7 @@ export default function AccessPage() {
   const [seriesKey, setSeriesKey] = useState("");
 
   const load = useCallback(async () => {
-    const res = await fetch("/api/access/volunteers");
+    const res = await apiFetch("/api/access/volunteers");
     if (res.status === 403) {
       setMessage("You do not have access to role assignment (President or VP only).");
       return;
@@ -73,7 +74,7 @@ export default function AccessPage() {
   async function designate(e: React.FormEvent) {
     e.preventDefault();
     setMessage(null);
-    const res = await fetch("/api/access/volunteers", {
+    const res = await apiFetch("/api/access/volunteers", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ contactId: designateContactId }),
@@ -91,7 +92,7 @@ export default function AccessPage() {
   async function grant(e: React.FormEvent) {
     e.preventDefault();
     setMessage(null);
-    const res = await fetch("/api/access/grants", {
+    const res = await apiFetch("/api/access/grants", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -116,7 +117,7 @@ export default function AccessPage() {
 
   async function revoke(grantId: string) {
     setMessage(null);
-    const res = await fetch(`/api/access/grants?grantId=${encodeURIComponent(grantId)}`, {
+    const res = await apiFetch(`/api/access/grants?grantId=${encodeURIComponent(grantId)}`, {
       method: "DELETE",
     });
     if (!res.ok) return setMessage("Revoke failed");
@@ -125,7 +126,7 @@ export default function AccessPage() {
 
   async function approve(contactId: string) {
     setMessage(null);
-    const res = await fetch(`/api/access/volunteers/${contactId}/approve`, { method: "POST" });
+    const res = await apiFetch(`/api/access/volunteers/${contactId}/approve`, { method: "POST" });
     if (!res.ok) return setMessage("Approve failed");
     await load();
   }
@@ -134,7 +135,7 @@ export default function AccessPage() {
   // clear on explicit confirmation.
   async function clearVolunteer(v: Volunteer) {
     setMessage(null);
-    const preview = await fetch(
+    const preview = await apiFetch(
       `/api/access/volunteers?contactId=${encodeURIComponent(v.contactId)}&preview=1`,
       { method: "DELETE" },
     );
@@ -149,9 +150,12 @@ export default function AccessPage() {
     if (!confirm(`${summary}\n\nRemove ${v.displayName} as a volunteer? This cannot be undone.`)) {
       return;
     }
-    const res = await fetch(`/api/access/volunteers?contactId=${encodeURIComponent(v.contactId)}`, {
-      method: "DELETE",
-    });
+    const res = await apiFetch(
+      `/api/access/volunteers?contactId=${encodeURIComponent(v.contactId)}`,
+      {
+        method: "DELETE",
+      },
+    );
     if (!res.ok) return setMessage("Clear failed");
     await load();
   }

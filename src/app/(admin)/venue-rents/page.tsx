@@ -1,4 +1,5 @@
 "use client";
+import { apiFetch } from "@/app/apiFetch";
 
 import { useCallback, useEffect, useState } from "react";
 
@@ -25,20 +26,20 @@ export default function VenueRentsPage() {
   const [message, setMessage] = useState<string | null>(null);
 
   useEffect(() => {
-    void fetch("/api/venues")
+    void apiFetch("/api/venues")
       .then((r) => r.json())
       .then((d: { items: Venue[] }) => {
         setVenues(d.items);
         if (d.items[0]) setVenueId(d.items[0].id);
       });
-    void fetch("/api/series")
+    void apiFetch("/api/series")
       .then((r) => r.json())
       .then((d: { items: Series[] }) => setSeriesList(d.items));
   }, []);
 
   const loadRents = useCallback(async () => {
     if (!venueId) return;
-    const r = await fetch(`/api/venue-rents?venueId=${venueId}`);
+    const r = await apiFetch(`/api/venue-rents?venueId=${venueId}`);
     const d = await r.json();
     setRents(d.items ?? []);
   }, [venueId]);
@@ -53,7 +54,7 @@ export default function VenueRentsPage() {
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setMessage(null);
-    const res = await fetch("/api/venue-rents", {
+    const res = await apiFetch("/api/venue-rents", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

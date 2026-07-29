@@ -1,4 +1,5 @@
 "use client";
+import { apiFetch } from "@/app/apiFetch";
 
 import { Fragment, use, useCallback, useEffect, useState } from "react";
 
@@ -106,7 +107,7 @@ export default function OrganizerReportPage({
   const [openRow, setOpenRow] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    const r = await fetch(`/api/organizer/${seriesKey}/report?year=${year}`);
+    const r = await apiFetch(`/api/organizer/${seriesKey}/report?year=${year}`);
     if (!r.ok) {
       setError((await r.json()).error?.message ?? "Failed");
       return;

@@ -1,4 +1,5 @@
 "use client";
+import { apiFetch } from "@/app/apiFetch";
 
 import { useCallback, useEffect, useState } from "react";
 
@@ -62,7 +63,7 @@ export default function BookingsPage() {
   // FR-012/013: most-recent-first, default to events within the last month unless overridden.
   const loadEvents = useCallback(async (older: boolean) => {
     const qs = older ? "" : `?from=${oneMonthAgoIso()}`;
-    const res = await fetch(`/api/events${qs}`);
+    const res = await apiFetch(`/api/events${qs}`);
     const data = await res.json();
     const items: EventRow[] = (data.items ?? []).sort((a: EventRow, b: EventRow) =>
       b.eventDate.localeCompare(a.eventDate),
@@ -75,23 +76,23 @@ export default function BookingsPage() {
   }, [includeOlder, loadEvents]);
 
   useEffect(() => {
-    void fetch("/api/performers")
+    void apiFetch("/api/performers")
       .then((r) => r.json())
       .then((d) => setPerformers(d.items ?? []));
-    void fetch("/api/series")
+    void apiFetch("/api/series")
       .then((r) => r.json())
       .then((d) => {
         setSeries(d.items ?? []);
         if (d.items?.[0]) setNewSeriesKey(d.items[0].key);
       });
-    void fetch("/api/bands")
+    void apiFetch("/api/bands")
       .then((r) => r.json())
       .then((d) => setBands(d.items ?? []));
   }, []);
 
   async function createInlineEvent() {
     if (!newSeriesKey || !newDate) return;
-    const res = await fetch("/api/events", {
+    const res = await apiFetch("/api/events", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ seriesKey: newSeriesKey, eventDate: newDate }),
@@ -110,7 +111,7 @@ export default function BookingsPage() {
 
   const loadBookings = useCallback(async (id: string) => {
     if (!id) return;
-    const res = await fetch(`/api/events/${id}/bookings`);
+    const res = await apiFetch(`/api/events/${id}/bookings`);
     const data = await res.json();
     setBookings(data.bookings ?? []);
     setTotal(data.performerTotal ?? 0);
@@ -123,7 +124,7 @@ export default function BookingsPage() {
   async function book(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    const res = await fetch(`/api/events/${eventId}/bookings`, {
+    const res = await apiFetch(`/api/events/${eventId}/bookings`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -146,7 +147,7 @@ export default function BookingsPage() {
   async function bookWholeBand() {
     if (!eventId || !bandId) return;
     setBandMessage(null);
-    const res = await fetch(`/api/events/${eventId}/book-band`, {
+    const res = await apiFetch(`/api/events/${eventId}/book-band`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ bandId }),
@@ -164,7 +165,7 @@ export default function BookingsPage() {
   }
 
   async function removeBooking(bookingId: string) {
-    const res = await fetch(`/api/bookings/${bookingId}`, { method: "DELETE" });
+    const res = await apiFetch(`/api/bookings/${bookingId}`, { method: "DELETE" });
     if (!res.ok) {
       setError("Failed to remove booking");
       return;
@@ -175,7 +176,7 @@ export default function BookingsPage() {
   // B23: advance/decline status, or re-point the slot to a different performer.
   async function patchBooking(bookingId: string, body: Record<string, unknown>) {
     setError(null);
-    const res = await fetch(`/api/bookings/${bookingId}`, {
+    const res = await apiFetch(`/api/bookings/${bookingId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),

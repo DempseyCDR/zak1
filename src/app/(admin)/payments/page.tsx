@@ -1,4 +1,5 @@
 "use client";
+import { apiFetch } from "@/app/apiFetch";
 
 import { useCallback, useEffect, useState } from "react";
 
@@ -45,18 +46,18 @@ export default function PaymentsPage() {
   const [linkHits, setLinkHits] = useState<Record<string, ContactHit[]>>({});
 
   const loadParked = useCallback(async () => {
-    const res = await fetch("/api/membership-captures/parked");
+    const res = await apiFetch("/api/membership-captures/parked");
     if (!res.ok) return; // FS/Treasurer only; a base user simply sees no panel
     setParked((await res.json()).parked ?? []);
   }, []);
 
   useEffect(() => {
     // Both endpoints return { items: [...] } (feature 016 convention).
-    void fetch("/api/events")
+    void apiFetch("/api/events")
       .then((r) => r.json())
       .then((d) => setEvents(Array.isArray(d.items) ? d.items : []))
       .catch(() => setError("Could not load events"));
-    void fetch("/api/performers")
+    void apiFetch("/api/performers")
       .then((r) => r.json())
       .then((d) => setPerformers(Array.isArray(d.items) ? d.items : []))
       .catch(() => setError("Could not load performers"));
@@ -66,13 +67,13 @@ export default function PaymentsPage() {
   async function searchContacts(notifId: string, q: string) {
     setLinkQuery((m) => ({ ...m, [notifId]: q }));
     if (q.length < 2) return setLinkHits((m) => ({ ...m, [notifId]: [] }));
-    const res = await fetch(`/api/contacts?q=${encodeURIComponent(q)}`);
+    const res = await apiFetch(`/api/contacts?q=${encodeURIComponent(q)}`);
     const d = await res.json();
     setLinkHits((m) => ({ ...m, [notifId]: d.items ?? [] }));
   }
 
   async function linkParked(notifId: string, contactId: string) {
-    const res = await fetch(`/api/membership-captures/${notifId}/link`, {
+    const res = await apiFetch(`/api/membership-captures/${notifId}/link`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ contactId }),
@@ -91,8 +92,8 @@ export default function PaymentsPage() {
       return;
     }
     const [bRes, pRes] = await Promise.all([
-      fetch(`/api/events/${id}/bookings`),
-      fetch(`/api/events/${id}/performer-payments`),
+      apiFetch(`/api/events/${id}/bookings`),
+      apiFetch(`/api/events/${id}/performer-payments`),
     ]);
     const bBody = await bRes.json();
     setBookings(Array.isArray(bBody.bookings) ? bBody.bookings : []);
@@ -102,7 +103,7 @@ export default function PaymentsPage() {
   }, []);
 
   async function refreshPayments(id: string) {
-    const pRes = await fetch(`/api/events/${id}/performer-payments`);
+    const pRes = await apiFetch(`/api/events/${id}/performer-payments`);
     const pBody = await pRes.json();
     setPayments(pBody.payments ?? []);
     setRecon(pBody.reconciliation ?? null);
@@ -110,7 +111,7 @@ export default function PaymentsPage() {
 
   async function record() {
     setError(null);
-    const res = await fetch("/api/performer-payments", {
+    const res = await apiFetch("/api/performer-payments", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -137,7 +138,7 @@ export default function PaymentsPage() {
   }
 
   async function remove(id: string) {
-    const res = await fetch(`/api/performer-payments/${id}`, { method: "DELETE" });
+    const res = await apiFetch(`/api/performer-payments/${id}`, { method: "DELETE" });
     if (!res.ok && res.status !== 204) return setError("Could not delete payment");
     await refreshPayments(eventId);
   }

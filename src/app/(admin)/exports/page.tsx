@@ -1,4 +1,5 @@
 "use client";
+import { apiFetch } from "@/app/apiFetch";
 
 import { useCallback, useEffect, useState } from "react";
 
@@ -27,7 +28,7 @@ export default function ExportsPage() {
   const [tracingMessage, setTracingMessage] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    const res = await fetch("/api/exports");
+    const res = await apiFetch("/api/exports");
     const data = await res.json();
     setItems(data.items ?? []);
   }, []);
@@ -41,7 +42,7 @@ export default function ExportsPage() {
     const cutoff = new Date();
     cutoff.setDate(cutoff.getDate() - 90);
     const from = cutoff.toISOString().slice(0, 10);
-    void fetch(`/api/events?from=${from}`)
+    void apiFetch(`/api/events?from=${from}`)
       .then((r) => r.json())
       .then((d) => setEvents(d.items ?? []));
   }, []);
@@ -49,7 +50,7 @@ export default function ExportsPage() {
   async function downloadContactTracing() {
     if (!eventId) return;
     setTracingMessage(null);
-    const res = await fetch(`/api/exports/contact-tracing?eventId=${eventId}`);
+    const res = await apiFetch(`/api/exports/contact-tracing?eventId=${eventId}`);
     if (!res.ok) {
       const body = await res.json().catch(() => null);
       setTracingMessage(body?.error?.message ?? "Failed to generate export");

@@ -1,4 +1,5 @@
 "use client";
+import { apiFetch } from "@/app/apiFetch";
 
 import { use, useCallback, useEffect, useState } from "react";
 
@@ -52,7 +53,7 @@ export default function TreasurerReportPage({ params }: { params: Promise<{ even
   const [ndiDate, setNdiDate] = useState("");
 
   const load = useCallback(async () => {
-    const r = await fetch(`/api/events/${eventId}/treasurer-report`);
+    const r = await apiFetch(`/api/events/${eventId}/treasurer-report`);
     if (!r.ok) {
       setError((await r.json()).error?.message ?? "Failed");
       return;
@@ -66,7 +67,7 @@ export default function TreasurerReportPage({ params }: { params: Promise<{ even
 
   async function addNonDanceIncome(e: React.FormEvent) {
     e.preventDefault();
-    const res = await fetch(`/api/events/${eventId}/non-dance-income`, {
+    const res = await apiFetch(`/api/events/${eventId}/non-dance-income`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ description: ndiDesc, amount: Number(ndiAmount), entryDate: ndiDate }),

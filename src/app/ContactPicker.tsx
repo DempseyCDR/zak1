@@ -1,4 +1,5 @@
 "use client";
+import { apiFetch } from "@/app/apiFetch";
 
 import { useState } from "react";
 
@@ -31,7 +32,7 @@ export default function ContactPicker({
   async function search(query: string) {
     setQ(query);
     if (!query.trim()) return setMatches([]);
-    const res = await fetch(`/api/contacts?q=${encodeURIComponent(query)}`);
+    const res = await apiFetch(`/api/contacts?q=${encodeURIComponent(query)}`);
     if (!res.ok) return setMatches([]);
     const data = await res.json();
     setMatches((data.items ?? []).slice(0, 8));

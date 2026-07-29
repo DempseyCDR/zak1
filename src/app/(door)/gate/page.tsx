@@ -1,4 +1,5 @@
 "use client";
+import { apiFetch } from "@/app/apiFetch";
 
 import { useEffect, useState } from "react";
 
@@ -48,14 +49,14 @@ export default function GatePage() {
   const [newCategory, setNewCategory] = useState<(typeof NAMED_CATEGORIES)[number]>("membership");
 
   useEffect(() => {
-    void fetch("/api/events")
+    void apiFetch("/api/events")
       .then((r) => r.json())
       .then((d) => setEvents(d.items ?? []));
   }, []);
 
   useEffect(() => {
     if (!search.trim()) return setCandidates([]);
-    void fetch(`/api/attendance/search?q=${encodeURIComponent(search)}`)
+    void apiFetch(`/api/attendance/search?q=${encodeURIComponent(search)}`)
       .then((r) => r.json())
       .then((d) => setCandidates(d.items ?? []));
   }, [search]);
@@ -68,7 +69,7 @@ export default function GatePage() {
     setAnon(JSON.parse(JSON.stringify(emptyAnon)));
     setNamed([]);
     if (!selectedEventId) return;
-    const res = await fetch(`/api/events/${selectedEventId}/door-record`, { method: "POST" });
+    const res = await apiFetch(`/api/events/${selectedEventId}/door-record`, { method: "POST" });
     if (!res.ok) return setMessage("Could not open door record");
     const data = await res.json();
     setDoorRecordId(data.doorRecord.id);
@@ -127,7 +128,7 @@ export default function GatePage() {
           : [];
       }),
     ];
-    const gsRes = await fetch(`/api/door-records/${doorRecordId}/gate-sales`, {
+    const gsRes = await apiFetch(`/api/door-records/${doorRecordId}/gate-sales`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ sales }),
@@ -143,7 +144,7 @@ export default function GatePage() {
     const gsBody = await gsRes.json().catch(() => null);
     const enrolled: { displayName: string; expiryDate: string }[] = gsBody?.enrolled ?? [];
 
-    const res = await fetch(`/api/door-records/${doorRecordId}`, {
+    const res = await apiFetch(`/api/door-records/${doorRecordId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

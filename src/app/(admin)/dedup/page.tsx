@@ -1,4 +1,5 @@
 "use client";
+import { apiFetch } from "@/app/apiFetch";
 
 import { useCallback, useEffect, useState } from "react";
 
@@ -13,7 +14,7 @@ export default function DedupPage() {
   const [message, setMessage] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    const res = await fetch("/api/dedup/suggestions");
+    const res = await apiFetch("/api/dedup/suggestions");
     const data = await res.json();
     setPairs(data.pairs ?? []);
   }, []);
@@ -24,7 +25,7 @@ export default function DedupPage() {
 
   async function merge(canonicalId: string, mergedId: string) {
     setMessage(null);
-    const res = await fetch("/api/dedup/merge", {
+    const res = await apiFetch("/api/dedup/merge", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ canonicalId, mergedId }),

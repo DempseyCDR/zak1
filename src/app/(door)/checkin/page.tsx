@@ -1,4 +1,5 @@
 "use client";
+import { apiFetch } from "@/app/apiFetch";
 
 import { useCallback, useEffect, useState } from "react";
 
@@ -49,17 +50,17 @@ export default function CheckinPage() {
   const isCommunityDance = !!selectedEvent && selectedEvent.seriesId === communityDanceSeriesId;
 
   useEffect(() => {
-    void fetch("/api/events")
+    void apiFetch("/api/events")
       .then((r) => r.json())
       .then((d) => setEvents(d.items ?? []));
-    void fetch("/api/series")
+    void apiFetch("/api/series")
       .then((r) => r.json())
       .then((d) => setSeries(d.items ?? []));
   }, []);
 
   const loadRoster = useCallback(async (id: string, sort: RosterSort) => {
     if (!id) return setRoster([]);
-    const res = await fetch(`/api/events/${id}/attendance?sort=${sort}`);
+    const res = await apiFetch(`/api/events/${id}/attendance?sort=${sort}`);
     const data = await res.json();
     setRoster(data.attendees ?? []);
   }, []);
@@ -71,7 +72,7 @@ export default function CheckinPage() {
 
   const search = useCallback(async (query: string) => {
     if (!query.trim()) return setCandidates([]);
-    const res = await fetch(`/api/attendance/search?q=${encodeURIComponent(query)}`);
+    const res = await apiFetch(`/api/attendance/search?q=${encodeURIComponent(query)}`);
     const data = await res.json();
     setCandidates(data.items ?? []);
   }, []);
@@ -87,7 +88,7 @@ export default function CheckinPage() {
 
   async function openDoorRecord() {
     if (!eventId) return setMessage("Pick an event first");
-    const res = await fetch(`/api/events/${eventId}/door-record`, { method: "POST" });
+    const res = await apiFetch(`/api/events/${eventId}/door-record`, { method: "POST" });
     if (!res.ok) return setMessage("Could not open door record");
     const data = await res.json();
     setMessage(
@@ -127,7 +128,7 @@ export default function CheckinPage() {
 
   async function record(body: unknown, label: string, successNote?: string) {
     if (!eventId) return setMessage("Pick an event first");
-    const res = await fetch(`/api/events/${eventId}/attendance`, {
+    const res = await apiFetch(`/api/events/${eventId}/attendance`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),

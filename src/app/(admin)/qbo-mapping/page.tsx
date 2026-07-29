@@ -1,4 +1,5 @@
 "use client";
+import { apiFetch } from "@/app/apiFetch";
 
 import { useCallback, useEffect, useState } from "react";
 
@@ -11,7 +12,7 @@ export default function QboMappingPage() {
   const [message, setMessage] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    const res = await fetch("/api/qbo-mapping");
+    const res = await apiFetch("/api/qbo-mapping");
     const data = await res.json();
     setAccounts(data.accounts ?? []);
     setSeriesRows(data.series ?? []);
@@ -22,7 +23,7 @@ export default function QboMappingPage() {
   }, [load]);
 
   async function saveAccount(a: Account) {
-    const res = await fetch(`/api/qbo-mapping/accounts/${a.lineKey}`, {
+    const res = await apiFetch(`/api/qbo-mapping/accounts/${a.lineKey}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ accountCode: a.accountCode, accountName: a.accountName }),
@@ -32,7 +33,7 @@ export default function QboMappingPage() {
   }
 
   async function saveSeries(s: SeriesMap) {
-    const res = await fetch(`/api/qbo-mapping/series/${s.seriesId}`, {
+    const res = await apiFetch(`/api/qbo-mapping/series/${s.seriesId}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ gateCustomer: s.gateCustomer, qboClass: s.qboClass }),

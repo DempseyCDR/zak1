@@ -1,4 +1,5 @@
 "use client";
+import { apiFetch } from "@/app/apiFetch";
 
 import { useCallback, useEffect, useState } from "react";
 
@@ -36,7 +37,7 @@ export default function ContactsPage() {
   const [warning, setWarning] = useState<string | null>(null);
 
   const search = useCallback(async (query: string) => {
-    const res = await fetch(`/api/contacts?q=${encodeURIComponent(query)}`);
+    const res = await apiFetch(`/api/contacts?q=${encodeURIComponent(query)}`);
     const data = await res.json();
     setItems(data.items ?? []);
   }, []);
@@ -50,7 +51,7 @@ export default function ContactsPage() {
     setError(null);
     setWarning(null);
     const hasContactInfo = address.trim() || phone.trim();
-    const res = await fetch("/api/contacts", {
+    const res = await apiFetch("/api/contacts", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

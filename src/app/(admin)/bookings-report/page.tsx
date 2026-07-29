@@ -1,4 +1,5 @@
 "use client";
+import { apiFetch } from "@/app/apiFetch";
 
 import { useCallback, useEffect, useState } from "react";
 import { BookingModal } from "@/app/(admin)/_modals/BookingModal";
@@ -106,7 +107,7 @@ export default function BookingsReportPage() {
   const [eventModal, setEventModal] = useState<EventModalState | null>(null);
 
   useEffect(() => {
-    const j = (u: string) => fetch(u).then((r) => r.json());
+    const j = (u: string) => apiFetch(u).then((r) => r.json());
     void j("/api/series").then((d) => setSeries(d.items ?? []));
     void j("/api/performers").then((d) => setPerformers(d.items ?? []));
     void j("/api/bands").then((d) => setBands(d.items ?? []));
@@ -125,7 +126,7 @@ export default function BookingsReportPage() {
     if (band) p.set("band", band);
     if (musician) p.set("musician", musician);
     p.set("sort", sort);
-    const res = await fetch(`/api/bookings/report?${p.toString()}`);
+    const res = await apiFetch(`/api/bookings/report?${p.toString()}`);
     setRows((await res.json()).rows ?? []);
   }, [seriesKey, from, to, caller, band, musician, sort]);
 
@@ -136,7 +137,7 @@ export default function BookingsReportPage() {
   const seriesKeyById = new Map(series.map((s) => [s.id, s.key]));
 
   async function openBookingEdit(eventId: string, eventDate: string, bookingId: string) {
-    const res = await fetch(`/api/events/${eventId}/bookings`);
+    const res = await apiFetch(`/api/events/${eventId}/bookings`);
     const body = await res.json();
     const b = (body.bookings ?? []).find((x: { id: string }) => x.id === bookingId);
     if (!b) return;
@@ -157,7 +158,7 @@ export default function BookingsReportPage() {
   }
 
   async function openEvent(eventId: string) {
-    const res = await fetch(`/api/events/${eventId}`);
+    const res = await apiFetch(`/api/events/${eventId}`);
     if (!res.ok) return;
     const e = await res.json();
     setEventModal({

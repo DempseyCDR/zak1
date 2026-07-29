@@ -110,7 +110,8 @@ end. Split: **Meg = source/roster accuracy; Mary = final money totals.**
 
 ## To confirm / open
 - Sort direction confirmed **descending**; "first event ≤ today" = most recent at/before today. ✓
-- **B41 (fix #8) rides along as part of Phase 4** — candidate for **priority**, since it cuts across every
+- **B41 (fix #8) — ✅ SHIPPED as feature 022** (shared `apiFetch` wrapper; 401 → `/login?next` + never-settle;
+  all staff `/api` client calls migrated; public `join` excluded). Was flagged priority since it cuts across every
   client `/api/*` fetch (booker modals, gate, check-in). Decision 2026-07-28.
 - FS attendance-correction **resolved**: per-person roster fixes = **Meg's correction modal** (#10);
   aggregate totals = **Mary's existing gate override**.

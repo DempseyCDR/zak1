@@ -1,4 +1,5 @@
 "use client";
+import { apiFetch } from "@/app/apiFetch";
 
 import { useCallback, useEffect, useState } from "react";
 
@@ -19,7 +20,7 @@ export default function DoorParametersPage() {
   const [message, setMessage] = useState<string | null>(null);
 
   useEffect(() => {
-    void fetch("/api/series")
+    void apiFetch("/api/series")
       .then((r) => r.json())
       .then((d: { items: Series[] }) => {
         setSeriesList(d.items);
@@ -29,7 +30,7 @@ export default function DoorParametersPage() {
 
   const loadResolved = useCallback(async () => {
     if (!seriesKey) return;
-    const r = await fetch(`/api/door-parameters?seriesKey=${seriesKey}&on=${effectiveDate}`);
+    const r = await apiFetch(`/api/door-parameters?seriesKey=${seriesKey}&on=${effectiveDate}`);
     const d = await r.json();
     setResolved(d.resolved);
   }, [seriesKey, effectiveDate]);
@@ -41,7 +42,7 @@ export default function DoorParametersPage() {
   async function save(e: React.FormEvent) {
     e.preventDefault();
     setMessage(null);
-    const res = await fetch("/api/door-parameters", {
+    const res = await apiFetch("/api/door-parameters", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ seriesKey, amount: Number(amount), effectiveDate }),

@@ -1,4 +1,5 @@
 "use client";
+import { apiFetch } from "@/app/apiFetch";
 
 import { useCallback, useEffect, useState } from "react";
 
@@ -31,13 +32,13 @@ export default function VenuesPage() {
       setLresults([]);
       return;
     }
-    void fetch(`/api/contacts?q=${encodeURIComponent(lq)}`)
+    void apiFetch(`/api/contacts?q=${encodeURIComponent(lq)}`)
       .then((r) => r.json())
       .then((d) => setLresults(d.items ?? []));
   }, [lq]);
 
   async function setLandlord(venue: string, landlordContactId: string | null) {
-    const res = await fetch(`/api/venues/${venue}`, {
+    const res = await apiFetch(`/api/venues/${venue}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ landlordContactId }),
@@ -54,8 +55,8 @@ export default function VenuesPage() {
 
   const load = useCallback(async () => {
     const [v, e] = await Promise.all([
-      fetch("/api/venues").then((r) => r.json()),
-      fetch("/api/events").then((r) => r.json()),
+      apiFetch("/api/venues").then((r) => r.json()),
+      apiFetch("/api/events").then((r) => r.json()),
     ]);
     setVenues(v.items ?? []);
     setEvents(e.items ?? []);
@@ -68,7 +69,7 @@ export default function VenuesPage() {
   async function createVenue(e: React.FormEvent) {
     e.preventDefault();
     setMessage(null);
-    const res = await fetch("/api/venues", {
+    const res = await apiFetch("/api/venues", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name, address, ...(shortName ? { shortName } : {}) }),
@@ -86,7 +87,7 @@ export default function VenuesPage() {
   // Feature 020 US5: edit an existing venue's short name (display-only, non-unique).
   async function saveShortName(id: string, value: string) {
     setMessage(null);
-    const res = await fetch(`/api/venues/${id}`, {
+    const res = await apiFetch(`/api/venues/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ shortName: value }),
@@ -98,7 +99,7 @@ export default function VenuesPage() {
   async function assign() {
     if (!eventId) return;
     setMessage(null);
-    const res = await fetch(`/api/events/${eventId}`, {
+    const res = await apiFetch(`/api/events/${eventId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ venueId: venueId || null }),
