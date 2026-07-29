@@ -1,11 +1,13 @@
 # zak1 — Project Context for Session Transfer (v1.10)
 
 **Snapshot:** 2026-07-29 (in-place update of v1.10) · **Repo:** `/Users/rcd/Repositories/zak1` · **Remote:**
-`github.com/DempseyCDR/zak1` · **Head:** `dd64ba1` (local `main`, **2 commits ahead of `origin/main` —
-feature 023 planning + impl, unpushed**). Since the original v1.10 snapshot: **020 follow-up + features 021,
-022, 023 shipped** (021/022 pushed; 023 committed, not pushed); **Phase 3 COMPLETE, Phase 4 well underway**;
-the **Node-18 Bash gotcha is RESOLVED** (Bash now runs Node 24 by default; the stale Node 16 was purged).
-Purpose: seed a fresh session to continue work on zak1 (CDR).
+`github.com/DempseyCDR/zak1` · **Head:** `ad248c5` (024 planning; this context update on top) — local `main`
+is **~5 commits ahead of `origin/main` (unpushed)**: 023 planning+impl, the prior context update, 024 planning,
+this doc. Since the original v1.10 snapshot: **020 follow-up + features 021, 022, 023 shipped** (021/022
+pushed; 023 committed, not pushed), and **024 booker amendments is specced + planned (spec/plan/tasks
+committed) but NOT yet implemented**; **Phase 3 COMPLETE, Phase 4 well underway**; the **Node-18 Bash gotcha
+is RESOLVED** (Bash runs Node 24 by default; the stale Node 16 was purged). Purpose: seed a fresh session to
+continue work on zak1 (CDR).
 
 ---
 
@@ -66,7 +68,8 @@ set +a`.
 ## 4. Tests & governance
 
 Pipeline `/speckit-specify → clarify → plan → tasks → analyze → implement`. Active pointer
-`.specify/feature.json` → **`specs/023-fs-payments-substrate`**. **Constitution v1.3.0** (non-negotiable):
+`.specify/feature.json` → **`specs/024-booker-amendments`** (specced/planned; implementation pending).
+**Constitution v1.3.0** (non-negotiable):
 I Test-First (Red-Green-Refactor), II YAGNI, III Type Safety (Zod at boundaries), IV Observability.
 Testing standard: integration against **real** local infra; DBs never mocked; third-party services (Google,
 PayPal) exercised at their **boundary**, never production endpoints. **Suite: 563 tests / 167 files green.**
@@ -136,11 +139,13 @@ tests/{unit,integration,component}/
 ## 6. Implementation status (001–023 done)
 
 Phase 1 (001–009) · Phase 2 (010–014) · **Phase 3 COMPLETE: 015 auth · 016 authz · 017 check-in · 018
-booking/event mgmt · 019 payments & membership** · **Phase 4 (in progress): 020 Booker experience (P4-1) ·
-021 drop `bookings.check_number` (019 correction) · 022 client 401→`/login` (B41) · 023 FS payments
-substrate**. Through **022 is pushed**; **023 (planning `1a45d31` + impl `dd64ba1`) is committed but NOT
-pushed** (2 commits ahead). Phase-4 remaining: **booker amendments** (Area A — lead cascade + band re-point,
-which 023 unblocks) and **Meg's door-attendant experience** (Area C).
+booking/event mgmt · 019 payments & membership** · **Phase 4: 020 Booker experience (P4-1) · 021 drop
+`bookings.check_number` · 022 client 401→`/login` (B41) · 023 FS payments substrate** — all **implemented**;
+**024 booker amendments** (Area A — lead cascade, band re-point, written-check discriminator) is
+**specced + planned only (spec/plan/tasks committed `ad248c5`, 17 tasks, NOT implemented)**. Through **022 is
+pushed**; 023 (impl+planning), the prior context update, and 024 planning are **unpushed**. Phase-4 remaining:
+**implement 024** (`/speckit-implement`, feature.json already points there) and **Meg's door-attendant
+experience** (Area C).
 
 ## 7. Load-bearing decisions (do not undo without reading why)
 
@@ -210,9 +215,12 @@ node-tested; modal/report interactions component-tested (jsdom).
 
 **Phase 4 requirements (consolidated, committed at repo root):** `zak1_Phase4_Requirements_v1.md` (umbrella,
 §7 sequencing) + the two drafts `zak1_Phase4_FS_Payments_DRAFT.md` and `zak1_Phase4_Meg_Checkin_NOTES.md`.
-Shipped so far: 021, 022, 023. **Remaining: booker amendments (Area A — lead status cascade + band re-point,
-governed by the "written check is the discriminator" rule; 023 provides the substrate) and Meg's
-door-attendant experience (Area C — the check-in punch-list in the Meg notes).**
+Shipped so far: 021, 022, 023. **Booker amendments (Area A) are now specced + planned as feature 024** (lead
+status cascade + band re-point + the "written check is the discriminator" rule; `substitutePerformer` +
+`repointBand` + a `bookingHasLivePayment` helper on 023; **no migration**) — run `/speckit-implement` to build
+it. **Remaining after that: Meg's door-attendant experience (Area C — the check-in punch-list in the Meg
+notes).** ⚠️ 024 analyze surfaced H1: the internal no-show `declined` (substitution / band re-point) must be a
+**direct** update, never via `patchBooking`, or it would cascade-decline the band.
 
 ## 9. Known issues / gotchas found in real use
 
@@ -285,8 +293,8 @@ pnpm run db:seed               # ⚠️ WIPES zak1_dev — do NOT run
 
 ## 14. Uncommitted / unpushed at handoff
 
-Working tree: only this context doc itself is untracked (intentionally). Local `main` is **2 commits ahead of
-`origin/main` (unpushed)**: `dd64ba1` (023 impl) and `1a45d31` (023 planning). Everything through `a4b67fd`
-(022 impl) is pushed — i.e. 020-follow-up, 021, and 022 are on the remote. **Push the 2 when ready**
-(`git push`); commits are SSH-signed via 1Password (unlock if a commit fails with "failed to fill whole
-buffer").
+Working tree clean after this doc is committed. Local `main` is **~5 commits ahead of `origin/main`
+(unpushed)**: `1a45d31` (023 planning), `dd64ba1` (023 impl), `5f72e97` (prior context update), `ad248c5`
+(024 planning), and this doc update. Everything through `a4b67fd` (022 impl) is pushed — i.e. 020-follow-up,
+021, and 022 are on the remote. **Push these when ready** (`git push`); commits are SSH-signed via 1Password
+(unlock if a commit fails with "failed to fill whole buffer").
