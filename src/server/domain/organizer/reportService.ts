@@ -5,6 +5,7 @@ import { errors } from "@/server/lib/apiError";
 import { centsToDollars } from "@/server/lib/money";
 import { computeEventGate } from "@/server/domain/gate/eventMoney";
 import { getBookingsForEvent } from "@/server/domain/bookings/bookingService";
+import { settledCentsByBookingForEvent } from "@/server/domain/payments/performerPaymentService";
 import { resolveOngoingTotalCents } from "@/server/domain/parameters/seriesParameterService";
 import { resolveEventRentCents } from "@/server/domain/parameters/rentService";
 import { avgTicketCents, breakEvenDancers, danceNetCents, payingDancers } from "./danceResult";
@@ -48,8 +49,13 @@ export async function assembleOrganizerReport(
 
   for (const ev of eventRows) {
     const gate = await computeEventGate(db, ev.id);
-    const { bookings, performerTotal } = await getBookingsForEvent(db, ev.id);
-    const performerTotalCents = bookings.reduce((a, b) => a + b.payCents, 0);
+    const { bookings } = await getBookingsForEvent(db, ev.id);
+    // Feature 023 (FR-009): performer cost by incurred date = the actual settled amount for a paid booking,
+    // else the booking's expected pay (still-outstanding) — a single combined figure. A delayed check's
+    // amount lands here via the booking's event (settledCentsByBookingForEvent keys on booking → event).
+    const settled = await settledCentsByBookingForEvent(db, ev.id);
+    const costForBookingCents = (b: (typeof bookings)[number]) => settled.get(b.id) ?? b.payCents;
+    const performerTotalCents = bookings.reduce((a, b) => a + costForBookingCents(b), 0);
     const performerCount = new Set(bookings.map((b) => b.performerId)).size;
     // B36: open-band musicians are comped too. Effective comps = manual comp count + open-band count
     // (both persisted counters, so historical quarters stay correct after the 90-day attendance purge).
@@ -93,7 +99,7 @@ export async function assembleOrganizerReport(
       grossGate: centsToDollars(gate.admissionCents),
       merchandise: centsToDollars(gate.merchandiseCents),
       rent: centsToDollars(rentCents),
-      performerTotal, // dollars, from getBookingsForEvent
+      performerTotal: centsToDollars(performerTotalCents), // combined actual-paid + outstanding (023)
       ongoingExpense: centsToDollars(ongoingCents),
       miscExpenses: centsToDollars(miscCents),
       danceNet: centsToDollars(net),
@@ -103,7 +109,7 @@ export async function assembleOrganizerReport(
       performers: bookings.map((b) => ({
         name: b.performerName,
         type: b.performerType,
-        amount: centsToDollars(b.payCents),
+        amount: centsToDollars(costForBookingCents(b)),
       })),
       fyi: {
         donations: centsToDollars(gate.donationCents),
@@ -120,7 +126,7 @@ export async function assembleOrganizerReport(
       gross: centsToDollars(gate.admissionCents),
       merchandise: centsToDollars(gate.merchandiseCents),
       rent: centsToDollars(rentCents),
-      performerTotal,
+      performerTotal: centsToDollars(performerTotalCents),
       ongoing: centsToDollars(ongoingCents),
       misc: centsToDollars(miscCents),
       danceNet: centsToDollars(net),

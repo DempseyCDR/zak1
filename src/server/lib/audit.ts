@@ -71,6 +71,7 @@ export type AuditEvent = {
     | "membership.online_enrollment"
     | "performer_payment.created"
     | "performer_payment.updated"
+    | "performer_payment.voided"
     | "performer_payment.deleted"
     | "paypal.notification.parked"
     | "paypal.notification.rejected"

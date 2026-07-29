@@ -6,23 +6,26 @@ import { useCallback, useEffect, useState } from "react";
 type EventRow = { id: string; eventDate: string };
 type Performer = { id: string; displayName: string };
 type Booking = { id: string; performerName: string; performerType: string; payCents: number };
+type PaymentLine = { bookingId: string; amount: number };
 type Payment = {
   id: string;
   payee: string;
   amount: number;
   checkNumber: string | null;
   overrideReason: string | null;
-  bookingIds: string[];
+  voided: boolean;
+  voidReason: string | null;
+  lines: PaymentLine[];
 };
 type Reconciliation = { expected: number; actual: number; delta: number };
 type Parked = { id: string; payerEmail: string | null; amountCents: number; receivedAt: string };
 type ContactHit = { id: string; displayName: string };
 
 /**
- * Feature 019 US2 (B28): the FS records ACTUAL performer disbursements — payee may differ from the booked
- * performer (substitution), one check may cover several bookings (aggregation). The booked rate is left as
- * the expected figure. An unknown substitute is added first on the Performers page (the FS holds
- * performer.write, FR-009a); the picker here is over existing performers.
+ * Feature 019 US2 (B28) + 023: the FS records ACTUAL performer disbursements (checks). One check may cover
+ * several bookings, each with its own applied amount (per-line allocation); the check total is the sum of
+ * its lines. Bookings may be from other events (cross-event delayed checks). A written check is voided (it
+ * persists for the treasurer), never deleted, when it was wrong or the performer no-showed.
  */
 export default function PaymentsPage() {
   const [events, setEvents] = useState<EventRow[]>([]);
@@ -35,10 +38,10 @@ export default function PaymentsPage() {
 
   // New-payment form
   const [payeeId, setPayeeId] = useState("");
-  const [amount, setAmount] = useState("");
   const [checkNumber, setCheckNumber] = useState("");
   const [reason, setReason] = useState("");
-  const [bookingIds, setBookingIds] = useState<string[]>([]);
+  // Selected bookings → the amount applied to each (per-line allocation).
+  const [lineAmounts, setLineAmounts] = useState<Record<string, string>>({});
 
   // Parked online payments (US3 manual-link fallback)
   const [parked, setParked] = useState<Parked[]>([]);
@@ -52,7 +55,6 @@ export default function PaymentsPage() {
   }, []);
 
   useEffect(() => {
-    // Both endpoints return { items: [...] } (feature 016 convention).
     void apiFetch("/api/events")
       .then((r) => r.json())
       .then((d) => setEvents(Array.isArray(d.items) ? d.items : []))
@@ -84,7 +86,7 @@ export default function PaymentsPage() {
 
   const loadEvent = useCallback(async (id: string) => {
     setEventId(id);
-    setBookingIds([]);
+    setLineAmounts({});
     if (!id) {
       setBookings([]);
       setPayments([]);
@@ -109,6 +111,24 @@ export default function PaymentsPage() {
     setRecon(pBody.reconciliation ?? null);
   }
 
+  // A booking is "on the check" when it has an amount entry; toggling seeds it with the expected pay.
+  function toggleBooking(b: Booking) {
+    setLineAmounts((prev) => {
+      if (b.id in prev) {
+        const next = { ...prev };
+        delete next[b.id];
+        return next;
+      }
+      return { ...prev, [b.id]: (b.payCents / 100).toFixed(2) };
+    });
+  }
+
+  const lines = Object.entries(lineAmounts).map(([bookingId, amt]) => ({
+    bookingId,
+    amount: Number(amt) || 0,
+  }));
+  const total = lines.reduce((a, l) => a + l.amount, 0);
+
   async function record() {
     setError(null);
     const res = await apiFetch("/api/performer-payments", {
@@ -117,8 +137,7 @@ export default function PaymentsPage() {
       body: JSON.stringify({
         eventId,
         payeePerformerId: payeeId,
-        amount: Number(amount) || 0,
-        bookingIds,
+        lines,
         ...(checkNumber ? { checkNumber } : {}),
         ...(reason ? { overrideReason: reason } : {}),
       }),
@@ -129,22 +148,21 @@ export default function PaymentsPage() {
       const b = await res.json().catch(() => null);
       return setError(b?.error?.message ?? "Could not record payment");
     }
-    setAmount("");
     setCheckNumber("");
     setReason("");
-    setBookingIds([]);
+    setLineAmounts({});
     setPayeeId("");
     await refreshPayments(eventId);
   }
 
-  async function remove(id: string) {
-    const res = await apiFetch(`/api/performer-payments/${id}`, { method: "DELETE" });
-    if (!res.ok && res.status !== 204) return setError("Could not delete payment");
+  async function voidPayment(id: string) {
+    const res = await apiFetch(`/api/performer-payments/${id}/void`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ reason: "voided by FS" }),
+    });
+    if (!res.ok) return setError("Could not void payment");
     await refreshPayments(eventId);
-  }
-
-  function toggleBooking(id: string) {
-    setBookingIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
   }
 
   return (
@@ -166,7 +184,7 @@ export default function PaymentsPage() {
 
       {eventId && (
         <>
-          <h2>Record a payment</h2>
+          <h2>Record a check</h2>
           <div>
             <label>
               Payee{" "}
@@ -180,39 +198,43 @@ export default function PaymentsPage() {
               </select>
             </label>{" "}
             <label>
-              Amount{" "}
-              <input
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                inputMode="decimal"
-              />
-            </label>{" "}
-            <label>
               Check # <input value={checkNumber} onChange={(e) => setCheckNumber(e.target.value)} />
             </label>{" "}
             <label>
-              Reason <input value={reason} onChange={(e) => setReason(e.target.value)} />
+              Note <input value={reason} onChange={(e) => setReason(e.target.value)} />
             </label>
           </div>
           <fieldset>
-            <legend>Bookings settled by this payment</legend>
+            <legend>Bookings settled by this check (amount applied to each)</legend>
             {bookings.length === 0 && <p>No bookings on this event.</p>}
             {bookings.map((b) => (
               <label key={b.id} style={{ display: "block" }}>
                 <input
                   type="checkbox"
-                  checked={bookingIds.includes(b.id)}
-                  onChange={() => toggleBooking(b.id)}
+                  checked={b.id in lineAmounts}
+                  onChange={() => toggleBooking(b)}
                 />{" "}
-                {b.performerName} ({b.performerType}) — booked ${(b.payCents / 100).toFixed(2)}
+                {b.performerName} ({b.performerType}) — booked ${(b.payCents / 100).toFixed(2)}{" "}
+                {b.id in lineAmounts && (
+                  <input
+                    aria-label={`Amount for ${b.performerName}`}
+                    value={lineAmounts[b.id]}
+                    onChange={(e) => setLineAmounts((m) => ({ ...m, [b.id]: e.target.value }))}
+                    inputMode="decimal"
+                    style={{ width: 80 }}
+                  />
+                )}
               </label>
             ))}
           </fieldset>
-          <button onClick={() => void record()} disabled={!payeeId || bookingIds.length === 0}>
-            Record payment
+          <p>
+            Check total: <strong>${total.toFixed(2)}</strong>
+          </p>
+          <button onClick={() => void record()} disabled={!payeeId || lines.length === 0}>
+            Record check
           </button>
 
-          <h2>Recorded payments</h2>
+          <h2>Recorded checks</h2>
           {recon && (
             <p>
               Expected ${recon.expected.toFixed(2)} · Actual ${recon.actual.toFixed(2)} ·{" "}
@@ -221,12 +243,19 @@ export default function PaymentsPage() {
           )}
           <ul>
             {payments.map((p) => (
-              <li key={p.id}>
+              <li key={p.id} style={{ opacity: p.voided ? 0.5 : 1 }}>
                 {p.payee} — ${p.amount.toFixed(2)}
                 {p.checkNumber ? ` · check ${p.checkNumber}` : ""}
-                {p.overrideReason ? ` · ${p.overrideReason}` : ""} ({p.bookingIds.length} booking
-                {p.bookingIds.length === 1 ? "" : "s"}){" "}
-                <button onClick={() => void remove(p.id)}>Delete</button>
+                {p.overrideReason ? ` · ${p.overrideReason}` : ""} ({p.lines.length} booking
+                {p.lines.length === 1 ? "" : "s"})
+                {p.voided ? (
+                  <em> — VOIDED{p.voidReason ? ` (${p.voidReason})` : ""}</em>
+                ) : (
+                  <>
+                    {" "}
+                    <button onClick={() => void voidPayment(p.id)}>Void</button>
+                  </>
+                )}
               </li>
             ))}
           </ul>

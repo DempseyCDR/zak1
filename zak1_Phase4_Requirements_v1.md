@@ -178,8 +178,10 @@ SpecKit assigns real numbers; provisional grouping:
 2. **B41 — client 401 → `/login`** — ✅ **SHIPPED as feature `022`** (shared `apiFetch` wrapper: 401 →
    `/login?next` + never-settle; migrated all staff client `/api` call sites; public `join` excluded).
    *(was: cross-cutting, prioritized; small; independent)*.
-3. **FS payments substrate + report re-keying** (Area B, minus B7 which is #1) — the largest; depends on #1.
-   Establishes the check discriminator the booker amendments lean on.
+3. **FS payments substrate + report re-keying** (Area B, minus B7 which is #1) — ✅ **SHIPPED as feature `023`**
+   (migration `0027`; per-line `payment_bookings.amount_cents` + `performer_payments` void columns; cross-event
+   settlement; treasurer per-line QBO view + voided distinct; organizer combined actual-by-incurred cost;
+   cross-event delete guardrail (H1)). Establishes the check substrate the booker amendments lean on.
 4. **Booker amendments to 020** (Area A) — lead cascade + band re-point; depends on the discriminator (#3).
    Could fold into #3 since they share the payment/void semantics.
 5. **Door-attendant (Meg) experience** (Area C) — polish fixes + correction modal + group-siblings API;

@@ -15,8 +15,8 @@ async function seriesId(key: string): Promise<string> {
   return s.id;
 }
 
-// Feature 019 US2 (FR-005..FR-009): actual disbursements, separate from bookings. Substitute payee, one
-// check across bookings; booked pay_cents never altered; treasurer reconciliation.
+// Feature 019 US2 + 023: actual disbursements, separate from bookings. Substitute payee, one check across
+// bookings (per-line amounts), cross-event settlement (023); booked pay_cents never altered; reconciliation.
 describe("performer payments", () => {
   beforeAll(ensureSchema);
   beforeEach(resetDb);
@@ -45,16 +45,16 @@ describe("performer payments", () => {
       jsonReqAs(token, "POST", "/api/performer-payments", {
         eventId: event.id,
         payeePerformerId: sub.id,
-        amount: 125,
         checkNumber: "1001",
         overrideReason: "Betty snowed in",
-        bookingIds: [b.id],
+        lines: [{ bookingId: b.id, amount: 125 }],
       }),
       ctx(),
     );
     expect(res.status).toBe(201);
     const body = await res.json();
     expect(body.payeePerformerId).toBe(sub.id);
+    expect(body.amount).toBe(125); // total = Σ lines
 
     // FR-007 / SC-003: the booking's rate is unchanged.
     const row = await db.query.bookings.findFirst({ where: eq(bookings.id, b.id) });
@@ -62,7 +62,7 @@ describe("performer payments", () => {
     expect(row?.performerId).toBe(booked.id);
   });
 
-  it("aggregates several bookings under one check", async () => {
+  it("aggregates several bookings under one check, with per-line amounts summing to the total", async () => {
     const token = await fsToken();
     const event = await makeEvent();
     const p1 = await makePerformer("P1");
@@ -73,22 +73,25 @@ describe("performer payments", () => {
     const res = await CREATE(
       jsonReqAs(token, "POST", "/api/performer-payments", {
         eventId: event.id,
-        payeePerformerId: p1.id,
-        amount: 250,
+        payeePerformerId: p1.id, // one check to the lead
         checkNumber: "1002",
-        bookingIds: [b1.id, b2.id],
+        lines: [
+          { bookingId: b1.id, amount: 125 },
+          { bookingId: b2.id, amount: 125 },
+        ],
       }),
       ctx(),
     );
     expect(res.status).toBe(201);
     const body = await res.json();
-    expect(body.bookingIds).toHaveLength(2);
+    expect(body.lines).toHaveLength(2);
+    expect(body.amount).toBe(250); // SC-002: total = Σ line amounts
   });
 
-  it("refuses a booking from a different event (422 BOOKING_EVENT_MISMATCH)", async () => {
+  it("accepts a booking from a different event (cross-event delayed check, 023)", async () => {
     const token = await fsToken();
-    const event = await makeEvent();
-    const other = await makeEvent({ eventDate: "2026-06-25" });
+    const event = await makeEvent(); // the check is written/recorded here
+    const other = await makeEvent({ eventDate: "2026-06-25" }); // the booking was performed here
     const p = await makePerformer("P");
     const bOther = await book(other.id, p.id, 100);
 
@@ -96,13 +99,14 @@ describe("performer payments", () => {
       jsonReqAs(token, "POST", "/api/performer-payments", {
         eventId: event.id,
         payeePerformerId: p.id,
-        amount: 100,
-        bookingIds: [bOther.id],
+        lines: [{ bookingId: bOther.id, amount: 100 }],
       }),
       ctx(),
     );
-    expect(res.status).toBe(422);
-    expect((await res.json()).error.code).toBe("BOOKING_EVENT_MISMATCH");
+    expect(res.status).toBe(201);
+    const body = await res.json();
+    expect(body.eventId).toBe(event.id); // recorded-at = the writing event
+    expect(body.lines[0].bookingId).toBe(bOther.id); // line settles the past booking
   });
 
   it("GET lists payments with a reconciliation delta", async () => {
@@ -114,8 +118,7 @@ describe("performer payments", () => {
       jsonReqAs(token, "POST", "/api/performer-payments", {
         eventId: event.id,
         payeePerformerId: p.id,
-        amount: 100, // actual under expected → delta -2500
-        bookingIds: [b.id],
+        lines: [{ bookingId: b.id, amount: 100 }], // actual under expected → delta -25
       }),
       ctx(),
     );
@@ -129,7 +132,7 @@ describe("performer payments", () => {
     expect(body.reconciliation).toEqual({ expected: 125, actual: 100, delta: -25 });
   });
 
-  it("PATCH replaces the linked booking set", async () => {
+  it("PATCH replaces the allocation lines", async () => {
     const token = await fsToken();
     const event = await makeEvent();
     const p1 = await makePerformer("P1");
@@ -141,19 +144,22 @@ describe("performer payments", () => {
         jsonReqAs(token, "POST", "/api/performer-payments", {
           eventId: event.id,
           payeePerformerId: p1.id,
-          amount: 125,
-          bookingIds: [b1.id],
+          lines: [{ bookingId: b1.id, amount: 125 }],
         }),
         ctx(),
       )
     ).json();
 
     const res = await PATCH(
-      jsonReqAs(token, "PATCH", `/api/performer-payments/${created.id}`, { bookingIds: [b2.id] }),
+      jsonReqAs(token, "PATCH", `/api/performer-payments/${created.id}`, {
+        lines: [{ bookingId: b2.id, amount: 125 }],
+      }),
       ctx({ id: created.id }),
     );
     expect(res.status).toBe(200);
-    expect((await res.json()).bookingIds).toEqual([b2.id]);
+    const body = await res.json();
+    expect(body.lines).toHaveLength(1);
+    expect(body.lines[0].bookingId).toBe(b2.id);
   });
 
   it("DELETE removes the payment and its links", async () => {
@@ -166,8 +172,7 @@ describe("performer payments", () => {
         jsonReqAs(token, "POST", "/api/performer-payments", {
           eventId: event.id,
           payeePerformerId: p.id,
-          amount: 125,
-          bookingIds: [b.id],
+          lines: [{ bookingId: b.id, amount: 125 }],
         }),
         ctx(),
       )
@@ -191,8 +196,7 @@ describe("performer payments", () => {
       jsonReqAs(token, "POST", "/api/performer-payments", {
         eventId: event.id,
         payeePerformerId: p.id,
-        amount: 125,
-        bookingIds: [b.id],
+        lines: [{ bookingId: b.id, amount: 125 }],
       }),
       ctx(),
     );

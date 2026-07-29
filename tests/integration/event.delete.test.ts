@@ -57,8 +57,7 @@ describe("event delete guardrail (feature 019)", () => {
     await createPerformerPayment(db, {
       eventId: evt.id,
       payeePerformerId: p.id,
-      amount: 125,
-      bookingIds: [b.id],
+      lines: [{ bookingId: b.id, amount: 125 }],
     });
     const res = await del(evt.id);
     expect(res.status).toBe(409);

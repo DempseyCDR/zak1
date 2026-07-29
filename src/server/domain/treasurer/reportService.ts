@@ -1,5 +1,6 @@
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import type { Db } from "@/server/db/client";
+import { settledCentsByBookingForEvent } from "@/server/domain/payments/performerPaymentService";
 import {
   bookings,
   contacts,
@@ -55,9 +56,18 @@ export type TreasurerReport = {
     account: string;
     class: string;
     checkNumber: string | null;
+    // Feature 023: the per-line allocation — each booking this check settles (incl. cross-event lines).
+    lines: { performer: string; bookingId: string; amount: number; account: string }[];
   }[];
-  // Feature 019 US2 (FR-008): expected (sum of booked obligations) vs. actual (sum of recorded payments).
-  // A non-zero delta surfaces a gap — e.g. performers booked but not yet paid.
+  // Feature 023: voided checks, shown distinctly so the treasurer records the void into QBO too.
+  voidedPerformerPayments: {
+    payee: string;
+    amount: number;
+    checkNumber: string | null;
+    voidReason: string | null;
+  }[];
+  // Feature 019 US2 (FR-008) / 023 (M1): expected (sum of booked obligations) vs. actual (LIVE per-line
+  // amounts settling the event's bookings). A non-zero delta surfaces a gap — booked but not yet paid.
   performerReconciliation: { expected: number; actual: number; delta: number };
   deposit: { account: string; amount: number };
   fees: { account: string; doorFee: number; onlineFee: number; total: number };
@@ -174,56 +184,82 @@ export async function assembleTreasurerReport(
   // the one performed by the payee if present (the normal/backfilled case), else the first linked booking
   // (an aggregated check across types; QBO reconciliation splits it). Booked pay feeds the reconciliation.
   const bookingRows = await db
-    .select({
-      id: bookings.id,
-      performerId: bookings.performerId,
-      payCents: bookings.payCents,
-      performerType: bookings.performerType,
-    })
+    .select({ id: bookings.id, payCents: bookings.payCents })
     .from(bookings)
     .where(eq(bookings.eventId, eventId));
-  const bookingById = new Map(bookingRows.map((b) => [b.id, b]));
 
+  // Feature 023: checks RECORDED AT this event (recorded-at = check-written date), live + voided.
   const paymentRows = await db
     .select({
       id: performerPayments.id,
       payee: performers.displayName,
-      payeePerformerId: performerPayments.payeePerformerId,
       amountCents: performerPayments.amountCents,
       checkNumber: performerPayments.checkNumber,
+      voidedAt: performerPayments.voidedAt,
+      voidReason: performerPayments.voidReason,
     })
     .from(performerPayments)
     .innerJoin(performers, eq(performers.id, performerPayments.payeePerformerId))
     .where(eq(performerPayments.eventId, eventId));
 
-  const links = await db
-    .select({ paymentId: paymentBookings.paymentId, bookingId: paymentBookings.bookingId })
-    .from(paymentBookings)
-    .innerJoin(bookings, eq(bookings.id, paymentBookings.bookingId))
-    .where(eq(bookings.eventId, eventId));
-  const bookingsForPayment = new Map<string, string[]>();
-  for (const l of links) {
-    const list = bookingsForPayment.get(l.paymentId) ?? [];
-    list.push(l.bookingId);
-    bookingsForPayment.set(l.paymentId, list);
+  // All allocation lines of those checks — INCLUDING cross-event lines (no same-event filter, 023). Each
+  // carries its own amount, the booking's performer (name), and performer type → QBO account.
+  const paymentIds = paymentRows.map((p) => p.id);
+  const lineRows = paymentIds.length
+    ? await db
+        .select({
+          paymentId: paymentBookings.paymentId,
+          bookingId: paymentBookings.bookingId,
+          amountCents: paymentBookings.amountCents,
+          performerType: bookings.performerType,
+          performer: performers.displayName,
+        })
+        .from(paymentBookings)
+        .innerJoin(bookings, eq(bookings.id, paymentBookings.bookingId))
+        .innerJoin(performers, eq(performers.id, bookings.performerId))
+        .where(inArray(paymentBookings.paymentId, paymentIds))
+    : [];
+  const linesByPayment = new Map<string, typeof lineRows>();
+  for (const l of lineRows) {
+    const list = linesByPayment.get(l.paymentId) ?? [];
+    list.push(l);
+    linesByPayment.set(l.paymentId, list);
   }
 
-  const performerPaymentLines = paymentRows.map((p) => {
-    const linked = (bookingsForPayment.get(p.id) ?? []).map((id) => bookingById.get(id)!);
-    const forAccount = linked.find((b) => b.performerId === p.payeePerformerId) ?? linked[0];
+  const toCheck = (p: (typeof paymentRows)[number]) => {
+    const lns = linesByPayment.get(p.id) ?? [];
     return {
       payee: p.payee,
       amount: centsToDollars(p.amountCents),
-      account: forAccount ? account(forAccount.performerType) : "UNMAPPED",
+      account: lns[0] ? account(lns[0].performerType) : "UNMAPPED",
       class: qboClass,
       checkNumber: p.checkNumber,
+      lines: lns.map((l) => ({
+        performer: l.performer,
+        bookingId: l.bookingId,
+        amount: centsToDollars(l.amountCents),
+        account: account(l.performerType),
+      })),
     };
-  });
+  };
+  // Live checks (the QBO batch) and voided checks (distinct — the void is recorded into QBO too).
+  const performerPaymentLines = paymentRows.filter((p) => p.voidedAt === null).map(toCheck);
+  const voidedPerformerPayments = paymentRows
+    .filter((p) => p.voidedAt !== null)
+    .map((p) => ({
+      payee: p.payee,
+      amount: centsToDollars(p.amountCents),
+      checkNumber: p.checkNumber,
+      voidReason: p.voidReason,
+    }));
 
+  // Reconciliation (M1): expected = the event's bookings' pay; actual = the LIVE per-line amounts settling
+  // those bookings (regardless of which check paid them, excluding voided).
+  const settled = await settledCentsByBookingForEvent(db, eventId);
   const performerReconciliation = (() => {
     const r = reconcilePayments(
       bookingRows.map((b) => b.payCents),
-      paymentRows.map((p) => p.amountCents),
+      bookingRows.map((b) => settled.get(b.id) ?? 0),
     );
     return {
       expected: centsToDollars(r.expectedCents),
@@ -250,6 +286,7 @@ export async function assembleTreasurerReport(
     },
     namedCustomerReceipts,
     performerPayments: performerPaymentLines,
+    voidedPerformerPayments,
     performerReconciliation,
     deposit: { account: account("deposit"), amount: centsToDollars(door.depositCents) },
     fees: {

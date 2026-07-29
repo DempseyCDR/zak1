@@ -10,6 +10,7 @@ import {
   series,
 } from "@/server/db/schema";
 import type { EventGroupRow, EventRow, EventStatus } from "@/server/db/schema";
+import { eventHasLiveSettlement } from "@/server/domain/payments/performerPaymentService";
 import { errors } from "@/server/lib/apiError";
 import { assertScope, assertEventScope } from "@/server/auth/can";
 import type { Actor } from "@/server/auth/actor";
@@ -167,6 +168,11 @@ export async function deleteEvent(
     where: eq(performerPayments.eventId, eventId),
   });
   if (payment) throw errors.eventHasHistory("a recorded performer payment");
+  // Blocker 2b (feature 023, H1 / FR-013): a booking of THIS event settled by a LIVE payment — including a
+  // cross-event check recorded at another event. Without this, deleting the event would silently orphan the
+  // paid line and break the check's line-sum total.
+  if (await eventHasLiveSettlement(db, eventId))
+    throw errors.eventHasHistory("a performer payment settling a booking");
 
   // Attendance no longer blocks — but is confirmed before being discarded (FR-018a).
   const attendanceCount = await db

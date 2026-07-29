@@ -1,3 +1,4 @@
+import type { AnyPgColumn } from "drizzle-orm/pg-core";
 import { integer, pgTable, primaryKey, text, timestamp, uuid } from "drizzle-orm/pg-core";
 import { events } from "./events";
 import { performers } from "./performers";
@@ -19,6 +20,13 @@ export const performerPayments = pgTable("performer_payments", {
   amountCents: integer("amount_cents").notNull(),
   checkNumber: text("check_number"),
   overrideReason: text("override_reason"),
+  // Feature 023: void state. A voided check persists (the treasurer records the void) and never settles a
+  // booking; a reissue points back at the check it replaces.
+  voidedAt: timestamp("voided_at", { withTimezone: true }),
+  voidReason: text("void_reason"),
+  replacesPaymentId: uuid("replaces_payment_id").references(
+    (): AnyPgColumn => performerPayments.id,
+  ),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
@@ -37,6 +45,9 @@ export const paymentBookings = pgTable(
     bookingId: uuid("booking_id")
       .notNull()
       .references(() => bookings.id, { onDelete: "cascade" }),
+    // Feature 023: the portion of the check applied to this booking (per-line allocation). Lines of a
+    // check sum to its total.
+    amountCents: integer("amount_cents").notNull(),
   },
   (t) => ({ pk: primaryKey({ columns: [t.paymentId, t.bookingId] }) }),
 );

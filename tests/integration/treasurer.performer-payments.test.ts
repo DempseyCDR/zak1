@@ -26,9 +26,8 @@ describe("performer payments with check numbers", () => {
     await createPerformerPayment(db, {
       eventId: evt.id,
       payeePerformerId: p.id,
-      amount: 150,
       checkNumber: "1042",
-      bookingIds: [booking.id],
+      lines: [{ bookingId: booking.id, amount: 150 }],
     });
 
     const res = await REPORT(

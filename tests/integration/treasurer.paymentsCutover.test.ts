@@ -27,9 +27,8 @@ describe("treasurer report — performer payments cutover parity", () => {
     await createPerformerPayment(db, {
       eventId: evt.id,
       payeePerformerId: caller.id,
-      amount: 150,
       checkNumber: "1042",
-      bookingIds: [booking.id],
+      lines: [{ bookingId: booking.id, amount: 150 }],
     });
 
     const res = await REPORT(
@@ -38,13 +37,17 @@ describe("treasurer report — performer payments cutover parity", () => {
     );
     const body = await res.json();
     expect(body.performerPayments).toHaveLength(1);
-    expect(body.performerPayments[0]).toEqual({
+    expect(body.performerPayments[0]).toMatchObject({
       payee: "Backfill Caller",
       amount: 150,
       account: "5320", // caller account, from the settled booking's performer type
       class: expect.any(String),
       checkNumber: "1042",
     });
+    // Feature 023: the check now carries its per-line allocation.
+    expect(body.performerPayments[0].lines).toEqual([
+      { performer: "Backfill Caller", bookingId: expect.any(String), amount: 150, account: "5320" },
+    ]);
     // Reconciliation: booked 150 = paid 150 → no gap.
     expect(body.performerReconciliation).toEqual({ expected: 150, actual: 150, delta: 0 });
   });

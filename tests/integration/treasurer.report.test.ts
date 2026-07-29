@@ -47,8 +47,7 @@ describe("GET /api/events/:id/treasurer-report", () => {
     await createPerformerPayment(db, {
       eventId: evt.id,
       payeePerformerId: caller.id,
-      amount: 150,
-      bookingIds: [callerBooking.id],
+      lines: [{ bookingId: callerBooking.id, amount: 150 }],
     });
 
     const { status, body } = await report(evt.id);
