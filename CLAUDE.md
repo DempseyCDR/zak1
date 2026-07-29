@@ -1,7 +1,7 @@
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan
-at specs/021-remove-booking-check-number/plan.md
+at specs/022-client-401-login-redirect/plan.md
 <!-- SPECKIT END -->
 
 ## Development conventions
