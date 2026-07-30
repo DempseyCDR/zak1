@@ -1,7 +1,7 @@
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan
-at specs/024-booker-amendments/plan.md
+at specs/025-door-checkin-experience/plan.md
 <!-- SPECKIT END -->
 
 ## Development conventions
