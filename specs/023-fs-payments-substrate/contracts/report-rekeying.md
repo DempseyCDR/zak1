@@ -6,7 +6,7 @@ No server-endpoint shape is removed; the per-event report **payloads** gain/repu
 
 Grouped by the **recorded-at** event (`performer_payments.event_id`). Per check:
 
-```
+```text
 {
   checkNumber, writtenDate (= event date), payee, total,
   voided: boolean, voidReason?,               // voided checks shown DISTINCTLY

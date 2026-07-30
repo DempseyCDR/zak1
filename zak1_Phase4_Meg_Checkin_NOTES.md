@@ -109,6 +109,7 @@ corrections and roster accuracy, **not** accounting — which is why "we don't c
 end. Split: **Meg = source/roster accuracy; Mary = final money totals.**
 
 ## To confirm / open
+
 - Sort direction confirmed **descending**; "first event ≤ today" = most recent at/before today. ✓
 - **B41 (fix #8) — ✅ SHIPPED as feature 022** (shared `apiFetch` wrapper; 401 → `/login?next` + never-settle;
   all staff `/api` client calls migrated; public `join` excluded). Was flagged priority since it cuts across every

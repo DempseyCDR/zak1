@@ -36,6 +36,7 @@ remainder to the first — research R6).
 
 **Testing**: Integration (node, real Postgres) for every domain change — per-line allocation + sum
 reconciliation, **cross-event** settlement, **void** + settlement exclusion + reissue link, treasurer per-line
+
 + voided rendering, organizer actual-by-incurred re-key. Component tests (jsdom, 020 harness) for the FS
 entry surface. No third-party boundary here.
 

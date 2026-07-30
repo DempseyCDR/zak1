@@ -11,21 +11,26 @@ pnpm exec tsc --noEmit   # types: no stale checkNumber references remain
 ## Story validation
 
 ### US1 — One home for a check number (P1)
+
 - **Schema**: `bookings` has no `check_number` column after `0026`:
+
   ```sql
   SELECT count(*) FROM information_schema.columns
   WHERE table_name='bookings' AND column_name='check_number';   -- expect 0
   ```
+
 - **Types**: `pnpm exec tsc --noEmit` is clean — `BookingRow` no longer exposes `checkNumber`; no caller
   references it.
 - **API**: `GET /api/bookings/[id]/check` / `PATCH …/check` no longer exists (404 / absent from the generated
   route inventory).
 
 ### US2 — Delete guardrail still protects paid events (P1)
+
 - Integration (`event.delete.test.ts`): an event with a recorded `performer_payments` row is refused deletion
   with reason **"a recorded performer payment"**; an event with none is not blocked by this guard.
 
 ### US3 — No check-number history lost (P1)
+
 - Migration/preservation test: seed a booking with a check number **not** mirrored to `performer_payments`
   (the post-0024 gate case), run the reconciliation, then confirm the number is retrievable via
   `performer_payments`.

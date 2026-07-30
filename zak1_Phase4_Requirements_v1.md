@@ -23,6 +23,7 @@ auth fix. Money is always **integer cents**; constitution **v1.3.0** (solo-maint
 | — | Organizers | organizer report (event-success eval) |
 
 **Load-bearing principles** (recur across areas):
+
 - **A written check is the discriminator** — no payment on a booking ⇒ a clean re-point/clear is fine; once a
   check is written ⇒ preserve the record (no-show), add a new booking, void + reissue. Money written ⇒ never
   erase.

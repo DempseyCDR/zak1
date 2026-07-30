@@ -29,6 +29,7 @@ cost records are booking-based.
 ## 2. Booker amendments to 020
 
 ### 2.1 Band-lead status cascade
+
 When the Booker changes the **status of a band's lead** (`bandId != null` **and**
 `performerType = "lead_musician"`) on an event, every sibling booking (same `eventId` + `bandId`) that is
 **still in lockstep with the lead's previous status** moves to the lead's new status.
@@ -41,6 +42,7 @@ When the Booker changes the **status of a band's lead** (`bandId != null` **and*
 - **Not on re-point** — re-pointing the lead to a different performer is a separate operation (§2.2).
 
 ### 2.2 Band re-point ("start booking over")
+
 The Booker can swap the band booked on an event — pick a different band, analogous to re-pointing an
 individual musician's slot. Example: **Shandy** (Eileen, Jane, Rebecca) → **Sister Haggis** (Eileen, Jane)
 when Rebecca declines with no sub.
@@ -67,8 +69,9 @@ Applies to substitution, band re-point, and last-minute declines/no-shows alike:
   add the substitute as a **new booking**, and **void + reissue** the check.
 
 Consequences, unified:
+
 - **Substitution** (Tom→Chuck): no check → re-point; check written → keep Tom no-show + new booking for Chuck
-  + void/reissue.
+  - void/reissue.
 - **Band re-point** outgoing member: no check → clear/swap; check written → keep as `declined`, void reported
   to the treasurer.
 - **Wrong amount** (Jane): a check exists → always a void + reissue against the same booking, never
@@ -100,7 +103,9 @@ the earlier *tentative "cleared"* policy — clearing is only ever the pre-payme
    booking's expected pay, and the band-to-lead allocation (§4.1) — each with a note.
 
 ### 4.1 Aggregation (why the M:N join stays, with per-line amounts)
+
 One check may cover several bookings:
+
 - **Most often** one check per performer.
 - **One check to the lead** covering the whole band (payee = lead ≠ most settled performers). The check
   **exceeds the lead's own booking**, so it registers as a **discrepancy**; Mary then **allocates it across
@@ -110,6 +115,7 @@ One check may cover several bookings:
   current one — so settled bookings can belong to **different events**.
 
 ### 4.2 Voids & reissues
+
 - **Wrong amount:** void #1453, write #1456 (same booking).
 - **Substitution:** #1562 to Tom → Tom fell ill, **Chuck** covers → void #1562, write #1565 to Chuck. Chuck
   **wasn't booked**, so Mary **adds a new booking on `/gate`** (likely reusing the 020 `BookingModal`). Tom is
@@ -118,6 +124,7 @@ One check may cover several bookings:
 - Void → replacement pairs are **linked** (`replaces_payment_id`).
 
 ### 4.3 Substitution vs. guest sit-in — both get their own booking
+
 - **Substitution (Chuck for Tom):** new booking for Chuck; Tom kept as no-show. *We want the record that
   Chuck played the dance.*
 - **Guest sit-in (Barney):** Tom's friend Barney is in town and joins the intact band for the event — nobody
@@ -145,7 +152,7 @@ One check may cover several bookings:
 
 ## 6. Data model (the spine)
 
-```
+```text
 events ─< bookings ─< payment_bookings >─ performer_payments >─ performers (payee = check recipient)
              │ pay_cents        │ amount_cents        │ check_number, amount_cents,
           (expectation +      (allocation line,       │ event_id = written-at (= check date),
@@ -154,7 +161,9 @@ events ─< bookings ─< payment_bookings >─ performer_payments >─ performe
 ```
 
 ### 6.1 Corrections to 019 (`bookings.check_number` is an error → remove it)
+
 `performer_payments` is the **single, authoritative** check store. New additive migration **`0026`**:
+
 - **Drop** `bookings.check_number` (schema `db/schema/bookings.ts` + migration).
 - Retire the gate check-write path `PATCH /api/bookings/[id]/check` + `checkNumberPatchSchema`
   (`validation/treasurer.ts`); the `/gate` report writes `performer_payments` instead.
@@ -167,6 +176,7 @@ events ─< bookings ─< payment_bookings >─ performer_payments >─ performe
   `performer_payments`.
 
 ### 6.2 `performer_payments` (adds)
+
 - Keep **`payee_performer_id`** = who the check is written to (needed for the pay-the-lead aggregation case;
   it differs from most settled performers).
 - **`event_id`** re-defined as **"gate report where the check was recorded"** (= check-written date, always an
@@ -175,6 +185,7 @@ events ─< bookings ─< payment_bookings >─ performer_payments >─ performe
 - `override_reason` remains the discrepancy **note**.
 
 ### 6.3 `payment_bookings` (adds) — allocation lines
+
 - Add **`amount_cents`** = portion of the check applied to that line (required for QBO bill allocation and for
   organizer per-event cost; discrepancies are where actual ≠ expected, so store it, don't derive).
 - **`booking_id` stays NOT NULL** — every allocation line settles a real booking. Booking-less obligation
@@ -182,6 +193,7 @@ events ─< bookings ─< payment_bookings >─ performer_payments >─ performe
 - Keep **M:N** (one check → many bookings, across events; e.g. the band-to-lead allocation).
 
 ### 6.4 Report re-keying
+
 - **Treasurer/QBO (per-event):** group payments by `event_id` (recorded-at = check date); expand each to its
   allocation lines; show voided checks distinctly.
 - **Organizer (per-event success):** sum `payment_bookings.amount_cents` whose booking belongs to the event
