@@ -31,6 +31,8 @@ export type AuditEvent = {
     | "door_record.created"
     | "door_record.updated"
     | "attendance.purge"
+    | "attendance.updated"
+    | "attendance.deleted"
     | "booking.created"
     | "booking.updated"
     | "booking.deleted"

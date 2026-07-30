@@ -129,6 +129,32 @@ export async function ensureDoorRecord(
   return row;
 }
 
+/**
+ * Feature 025 US1 (FR-007): nudge an event's aggregate comp / gift-card count by ±1 (counts-only, decision
+ * B — never attributed to a person), floored at zero. The Door Attendant's roster correction; the FS's gate
+ * override still supersedes for final money. Ensures the door record first.
+ */
+export async function adjustDoorCount(
+  db: Db,
+  eventId: string,
+  count: "comp" | "gift",
+  delta: 1 | -1,
+  actor: string | null = null,
+): Promise<{ compCount: number; giftCardRedemptionCount: number }> {
+  const dr = await ensureDoorRecord(db, eventId, actor);
+  const set =
+    count === "comp"
+      ? { compCount: sql`greatest(0, ${doorRecords.compCount} + ${delta})`, updatedAt: new Date() }
+      : {
+          giftCardRedemptionCount: sql`greatest(0, ${doorRecords.giftCardRedemptionCount} + ${delta})`,
+          updatedAt: new Date(),
+        };
+  const [row] = await db.update(doorRecords).set(set).where(eq(doorRecords.id, dr.id)).returning();
+  if (!row) throw errors.doorRecordNotFound();
+  writeAudit({ kind: "door_record.updated", actor, details: { eventId, count, delta } });
+  return { compCount: row.compCount, giftCardRedemptionCount: row.giftCardRedemptionCount };
+}
+
 /** Update the manually-entered fields, then recompute derived totals (fee/deposit). */
 export async function updateDoorRecord(
   db: Db,

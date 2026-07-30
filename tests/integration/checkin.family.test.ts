@@ -47,10 +47,24 @@ describe("POST /api/events/:id/attendance (family / children count)", () => {
     expect(ev?.attendanceCount).toBe(1);
   });
 
-  it("rejects a children count on the unmatched variant", async () => {
+  // Feature 025 (FR-015): children now ride on the unmatched/anonymous path too (head-count admissions);
+  // previously the strict schema rejected it, silently dropping the number.
+  it("accepts a children count on the unmatched variant and lands it in the head count", async () => {
     const evt = await makeEvent();
     const res = await ATTEND(
       jsonReq("POST", `/api/events/${evt.id}/attendance`, { unmatched: true, childrenCount: 2 }),
+      ctx({ id: evt.id }),
+    );
+    expect(res.status).toBe(201);
+    const ev = await db.query.events.findFirst({ where: eq(events.id, evt.id) });
+    expect(ev?.attendanceCount).toBe(3); // 1 admission + 2 children
+  });
+
+  // Open-band is still person-and-community-dance only — never on the anonymous path.
+  it("still rejects an open-band flag on the unmatched variant", async () => {
+    const evt = await makeEvent();
+    const res = await ATTEND(
+      jsonReq("POST", `/api/events/${evt.id}/attendance`, { unmatched: true, isOpenBand: true }),
       ctx({ id: evt.id }),
     );
     expect(res.status).toBe(422);

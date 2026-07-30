@@ -29,9 +29,35 @@ export const attendanceSchema = z.union([
     ...personExtras,
     ...countExtras,
   }),
-  // `.strict()` so a children count / open-band flag on an unmatched placeholder is rejected, not
-  // silently dropped (feature 017); the comp/gift booleans ARE allowed here (an anonymous free admission).
-  z.object({ unmatched: z.literal(true), ...countExtras }).strict(),
+  // Feature 025 (FR-015): an unmatched head-count admission MAY now carry a children count (previously
+  // rejected, silently dropping the number). `.strict()` still rejects `isOpenBand` here — open-band stays
+  // person-and-community-dance only; the comp/gift booleans remain allowed (an anonymous free admission).
+  z
+    .object({
+      unmatched: z.literal(true),
+      childrenCount: z.number().int().min(0).optional(),
+      ...countExtras,
+    })
+    .strict(),
 ]);
 
+// Feature 025 US1: correct one attendance record. At least one field; `eventId` is a move to a sibling event
+// (validated server-side). `contactId` reassigns an unmatched admission; `isOpenBand` toggles open-band.
+export const attendancePatchSchema = z
+  .object({
+    childrenCount: z.number().int().min(0).optional(),
+    contactId: z.string().uuid().optional(),
+    isOpenBand: z.boolean().optional(),
+    eventId: z.string().uuid().optional(),
+  })
+  .refine((v) => Object.keys(v).length > 0, { message: "No fields to update." });
+
+// Feature 025 US1: nudge an event's aggregate comp / gift-card count by ±1 (counts-only, decision B).
+export const doorCountAdjustSchema = z.object({
+  count: z.enum(["comp", "gift"]),
+  delta: z.union([z.literal(1), z.literal(-1)]),
+});
+
 export type AttendanceInput = z.infer<typeof attendanceSchema>;
+export type AttendancePatchInput = z.infer<typeof attendancePatchSchema>;
+export type DoorCountAdjustInput = z.infer<typeof doorCountAdjustSchema>;

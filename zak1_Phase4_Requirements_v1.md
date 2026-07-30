@@ -191,9 +191,15 @@ SpecKit assigns real numbers; provisional grouping:
    modal + gate affordances). The internal no-show `declined` is a **direct** update, never via `patchBooking`,
    so it never cascade-declines the band (analyze H1).
 5. **Door-attendant (Meg) experience** (Area C) — polish fixes + correction modal + group-siblings API;
-   largely independent of B; incorporates #2's redirect. **← the sole Phase-4 area remaining.**
+   largely independent of B; incorporates #2's redirect — ✅ **SHIPPED as feature `025`** (no migration; per-record
+   attendance PATCH/DELETE + move keeping `events.attendance_count` and `door_records.open_band_count` exact;
+   `getGroupSiblings` + server-validated move; comp/gift ±1 counts-only door-count adjust; unmatched-path
+   children fix; default-recent + descending selector; inline single-row check-in with focus-to-search; staff
+   nav on home; removed the vestigial open-door-record button). Move guardrails from analyze: non-sibling
+   refused (L1), duplicate-on-target refused (G1), open-band cleared when moved off a community dance (G2).
 
-Dependency spine: **#1 → #3 → #4** (all shipped); **#2** shipped; **#5** is all that remains.
+Dependency spine: **#1 → #3 → #4** (all shipped); **#2** shipped; **#5 shipped**. **Phase 4 is complete —
+Areas A–D all delivered (021, 022, 023, 024, 025).**
 
 ---
 

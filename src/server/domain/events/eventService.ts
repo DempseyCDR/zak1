@@ -258,10 +258,51 @@ export async function listEvents(db: Db, from?: string, to?: string): Promise<Ev
   const conds = [];
   if (from) conds.push(gte(events.eventDate, from));
   if (to) conds.push(lte(events.eventDate, to));
+  // Feature 025 US2 (FR-012): newest-relevant-first — by date then start time, descending. NULL start
+  // times sort last within a day so a timed event outranks an untimed one.
+  const order = [desc(events.eventDate), sql`${events.startTime} desc nulls last`];
   return conds.length
     ? db
         .select()
         .from(events)
         .where(and(...conds))
-    : db.select().from(events);
+        .orderBy(...order)
+    : db
+        .select()
+        .from(events)
+        .orderBy(...order);
+}
+
+/**
+ * Feature 025 US1/US2 (FR-010): the OTHER events sharing this event's non-null `group_id` — the valid
+ * targets for a roster move (e.g. a same-day community-dance ↔ contra pair). Empty when the event is
+ * ungrouped. Ordered by date then start time so the door surface can list them predictably.
+ */
+export async function getGroupSiblings(
+  db: Db,
+  eventId: string,
+): Promise<
+  {
+    id: string;
+    eventDate: string;
+    startTime: string | null;
+    seriesKey: string;
+    label: string | null;
+  }[]
+> {
+  const event = await db.query.events.findFirst({ where: eq(events.id, eventId) });
+  if (!event) throw errors.eventNotFound();
+  if (!event.groupId) return [];
+  return db
+    .select({
+      id: events.id,
+      eventDate: events.eventDate,
+      startTime: events.startTime,
+      seriesKey: series.key,
+      label: events.label,
+    })
+    .from(events)
+    .innerJoin(series, eq(series.id, events.seriesId))
+    .where(and(eq(events.groupId, event.groupId), sql`${events.id} <> ${eventId}`))
+    .orderBy(desc(events.eventDate), sql`${events.startTime} desc nulls last`);
 }

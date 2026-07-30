@@ -12,9 +12,10 @@ import {
 } from "@/server/db/schema";
 import type { AttendanceRow } from "@/server/db/schema";
 import { errors } from "@/server/lib/apiError";
+import { writeAudit } from "@/server/lib/audit";
 import { deriveContactNames } from "@/server/domain/contacts/normalize";
 import { ensureDoorRecord } from "@/server/domain/door/doorRecordService";
-import type { AttendanceInput } from "@/server/validation/attendance";
+import type { AttendanceInput, AttendancePatchInput } from "@/server/validation/attendance";
 
 const UNIQUE_VIOLATION = "23505";
 
@@ -203,4 +204,181 @@ export async function listEventAttendance(
     createdAt: r.createdAt.toISOString(),
   }));
   return { count: attendees.length, attendees };
+}
+
+// ---- Feature 025 US1: per-record roster corrections. The denormalized events.attendance_count (and, for
+// open-band, door_records.open_band_count) MUST stay exact after every operation. attendance.write only
+// (the route enforces it); each op is audited. ----
+
+/** Adjust a door record's open_band_count by ±1 (floor 0), ensuring the record. */
+async function bumpOpenBand(db: Db, eventId: string, delta: 1 | -1, actor: string | null) {
+  const dr = await ensureDoorRecord(db, eventId, actor);
+  await db
+    .update(doorRecords)
+    .set({
+      openBandCount: sql`greatest(0, ${doorRecords.openBandCount} + ${delta})`,
+      updatedAt: new Date(),
+    })
+    .where(eq(doorRecords.id, dr.id));
+}
+
+/** Is this contact a booked performer on the event? (mirrors recordAttendance's open-band guard.) */
+async function isBookedPerformer(db: Db, eventId: string, contactId: string): Promise<boolean> {
+  const booked = await db
+    .select({ id: bookings.id })
+    .from(bookings)
+    .innerJoin(performers, eq(performers.id, bookings.performerId))
+    .where(and(eq(bookings.eventId, eventId), eq(performers.contactId, contactId)))
+    .limit(1);
+  return booked.length > 0;
+}
+
+/** FR-002: delete a not-present admission; `attendance_count -= (1 + children)`; release open-band if set. */
+export async function deleteAttendance(
+  db: Db,
+  id: string,
+  actor: string | null = null,
+): Promise<void> {
+  const row = await db.query.attendance.findFirst({ where: eq(attendance.id, id) });
+  if (!row) throw errors.attendanceNotFound();
+  await db.delete(attendance).where(eq(attendance.id, id));
+  await db
+    .update(events)
+    .set({
+      attendanceCount: sql`greatest(0, ${events.attendanceCount} - ${1 + row.childrenCount})`,
+    })
+    .where(eq(events.id, row.eventId));
+  if (row.isOpenBand) await bumpOpenBand(db, row.eventId, -1, actor);
+  writeAudit({
+    kind: "attendance.deleted",
+    actor,
+    details: { attendanceId: id, eventId: row.eventId },
+  });
+}
+
+/**
+ * FR-003/004/008: edit children (head count moves by the delta), reassign an unmatched admission to a contact
+ * (refused if that contact is already on the event), and/or toggle open-band (community-dance-only + not a
+ * booked performer; moves door_records.open_band_count ±1). Head count is unchanged by reassign/open-band.
+ */
+export async function patchAttendance(
+  db: Db,
+  id: string,
+  input: AttendancePatchInput,
+  actor: string | null = null,
+): Promise<AttendanceRow> {
+  const row = await db.query.attendance.findFirst({ where: eq(attendance.id, id) });
+  if (!row) throw errors.attendanceNotFound();
+
+  if (input.contactId !== undefined && input.contactId !== row.contactId) {
+    const dup = await db.query.attendance.findFirst({
+      where: and(eq(attendance.eventId, row.eventId), eq(attendance.contactId, input.contactId)),
+    });
+    if (dup) throw errors.alreadyCheckedIn();
+  }
+
+  let openBandDelta: 1 | -1 | 0 = 0;
+  if (input.isOpenBand !== undefined && input.isOpenBand !== row.isOpenBand) {
+    if (input.isOpenBand) {
+      const event = await db.query.events.findFirst({ where: eq(events.id, row.eventId) });
+      const evtSeries = event
+        ? await db.query.series.findFirst({ where: eq(series.id, event.seriesId) })
+        : null;
+      if (evtSeries?.key !== "community_dance") {
+        throw errors.validation("Open-band musicians can only be marked at a community dance.");
+      }
+      const contactId = input.contactId ?? row.contactId;
+      if (contactId && (await isBookedPerformer(db, row.eventId, contactId))) {
+        throw errors.validation("A booked performer cannot also be an open-band musician.");
+      }
+      openBandDelta = 1;
+    } else {
+      openBandDelta = -1;
+    }
+  }
+
+  const childrenDelta =
+    input.childrenCount !== undefined ? input.childrenCount - row.childrenCount : 0;
+
+  const [updated] = await db
+    .update(attendance)
+    .set({
+      ...(input.contactId !== undefined ? { contactId: input.contactId } : {}),
+      ...(input.childrenCount !== undefined ? { childrenCount: input.childrenCount } : {}),
+      ...(input.isOpenBand !== undefined ? { isOpenBand: input.isOpenBand } : {}),
+    })
+    .where(eq(attendance.id, id))
+    .returning();
+  if (!updated) throw errors.attendanceNotFound();
+  if (childrenDelta !== 0) {
+    await db
+      .update(events)
+      .set({ attendanceCount: sql`greatest(0, ${events.attendanceCount} + ${childrenDelta})` })
+      .where(eq(events.id, row.eventId));
+  }
+  if (openBandDelta !== 0) await bumpOpenBand(db, row.eventId, openBandDelta, actor);
+  writeAudit({
+    kind: "attendance.updated",
+    actor,
+    details: { attendanceId: id, fields: Object.keys(input) },
+  });
+  return updated;
+}
+
+/**
+ * FR-005/006 (analyze L1/G1/G2): move an admission to a same-group sibling event. The target is
+ * re-derived and validated server-side (never trust the client); a dancer already on the target is refused
+ * (no duplicate); moving an open-band admission to a non-community-dance sibling clears its open-band marker
+ * and releases the source open_band_count (open-band is community-dance-only). Source head count decreases
+ * and the target's increases by `(1 + children)`.
+ */
+export async function moveAttendance(
+  db: Db,
+  id: string,
+  toEventId: string,
+  actor: string | null = null,
+): Promise<AttendanceRow> {
+  const row = await db.query.attendance.findFirst({ where: eq(attendance.id, id) });
+  if (!row) throw errors.attendanceNotFound();
+  const source = await db.query.events.findFirst({ where: eq(events.id, row.eventId) });
+  const target = await db.query.events.findFirst({ where: eq(events.id, toEventId) });
+  if (!source || !target) throw errors.eventNotFound();
+  if (!source.groupId || target.groupId !== source.groupId || target.id === source.id) {
+    throw errors.validation("The move target must be another event in the same group.");
+  }
+  if (row.contactId) {
+    const dup = await db.query.attendance.findFirst({
+      where: and(eq(attendance.eventId, toEventId), eq(attendance.contactId, row.contactId)),
+    });
+    if (dup) throw errors.alreadyCheckedIn();
+  }
+  const targetSeries = await db.query.series.findFirst({ where: eq(series.id, target.seriesId) });
+  const targetIsCommunityDance = targetSeries?.key === "community_dance";
+  const clearsOpenBand = row.isOpenBand && !targetIsCommunityDance;
+  const headDelta = 1 + row.childrenCount;
+
+  const [moved] = await db
+    .update(attendance)
+    .set({ eventId: toEventId, ...(clearsOpenBand ? { isOpenBand: false } : {}) })
+    .where(eq(attendance.id, id))
+    .returning();
+  if (!moved) throw errors.attendanceNotFound();
+  await db
+    .update(events)
+    .set({ attendanceCount: sql`greatest(0, ${events.attendanceCount} - ${headDelta})` })
+    .where(eq(events.id, row.eventId));
+  await db
+    .update(events)
+    .set({ attendanceCount: sql`${events.attendanceCount} + ${headDelta}` })
+    .where(eq(events.id, toEventId));
+  if (row.isOpenBand) {
+    await bumpOpenBand(db, row.eventId, -1, actor); // release from the source
+    if (!clearsOpenBand) await bumpOpenBand(db, toEventId, 1, actor); // carry to a community-dance target
+  }
+  writeAudit({
+    kind: "attendance.updated",
+    actor,
+    details: { attendanceId: id, movedFrom: row.eventId, movedTo: toEventId },
+  });
+  return moved;
 }

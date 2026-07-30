@@ -30,7 +30,7 @@ otherwise independent. The *test* files and the *service/route* files are distin
 
 ## Phase 1: Setup
 
-- [ ] T001 No new infra — confirm **no migration is needed** (the `attendance`/`events`/`door_records` columns already exist) and that the jsdom component-test harness (`tests/setup.dom.ts`, feature 020) is present before writing component tests.
+- [X] T001 No new infra — confirm **no migration is needed** (the `attendance`/`events`/`door_records` columns already exist) and that the jsdom component-test harness (`tests/setup.dom.ts`, feature 020) is present before writing component tests.
 
 ---
 
@@ -43,14 +43,14 @@ staying exact.
 **Independent Test**: On a mixed roster, perform each correction and assert the roster + `events.attendance_count`
 (and `door_records` counts) reflect it and never drift from "present admissions + their children."
 
-- [ ] T002 [P] [US1] Write `tests/integration/attendance.corrections.test.ts`: check in matched (with children) + unmatched admissions; **delete** → row gone, `attendance_count -= (1+children)`; **edit children** → count moves by the delta; **reassign** unmatched → contact set, and reassigning to a contact already on the event is **refused** (no dup); **toggle open-band** on a community_dance row → `is_open_band` flips and `door_records.open_band_count` ±1, and toggling on for a non-community-dance event or a booked performer is **refused**; **comp/gift ±1** → `door_records.comp_count`/`gift_card_redemption_count` moves ±1, never below 0; **move** to a same-group sibling → source count down / target up by `(1+children)`; a move to a **non-sibling** event is **refused** (analyze L1); a move to a sibling where the dancer is **already checked in** is **refused** (no dup — analyze G1); and moving an **open-band** admission to a **non-community-dance** sibling **clears `is_open_band`** and **decrements the source `open_band_count`** (analyze G2). Assert no head-count drift across the sequence.
-- [ ] T003 [US1] Add Zod schemas to `src/server/validation/attendance.ts`: `attendancePatchSchema` (`{ childrenCount?: int≥0, contactId?: uuid, isOpenBand?: bool, eventId?: uuid }`, at least one field) and `doorCountAdjustSchema` (`{ count: 'comp'|'gift', delta: 1|-1 }`).
-- [ ] T004 [P] [US1] Add `getGroupSiblings(db, eventId)` to `src/server/domain/events/eventService.ts`: the **other** events sharing this event's non-null `group_id` (`{ id, eventDate, startTime, seriesKey, label }`); empty when ungrouped.
-- [ ] T005 [P] [US1] Add `adjustDoorCount(db, eventId, kind: 'comp'|'gift', delta: 1|-1, actor?)` to `src/server/domain/door/doorRecordService.ts`: `ensureDoorRecord` then move `comp_count`/`gift_card_redemption_count` by ±1 floored at 0; audited.
-- [ ] T006 [US1] Add `deleteAttendance` / `patchAttendance` / `moveAttendance` to `src/server/domain/attendance/attendanceService.ts`: keep `events.attendance_count` exact (delete `−(1+children)`, children edit `±delta`, move dec source / inc target by `(1+children)`); reassign uses `recordAttendance`'s dup guard; open-band toggle mirrors the community-dance + not-a-booked-performer guard and moves `door_records.open_band_count` ±1; move **re-derives** the sibling set server-side and refuses a non-sibling (never trusts the client), **also refuses when the dancer is already checked in on the target** (same dup guard as reassign — analyze G1), and **when moving an open-band admission to a non-community-dance target, clears `is_open_band` and decrements the source event's `open_band_count`** so no non-community-dance event carries an open-band admission and the count is never stranded (analyze G2); one transaction each, audited.
-- [ ] T007 [US1] Add routes: `PATCH` + `DELETE` `src/app/api/attendance/[id]/route.ts`; `GET` `src/app/api/events/[id]/group-siblings/route.ts`; `POST` `src/app/api/events/[id]/door-count/route.ts` — all `attendance.write`-scoped, Zod-validated.
-- [ ] T008 [P] [US1] Write `tests/component/checkin.correctionModal.test.tsx` (jsdom, stubbed fetch): clicking a roster row opens the correction modal; each action posts to the right endpoint (`PATCH`/`DELETE /api/attendance/[id]`, `POST /api/events/[id]/door-count`), the move lists group-siblings, and a dup/non-sibling refusal surfaces inline.
-- [ ] T009 [US1] Add the roster correction modal + make roster rows clickable in `src/app/(door)/checkin/page.tsx`: delete, edit children, reassign (contact search), open-band toggle, comp/gift ±1, and move (populated from `group-siblings`); refusals shown inline; refresh the roster + head count after each.
+- [X] T002 [P] [US1] Write `tests/integration/attendance.corrections.test.ts`: check in matched (with children) + unmatched admissions; **delete** → row gone, `attendance_count -= (1+children)`; **edit children** → count moves by the delta; **reassign** unmatched → contact set, and reassigning to a contact already on the event is **refused** (no dup); **toggle open-band** on a community_dance row → `is_open_band` flips and `door_records.open_band_count` ±1, and toggling on for a non-community-dance event or a booked performer is **refused**; **comp/gift ±1** → `door_records.comp_count`/`gift_card_redemption_count` moves ±1, never below 0; **move** to a same-group sibling → source count down / target up by `(1+children)`; a move to a **non-sibling** event is **refused** (analyze L1); a move to a sibling where the dancer is **already checked in** is **refused** (no dup — analyze G1); and moving an **open-band** admission to a **non-community-dance** sibling **clears `is_open_band`** and **decrements the source `open_band_count`** (analyze G2). Assert no head-count drift across the sequence.
+- [X] T003 [US1] Add Zod schemas to `src/server/validation/attendance.ts`: `attendancePatchSchema` (`{ childrenCount?: int≥0, contactId?: uuid, isOpenBand?: bool, eventId?: uuid }`, at least one field) and `doorCountAdjustSchema` (`{ count: 'comp'|'gift', delta: 1|-1 }`).
+- [X] T004 [P] [US1] Add `getGroupSiblings(db, eventId)` to `src/server/domain/events/eventService.ts`: the **other** events sharing this event's non-null `group_id` (`{ id, eventDate, startTime, seriesKey, label }`); empty when ungrouped.
+- [X] T005 [P] [US1] Add `adjustDoorCount(db, eventId, kind: 'comp'|'gift', delta: 1|-1, actor?)` to `src/server/domain/door/doorRecordService.ts`: `ensureDoorRecord` then move `comp_count`/`gift_card_redemption_count` by ±1 floored at 0; audited.
+- [X] T006 [US1] Add `deleteAttendance` / `patchAttendance` / `moveAttendance` to `src/server/domain/attendance/attendanceService.ts`: keep `events.attendance_count` exact (delete `−(1+children)`, children edit `±delta`, move dec source / inc target by `(1+children)`); reassign uses `recordAttendance`'s dup guard; open-band toggle mirrors the community-dance + not-a-booked-performer guard and moves `door_records.open_band_count` ±1; move **re-derives** the sibling set server-side and refuses a non-sibling (never trusts the client), **also refuses when the dancer is already checked in on the target** (same dup guard as reassign — analyze G1), and **when moving an open-band admission to a non-community-dance target, clears `is_open_band` and decrements the source event's `open_band_count`** so no non-community-dance event carries an open-band admission and the count is never stranded (analyze G2); one transaction each, audited.
+- [X] T007 [US1] Add routes: `PATCH` + `DELETE` `src/app/api/attendance/[id]/route.ts`; `GET` `src/app/api/events/[id]/group-siblings/route.ts`; `POST` `src/app/api/events/[id]/door-count/route.ts` — all `attendance.write`-scoped, Zod-validated.
+- [X] T008 [P] [US1] Write `tests/component/checkin.correctionModal.test.tsx` (jsdom, stubbed fetch): clicking a roster row opens the correction modal; each action posts to the right endpoint (`PATCH`/`DELETE /api/attendance/[id]`, `POST /api/events/[id]/door-count`), the move lists group-siblings, and a dup/non-sibling refusal surfaces inline.
+- [X] T009 [US1] Add the roster correction modal + make roster rows clickable in `src/app/(door)/checkin/page.tsx`: delete, edit children, reassign (contact search), open-band toggle, comp/gift ±1, and move (populated from `group-siblings`); refusals shown inline; refresh the roster + head count after each.
 
 **Checkpoint**: the roster is correctable and the head count never drifts — the feature's core value.
 
@@ -64,10 +64,10 @@ enough detail to tell same-day events apart.
 **Independent Test**: With events before/on/after today, open check-in → the selector pre-selects the most
 recent event ≤ today, ordered descending, each option showing date + start time + label.
 
-- [ ] T010 [P] [US2] Write `tests/integration/events.ordering.test.ts`: `listEvents` returns events ordered by `event_date` then `start_time`, **descending**.
-- [ ] T011 [US2] Order `listEvents` by `desc(event_date), desc(start_time)` in `src/server/domain/events/eventService.ts` (today it has no `orderBy`).
-- [ ] T012 [P] [US2] Write `tests/component/checkin.selector.test.tsx` (jsdom): the selector defaults to the most recent event on or before today (today's if present, else latest past), lists descending, and renders each option as **date + start time + label** with the time shown `HH:MM`.
-- [ ] T013 [US2] In `src/app/(door)/checkin/page.tsx`: default-select the most recent event ≤ today, keep the descending order, and render each option label as date + start time (via 020 `toHHMM`) + label; carry `startTime` on the page's event type.
+- [X] T010 [P] [US2] Write `tests/integration/events.ordering.test.ts`: `listEvents` returns events ordered by `event_date` then `start_time`, **descending**.
+- [X] T011 [US2] Order `listEvents` by `desc(event_date), desc(start_time)` in `src/server/domain/events/eventService.ts` (today it has no `orderBy`).
+- [X] T012 [P] [US2] Write `tests/component/checkin.selector.test.tsx` (jsdom): the selector defaults to the most recent event on or before today (today's if present, else latest past), lists descending, and renders each option as **date + start time + label** with the time shown `HH:MM`.
+- [X] T013 [US2] In `src/app/(door)/checkin/page.tsx`: default-select the most recent event ≤ today, keep the descending order, and render each option label as date + start time (via 020 `toHHMM`) + label; carry `startTime` on the page's event type.
 
 **Checkpoint**: Meg lands on the right event with no manual selection in the common case.
 
@@ -82,10 +82,10 @@ anonymous path, and focus back to search after each confirm.
 — and confirm the options are inline, the children persist on every path (incl. unmatched), and focus returns
 to search.
 
-- [ ] T014 [P] [US3] Write `tests/integration/attendance.unmatchedChildren.test.ts`: an **unmatched** admission with `childrenCount` lands the children in `events.attendance_count` (regression — was silently dropped).
-- [ ] T015 [US3] Relax the `unmatched` variant of `attendanceSchema` in `src/server/validation/attendance.ts` to accept `childrenCount` (the domain already reads it generically); open-band stays person-and-community-dance only.
-- [ ] T016 [P] [US3] Write `tests/component/checkin.inlineRow.test.tsx` (jsdom): comp/children/confirm render on each candidate row (matched / new-contact / unmatched); after a confirmed check-in, focus returns to the search box.
-- [ ] T017 [US3] In `src/app/(door)/checkin/page.tsx`: move comp/children/confirm inline onto each candidate row (retire the detached "This check-in" fieldset), carry children on the unmatched row, and `focus()` the search input in the post-confirm reset.
+- [X] T014 [P] [US3] Write `tests/integration/attendance.unmatchedChildren.test.ts`: an **unmatched** admission with `childrenCount` lands the children in `events.attendance_count` (regression — was silently dropped).
+- [X] T015 [US3] Relax the `unmatched` variant of `attendanceSchema` in `src/server/validation/attendance.ts` to accept `childrenCount` (the domain already reads it generically); open-band stays person-and-community-dance only.
+- [X] T016 [P] [US3] Write `tests/component/checkin.inlineRow.test.tsx` (jsdom): comp/children/confirm render on each candidate row (matched / new-contact / unmatched); after a confirmed check-in, focus returns to the search box.
+- [X] T017 [US3] In `src/app/(door)/checkin/page.tsx`: move comp/children/confirm inline onto each candidate row (retire the detached "This check-in" fieldset), carry children on the unmatched row, and `focus()` the search input in the post-confirm reset.
 
 **Checkpoint**: the line moves faster and the anonymous path stops dropping children.
 
@@ -98,8 +98,8 @@ to search.
 **Independent Test**: signed in as a door attendant → the home page shows the staff nav (with Check-in),
 distinct from the public content; anonymous → it does not.
 
-- [ ] T018 [P] [US4] Write `tests/component/home.staffNav.test.tsx` (jsdom): the home page renders the staff nav when a staff actor is present and omits it when anonymous.
-- [ ] T019 [US4] In `src/app/page.tsx`: render the role-aware `<Nav/>` (from `src/app/Nav.tsx`) when `getCurrentStaff()` is non-null, kept as a separate element from the public content (use the optional accessor, not `requireActor`).
+- [X] T018 [P] [US4] Write `tests/component/home.staffNav.test.tsx` (jsdom): the home page renders the staff nav when a staff actor is present and omits it when anonymous.
+- [X] T019 [US4] In `src/app/page.tsx`: render the role-aware `<Nav/>` (from `src/app/Nav.tsx`) when `getCurrentStaff()` is non-null, kept as a separate element from the public content (use the optional accessor, not `requireActor`).
 
 **Checkpoint**: staff reach their tools from the landing page.
 
@@ -112,7 +112,7 @@ distinct from the public content; anonymous → it does not.
 **Independent Test**: on a fresh event with no door record, the first check-in succeeds with no "open door
 record" control present.
 
-- [ ] T020 [US5] Remove the "Open door record" button + `openDoorRecord` handler from `src/app/(door)/checkin/page.tsx` (the door record is ensured by `recordAttendance` on first check-in and by the gate); extend a check-in component test to assert the first check-in works on a fresh event with no such control.
+- [X] T020 [US5] Remove the "Open door record" button + `openDoorRecord` handler from `src/app/(door)/checkin/page.tsx` (the door record is ensured by `recordAttendance` on first check-in and by the gate); extend a check-in component test to assert the first check-in works on a fresh event with no such control.
 
 **Checkpoint**: no internal setup step on Meg's surface.
 
@@ -120,8 +120,8 @@ record" control present.
 
 ## Phase 7: Polish + cross-cutting
 
-- [ ] T021 Full gate (solo-maintainer mode): `pnpm exec tsc --noEmit`; `pnpm exec eslint <changed>`; `pnpm exec prettier --check <changed>`; `pnpm test` (incl. `auth.routeInventory.test.ts` — the three new routes appear automatically and must be recognized); `pnpm build`. All green.
-- [ ] T022 [P] Update `zak1_Phase4_Requirements_v1.md` §7 to mark the **door-attendant experience SHIPPED as 025** and note **Phase 4 complete** (Areas A–D all delivered).
+- [X] T021 Full gate (solo-maintainer mode): `pnpm exec tsc --noEmit`; `pnpm exec eslint <changed>`; `pnpm exec prettier --check <changed>`; `pnpm test` (incl. `auth.routeInventory.test.ts` — the three new routes appear automatically and must be recognized); `pnpm build`. All green.
+- [X] T022 [P] Update `zak1_Phase4_Requirements_v1.md` §7 to mark the **door-attendant experience SHIPPED as 025** and note **Phase 4 complete** (Areas A–D all delivered).
 
 ---
 

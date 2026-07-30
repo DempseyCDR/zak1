@@ -14,6 +14,7 @@ export type ApiErrorCode =
   | "EVENT_NOT_FOUND"
   | "DOOR_RECORD_EXISTS"
   | "DOOR_RECORD_NOT_FOUND"
+  | "ATTENDANCE_NOT_FOUND"
   | "ALREADY_CHECKED_IN"
   | "CASH_PAYOUT_REASON_REQUIRED"
   | "PERFORMER_NOT_FOUND"
@@ -162,6 +163,8 @@ export const errors = {
   doorRecordExists: () =>
     new ApiError("DOOR_RECORD_EXISTS", 409, "This event already has a door record."),
   doorRecordNotFound: () => new ApiError("DOOR_RECORD_NOT_FOUND", 404, "Door record not found."),
+  attendanceNotFound: () =>
+    new ApiError("ATTENDANCE_NOT_FOUND", 404, "Attendance record not found."),
   alreadyCheckedIn: () =>
     new ApiError("ALREADY_CHECKED_IN", 409, "This contact is already recorded for this event."),
   cashPayoutReasonRequired: () =>
