@@ -11,22 +11,26 @@ pnpm exec tsc --noEmit
 ## Story validation
 
 ### US1 — lead status cascade (P1)
+
 - Integration: book a band (lead + members), advance the **lead** requested→confirmed; assert lockstep members
   → confirmed; a member set to `declined` beforehand stays `declined`; changing a **non-lead** member changes
   no one (SC-001).
 
 ### US2 — band re-point (P1)
+
 - Integration: book band A on an event, `repointBand(evt, A, B)`; assert the event now carries band B's roster
   as fresh `proposed` bookings and A's unpaid bookings are gone (SC-002). With one A member settled by a live
   check → that member is kept as `declined` (SC-003 interaction).
 
 ### US3 — written-check discriminator (P1)
+
 - Integration: re-pointing / clearing a booking with **no** live payment succeeds; a booking settled by a
   **live** check is **refused** re-point and clear (SC-003); a booking whose only check is **voided** re-points
   cleanly (SC-004). `substitutePerformer`: unpaid → slot re-pointed; paid → original `declined` + a new booking
   for the sub.
 
 ### US4 — everyone who plays gets a booking (P2)
+
 - Integration: after a paid substitution and a guest sit-in, assert both the substitute and the guest have
   their **own** booking (and appear in `getPerformer` appearance history) (SC-005).
 

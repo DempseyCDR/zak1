@@ -14,7 +14,8 @@ Same signature as `fetch`. Behavior by outcome:
 | **2xx / other** | Return the `Response` unchanged — caller proceeds normally. |
 | network/throw | Propagates as `fetch` would. |
 
-**Guarantees**
+### Guarantees
+
 - A caller can never render a 401 body as a successful-but-empty result (the promise never settles, so no
   `.then`/`await` continuation runs) — FR-004.
 - At most one sign-in navigation occurs even if many calls 401 together — FR-006.

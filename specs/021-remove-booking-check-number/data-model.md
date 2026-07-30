@@ -33,7 +33,8 @@ Additive-then-drop; ordering is essential (reconcile → drop). Shape (final SQL
 -- STEP 2: ALTER TABLE bookings DROP COLUMN check_number;
 ```
 
-**Invariants after migration**
+### Invariants after migration
+
 - `SELECT count(*) FROM information_schema.columns WHERE table_name='bookings' AND column_name='check_number'`
   → `0` (SC-001).
 - Every pre-migration `bookings.check_number` value is retrievable via `performer_payments.check_number`

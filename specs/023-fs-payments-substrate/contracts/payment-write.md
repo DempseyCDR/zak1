@@ -6,7 +6,7 @@ Extends the feature-019 performer-payment API. Money is dollars in, integer cent
 
 Input (was `bookingIds: uuid[]`) becomes **allocation lines**:
 
-```
+```text
 {
   eventId: uuid,                 // recorded-at = check-written date
   payeePerformerId: uuid,        // the check recipient (may differ from settled performers)
@@ -23,7 +23,7 @@ Input (was `bookingIds: uuid[]`) becomes **allocation lines**:
 
 ## Void
 
-```
+```text
 POST void { paymentId: uuid, reason: string }   // sets voided_at + void_reason; row persists
 ```
 

@@ -50,7 +50,8 @@ ALTER TABLE performer_payments
 ALTER TABLE payment_bookings ALTER COLUMN amount_cents SET NOT NULL;
 ```
 
-**Invariants after migration**
+### Invariants after migration
+
 - Every `payment_bookings` row has an `amount_cents`; for each payment, `Σ line amount_cents = amount_cents`
   (SC-002).
 - No behavior change for existing single-line payments (line amount = the payment total).
