@@ -51,6 +51,11 @@ export function BookingModal({ mode, eventId, eventDate, role, booking, onClose,
   // Performer typeahead + add-performer hand-off
   const [q, setQ] = useState("");
   const [hits, setHits] = useState<{ id: string; displayName: string }[]>([]);
+
+  // Feature 024 US3: substitute a performer on an existing booking. The server branches on the written-check
+  // discriminator (unpaid → clean re-point; live-paid → keep the no-show + add a fresh booking).
+  const [subQ, setSubQ] = useState("");
+  const [subHits, setSubHits] = useState<{ id: string; displayName: string }[]>([]);
   const [addingContactQ, setAddingContactQ] = useState<string | null>(null);
   const [contactHits, setContactHits] = useState<{ id: string; displayName: string }[]>([]);
   const [newEmail, setNewEmail] = useState(""); // optional email for a brand-new performer's contact
@@ -122,6 +127,29 @@ export function BookingModal({ mode, eventId, eventDate, role, booking, onClose,
     setNewEmail("");
   }
 
+  async function searchSub(value: string) {
+    setSubQ(value);
+    if (value.trim().length < 1) return setSubHits([]);
+    const res = await apiFetch(`/api/performers?q=${encodeURIComponent(value)}`);
+    setSubHits((await res.json()).items ?? []);
+  }
+
+  // Feature 024 US3: POST the substitute. The server does the right thing per the discriminator; either way
+  // the substitute ends up with their own booking (a clean re-point, or a fresh booking beside the no-show).
+  async function substitute(newPerformerId: string) {
+    if (!booking) return;
+    setError(null);
+    const res = await apiFetch(`/api/bookings/${booking.id}/substitute`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ newPerformerId }),
+    });
+    if (res.status === 403) return setError("Only the Booker may substitute a performer.");
+    if (!res.ok) return setError("Could not substitute performer");
+    onSaved?.();
+    onClose();
+  }
+
   async function save() {
     setError(null);
     if (mode === "create") {
@@ -149,7 +177,14 @@ export function BookingModal({ mode, eventId, eventDate, role, booking, onClose,
         }),
       });
       if (res.status === 403) return setError("Only the Booker may edit bookings.");
-      if (!res.ok) return setError("Could not save booking");
+      if (!res.ok) {
+        // Feature 024 (FR-005): a re-point of a booking settled by a live check is refused (422) with a
+        // message that names the cause and points at the substitute action; surface it inline.
+        const body = (await res.json().catch(() => null)) as {
+          error?: { message?: string };
+        } | null;
+        return setError(body?.error?.message ?? "Could not save booking");
+      }
     }
     onSaved?.();
     onClose();
@@ -271,6 +306,33 @@ export function BookingModal({ mode, eventId, eventDate, role, booking, onClose,
           </a>
         )}
       </div>
+
+      {mode === "edit" && booking && (
+        <div style={{ marginTop: 12, borderTop: "1px solid #eee", paddingTop: 8 }}>
+          <label>
+            Substitute performer{" "}
+            <input
+              aria-label="Substitute performer"
+              value={subQ}
+              onChange={(e) => void searchSub(e.target.value)}
+            />
+          </label>
+          <p style={{ margin: "4px 0", color: "#555" }}>
+            <small>
+              A paid booking is kept as a no-show and the substitute is added as a new booking.
+            </small>
+          </p>
+          <ul>
+            {subHits.map((h) => (
+              <li key={h.id}>
+                <button type="button" onClick={() => void substitute(h.id)}>
+                  Substitute in {h.displayName}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       <div style={{ marginTop: 12, display: "flex", gap: 8 }}>
         {readOnly ? (

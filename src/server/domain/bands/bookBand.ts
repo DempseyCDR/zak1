@@ -1,5 +1,5 @@
 import { and, eq } from "drizzle-orm";
-import type { Db } from "@/server/db/client";
+import type { DbOrTx } from "@/server/db/client";
 import { bands, bookings, events } from "@/server/db/schema";
 import type { BookingRow } from "@/server/db/schema";
 import { errors } from "@/server/lib/apiError";
@@ -18,7 +18,7 @@ export type BookBandResult = { createdCount: number; skippedCount: number; booki
  * rate → 0). Each created booking is linked to the band. All in one transaction.
  */
 export async function bookBand(
-  db: Db,
+  db: DbOrTx,
   eventId: string,
   bandId: string,
   memberPay: { performerId: string; amount: number }[] = [],

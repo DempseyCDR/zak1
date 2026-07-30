@@ -23,6 +23,7 @@ auth fix. Money is always **integer cents**; constitution **v1.3.0** (solo-maint
 | — | Organizers | organizer report (event-success eval) |
 
 **Load-bearing principles** (recur across areas):
+
 - **A written check is the discriminator** — no payment on a booking ⇒ a clean re-point/clear is fine; once a
   check is written ⇒ preserve the record (no-show), add a new booking, void + reissue. Money written ⇒ never
   erase.
@@ -182,12 +183,17 @@ SpecKit assigns real numbers; provisional grouping:
    (migration `0027`; per-line `payment_bookings.amount_cents` + `performer_payments` void columns; cross-event
    settlement; treasurer per-line QBO view + voided distinct; organizer combined actual-by-incurred cost;
    cross-event delete guardrail (H1)). Establishes the check substrate the booker amendments lean on.
-4. **Booker amendments to 020** (Area A) — lead cascade + band re-point; depends on the discriminator (#3).
-   Could fold into #3 since they share the payment/void semantics.
+4. **Booker amendments to 020** (Area A) — lead cascade + band re-point + the written-check discriminator —
+   ✅ **SHIPPED as feature `024`** (no migration; a `bookingHasLivePayment` helper on 023; a lead-status
+   cascade in `patchBooking` (lockstep-only, status-only); a re-point/clear guardrail refusing a booking
+   settled by a live check; `substitutePerformer` (unpaid → clean re-point; paid → keep the no-show + a fresh
+   booking) and `repointBand` (remove unpaid / keep paid no-show / book the incoming roster fresh); report +
+   modal + gate affordances). The internal no-show `declined` is a **direct** update, never via `patchBooking`,
+   so it never cascade-declines the band (analyze H1).
 5. **Door-attendant (Meg) experience** (Area C) — polish fixes + correction modal + group-siblings API;
-   largely independent of B; incorporates #2's redirect.
+   largely independent of B; incorporates #2's redirect. **← the sole Phase-4 area remaining.**
 
-Dependency spine: **#1 → #3 → #4**; **#2** and **#5** parallelizable.
+Dependency spine: **#1 → #3 → #4** (all shipped); **#2** shipped; **#5** is all that remains.
 
 ---
 

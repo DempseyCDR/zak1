@@ -22,6 +22,8 @@ type ReportRow = {
   series: string;
   venueShortName: string | null;
   hasSoundTech: boolean;
+  band: string | null;
+  bandId: string | null; // feature 024 US2: the band on the event → offer a re-point
   cancelled: boolean;
   bookings: BookingLine[];
 };
@@ -310,6 +312,15 @@ export default function BookingsReportPage() {
                       + add musician
                     </button>
                   )}
+                  {caps.bookingWrite && r.bandId && (
+                    <BandRepointControl
+                      eventId={r.eventId}
+                      fromBandId={r.bandId}
+                      fromBandName={r.band}
+                      bands={bands}
+                      onDone={() => void load()}
+                    />
+                  )}
                 </td>
                 <td>
                   {r.hasSoundTech ? (
@@ -373,5 +384,66 @@ function BookingSlot({ line, onClick }: { line: BookingLine; onClick: () => void
     <button type="button" onClick={onClick} title="Manage booking" style={{ marginRight: 8 }}>
       {line.performer} <StatusLetter status={line.status} />
     </button>
+  );
+}
+
+// Feature 024 US2: swap the event's band for another. Unpaid outgoing bookings are removed, any live-paid one
+// is kept as a no-show, and the incoming band's roster is booked fresh (all server-side).
+function BandRepointControl({
+  eventId,
+  fromBandId,
+  fromBandName,
+  bands,
+  onDone,
+}: {
+  eventId: string;
+  fromBandId: string;
+  fromBandName: string | null;
+  bands: Band[];
+  onDone: () => void;
+}) {
+  const [toBandId, setToBandId] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const others = bands.filter((b) => b.id !== fromBandId);
+
+  async function repoint() {
+    if (!toBandId) return;
+    setError(null);
+    const res = await apiFetch(`/api/events/${eventId}/repoint-band`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ fromBandId, toBandId }),
+    });
+    if (!res.ok) return setError("Could not re-point the band");
+    setToBandId("");
+    onDone();
+  }
+
+  return (
+    <div style={{ marginTop: 6 }}>
+      <label>
+        <small>Re-point {fromBandName ?? "band"} → </small>
+        <select
+          aria-label="Re-point band to"
+          value={toBandId}
+          onChange={(e) => setToBandId(e.target.value)}
+        >
+          <option value="">choose band</option>
+          {others.map((b) => (
+            <option key={b.id} value={b.id}>
+              {b.name}
+            </option>
+          ))}
+        </select>
+      </label>{" "}
+      <button type="button" onClick={() => void repoint()} disabled={!toBandId}>
+        Re-point band
+      </button>
+      {error && (
+        <span role="alert" style={{ color: "#b00020", marginLeft: 6 }}>
+          {error}
+        </span>
+      )}
+    </div>
   );
 }

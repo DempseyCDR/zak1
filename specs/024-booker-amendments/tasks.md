@@ -25,13 +25,13 @@ or the treasurer/organizer reports.
 
 ## Phase 1: Setup
 
-- [ ] T001 No new infra — no migration, and the jsdom component-test harness (020) already exists. Confirm `tests/setup.dom.ts` is present before writing component tests.
+- [X] T001 No new infra — no migration, and the jsdom component-test harness (020) already exists. Confirm `tests/setup.dom.ts` is present before writing component tests.
 
 ---
 
 ## Phase 2: Foundational — the discriminator helper (blocks US2/US3)
 
-- [ ] T002 Add `bookingHasLivePayment(db, bookingId): Promise<boolean>` to `src/server/domain/payments/performerPaymentService.ts` — true iff a `payment_bookings` line for the booking belongs to a `performer_payments` row with `voided_at IS NULL` (reuses the 023 live-settlement join, scoped to one booking; a voided check does not count).
+- [X] T002 Add `bookingHasLivePayment(db, bookingId): Promise<boolean>` to `src/server/domain/payments/performerPaymentService.ts` — true iff a `payment_bookings` line for the booking belongs to a `performer_payments` row with `voided_at IS NULL` (reuses the 023 live-settlement join, scoped to one booking; a voided check does not count).
 
 **Checkpoint**: the single source of "settled by a live check" exists.
 
@@ -43,8 +43,8 @@ or the treasurer/organizer reports.
 
 **Independent Test**: advance the lead's status → lockstep members follow; a pre-declined member stays; a non-lead change moves no one.
 
-- [ ] T003 [P] [US1] Write `tests/integration/booking.leadCascade.test.ts`: book a band (lead + members via `bookBand`); advance the **lead** requested→confirmed and assert lockstep members → confirmed (pay/note unchanged); a member set to `declined` beforehand stays `declined`; changing a **non-lead** member changes no one.
-- [ ] T004 [US1] Implement the cascade in `patchBooking`'s status-transition branch (`src/server/domain/bookings/bookingService.ts`): when the patched booking is a band lead (`bandId != null` && `performerType === 'lead_musician'`) and its status changed, update sibling bookings (same `eventId`+`bandId`, not the lead) whose current status equals the lead's **previous** status → the lead's new status. Status only; audited. The re-point branch does NOT cascade.
+- [X] T003 [P] [US1] Write `tests/integration/booking.leadCascade.test.ts`: book a band (lead + members via `bookBand`); advance the **lead** requested→confirmed and assert lockstep members → confirmed (pay/note unchanged); a member set to `declined` beforehand stays `declined`; changing a **non-lead** member changes no one.
+- [X] T004 [US1] Implement the cascade in `patchBooking`'s status-transition branch (`src/server/domain/bookings/bookingService.ts`): when the patched booking is a band lead (`bandId != null` && `performerType === 'lead_musician'`) and its status changed, update sibling bookings (same `eventId`+`bandId`, not the lead) whose current status equals the lead's **previous** status → the lead's new status. Status only; audited. The re-point branch does NOT cascade.
 
 **Checkpoint**: the lead drives the band.
 
@@ -56,10 +56,10 @@ or the treasurer/organizer reports.
 
 **Independent Test**: re-point/clear an unpaid booking (ok) and a live-paid one (refused); voided → ok; `substitutePerformer` both branches.
 
-- [ ] T005 [P] [US3] Write `tests/integration/booking.substituteDiscriminator.test.ts`: re-pointing (`patchBooking` performerId) and clearing (`deleteBooking`) a booking with a **live** payment is **refused**; with no payment (or only a **voided** one) it succeeds; `substitutePerformer` on an unpaid booking re-points the slot, on a paid booking sets the original `declined` and creates a new booking for the sub. **(analyze H1)** Also assert that substituting a **paid no-show LEAD** sets that lead's booking `declined` but does **NOT** cascade-decline the other band members (the internal decline bypasses the FR-001 cascade).
-- [ ] T006 [US3] Guard `patchBooking` (re-point branch) and `deleteBooking` in `src/server/domain/bookings/bookingService.ts`: refuse (validation error naming "settled by a live check") when `bookingHasLivePayment` is true.
-- [ ] T007 [US3] Add `substitutePerformer(db, bookingId, newPerformerId, actor?, authz?)` to `bookingService.ts`: unpaid → re-point the slot (existing reset path); paid → set the original booking `declined` (no-show) **directly** (a plain `bookings` update — NOT via the cascade-bearing status path, so substituting a no-show lead does not decline the band — analyze H1) + `createBooking` a fresh slot for the sub (same `performer_type`); audited.
-- [ ] T008 [US3] Add `POST /api/bookings/[id]/substitute` route (`booking.write`) with a `{ newPerformerId }` Zod schema in `src/server/validation/`.
+- [X] T005 [P] [US3] Write `tests/integration/booking.substituteDiscriminator.test.ts`: re-pointing (`patchBooking` performerId) and clearing (`deleteBooking`) a booking with a **live** payment is **refused**; with no payment (or only a **voided** one) it succeeds; `substitutePerformer` on an unpaid booking re-points the slot, on a paid booking sets the original `declined` and creates a new booking for the sub. **(analyze H1)** Also assert that substituting a **paid no-show LEAD** sets that lead's booking `declined` but does **NOT** cascade-decline the other band members (the internal decline bypasses the FR-001 cascade).
+- [X] T006 [US3] Guard `patchBooking` (re-point branch) and `deleteBooking` in `src/server/domain/bookings/bookingService.ts`: refuse (validation error naming "settled by a live check") when `bookingHasLivePayment` is true.
+- [X] T007 [US3] Add `substitutePerformer(db, bookingId, newPerformerId, actor?, authz?)` to `bookingService.ts`: unpaid → re-point the slot (existing reset path); paid → set the original booking `declined` (no-show) **directly** (a plain `bookings` update — NOT via the cascade-bearing status path, so substituting a no-show lead does not decline the band — analyze H1) + `createBooking` a fresh slot for the sub (same `performer_type`); audited.
+- [X] T008 [US3] Add `POST /api/bookings/[id]/substitute` route (`booking.write`) with a `{ newPerformerId }` Zod schema in `src/server/validation/`.
 
 **Checkpoint**: the discriminator protects paid bookings; substitution is one safe operation.
 
@@ -71,9 +71,9 @@ or the treasurer/organizer reports.
 
 **Independent Test**: `repointBand(evt, A, B)` → event carries B's roster fresh, A's unpaid bookings gone, any paid A member kept `declined`.
 
-- [ ] T009 [P] [US2] Write `tests/integration/bandRepoint.test.ts`: book band A on an event, `repointBand(evt, A, B)`; assert B's roster is booked fresh (`proposed`, standard rates, lead = `lead_musician`), A's unpaid bookings are removed, and an A member settled by a **live** check is kept as `declined`; non-band bookings (caller) untouched.
-- [ ] T010 [US2] Implement `repointBand(db, eventId, fromBandId, toBandId, actor?, authz?)` in `src/server/domain/bookings/bandRepoint.ts`: per outgoing `fromBandId` booking, remove if unpaid / set `declined` **directly** (a plain update, bypassing the lead cascade — analyze H1) if `bookingHasLivePayment`; act **only on `fromBandId`** (other bands / non-band bookings untouched — analyze L1); then `bookBand(eventId, toBandId)` for the incoming roster; one transaction, audited.
-- [ ] T011 [US2] Add `POST /api/events/[id]/repoint-band` route (`booking.write`) with a `{ fromBandId, toBandId }` Zod schema.
+- [X] T009 [P] [US2] Write `tests/integration/bandRepoint.test.ts`: book band A on an event, `repointBand(evt, A, B)`; assert B's roster is booked fresh (`proposed`, standard rates, lead = `lead_musician`), A's unpaid bookings are removed, and an A member settled by a **live** check is kept as `declined`; non-band bookings (caller) untouched.
+- [X] T010 [US2] Implement `repointBand(db, eventId, fromBandId, toBandId, actor?, authz?)` in `src/server/domain/bookings/bandRepoint.ts`: per outgoing `fromBandId` booking, remove if unpaid / set `declined` **directly** (a plain update, bypassing the lead cascade — analyze H1) if `bookingHasLivePayment`; act **only on `fromBandId`** (other bands / non-band bookings untouched — analyze L1); then `bookBand(eventId, toBandId)` for the incoming roster; one transaction, audited.
+- [X] T011 [US2] Add `POST /api/events/[id]/repoint-band` route (`booking.write`) with a `{ fromBandId, toBandId }` Zod schema.
 
 **Checkpoint**: a band swaps as a unit without orphaning a paid line.
 
@@ -85,7 +85,7 @@ or the treasurer/organizer reports.
 
 **Independent Test**: after a paid substitution and a guest sit-in, both appear as their own booking and in `getPerformer` history.
 
-- [ ] T012 [US4] Write `tests/integration/booking.playedGetsBooking.test.ts`: a paid substitution (via `substitutePerformer`) leaves the sub with their **own** booking and the original as `declined`; a guest sit-in (`createBooking`) has their own booking; both show in the respective `getPerformer` appearance count.
+- [X] T012 [US4] Write `tests/integration/booking.playedGetsBooking.test.ts`: a paid substitution (via `substitutePerformer`) leaves the sub with their **own** booking and the original as `declined`; a guest sit-in (`createBooking`) has their own booking; both show in the respective `getPerformer` appearance count.
 
 **Checkpoint**: the person who played is always on the record.
 
@@ -93,11 +93,11 @@ or the treasurer/organizer reports.
 
 ## Phase 7: UI + Polish
 
-- [ ] T013 [P] Write `tests/component/bookingsReport.bandRepoint.test.tsx` (jsdom, stubbed fetch): the report/modal exposes a band re-point control (posts `repoint-band`) and a substitute action (posts `substitute`); a re-point refused as paid surfaces the inline "void it first / substitute" message.
-- [ ] T014 Add the affordances to `src/app/(admin)/bookings-report/page.tsx` + `src/app/(admin)/_modals/BookingModal.tsx`: a **band re-point** control (pick a new band) and a **substitute** action; surface the paid-refusal message inline. (The lead cascade needs no new UI — it rides the existing lead status change.)
-- [ ] T015 [P] Expose the **substitute add-booking** for the FS on `src/app/(door)/gate/page.tsx` (reuses the `substitute` route; `booking.write`).
-- [ ] T016 Full gate (solo-maintainer mode): `pnpm exec tsc --noEmit`; `pnpm exec eslint <changed>`; `pnpm exec prettier --check <changed>`; `pnpm test`; `pnpm build`. All green.
-- [ ] T017 [P] Update `zak1_Phase4_Requirements_v1.md` §7 to mark the **booker amendments SHIPPED as 024**; note Phase-4 remaining = Meg's door-attendant experience (Area C).
+- [X] T013 [P] Write `tests/component/bookingsReport.bandRepoint.test.tsx` (jsdom, stubbed fetch): the report/modal exposes a band re-point control (posts `repoint-band`) and a substitute action (posts `substitute`); a re-point refused as paid surfaces the inline "void it first / substitute" message.
+- [X] T014 Add the affordances to `src/app/(admin)/bookings-report/page.tsx` + `src/app/(admin)/_modals/BookingModal.tsx`: a **band re-point** control (pick a new band) and a **substitute** action; surface the paid-refusal message inline. (The lead cascade needs no new UI — it rides the existing lead status change.)
+- [X] T015 [P] Expose the **substitute add-booking** for the FS on `src/app/(door)/gate/page.tsx` (reuses the `substitute` route; `booking.write`).
+- [X] T016 Full gate (solo-maintainer mode): `pnpm exec tsc --noEmit`; `pnpm exec eslint <changed>`; `pnpm exec prettier --check <changed>`; `pnpm test`; `pnpm build`. All green.
+- [X] T017 [P] Update `zak1_Phase4_Requirements_v1.md` §7 to mark the **booker amendments SHIPPED as 024**; note Phase-4 remaining = Meg's door-attendant experience (Area C).
 
 ---
 

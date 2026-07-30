@@ -53,7 +53,13 @@ export const bookingPatchSchema = z.object({
   performerId: z.string().uuid().optional(),
 });
 
+// Feature 024 US3: substitute a performer on a booking (branches on the written-check discriminator).
+export const substitutePerformerSchema = z.object({
+  newPerformerId: z.string().uuid(),
+});
+
 export type PerformerCreateInput = z.infer<typeof performerCreateSchema>;
+export type SubstitutePerformerInput = z.infer<typeof substitutePerformerSchema>;
 export type PerformerPatchInput = z.infer<typeof performerPatchSchema>;
 export type RateParameterCreateInput = z.infer<typeof rateParameterCreateSchema>;
 export type BookingCreateInput = z.infer<typeof bookingCreateSchema>;

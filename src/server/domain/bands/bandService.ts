@@ -1,5 +1,5 @@
 import { eq, isNull } from "drizzle-orm";
-import type { Db } from "@/server/db/client";
+import type { Db, DbOrTx } from "@/server/db/client";
 import { bandMembers, bands, performers } from "@/server/db/schema";
 import type { BandRow } from "@/server/db/schema";
 import { errors } from "@/server/lib/apiError";
@@ -139,7 +139,7 @@ export async function archiveBand(db: Db, id: string, actor: string | null = nul
 
 /** Current roster (performerId + isLead) for booking — active or not (past events can re-book). */
 export async function getRoster(
-  db: Db,
+  db: DbOrTx,
   bandId: string,
 ): Promise<{ performerId: string; isLead: boolean }[]> {
   return db

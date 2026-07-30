@@ -1,5 +1,5 @@
 import { and, eq, inArray, isNull, sql } from "drizzle-orm";
-import type { Db } from "@/server/db/client";
+import type { Db, DbOrTx } from "@/server/db/client";
 import {
   bookings,
   events,
@@ -259,6 +259,20 @@ export async function settledCentsByBookingForEvent(
   for (const r of rows)
     byBooking.set(r.bookingId, (byBooking.get(r.bookingId) ?? 0) + r.amountCents);
   return byBooking;
+}
+
+/**
+ * Feature 024: the written-check discriminator, scoped to ONE booking. True iff the booking has a
+ * `payment_bookings` line belonging to a LIVE (non-voided) `performer_payments` row — i.e. it is settled by
+ * a live check. A voided check does not count (FR-006), so a re-point/clear is allowed again after a void.
+ */
+export async function bookingHasLivePayment(db: DbOrTx, bookingId: string): Promise<boolean> {
+  const [row] = await db
+    .select({ n: sql<number>`count(*)::int` })
+    .from(paymentBookings)
+    .innerJoin(performerPayments, eq(performerPayments.id, paymentBookings.paymentId))
+    .where(and(eq(paymentBookings.bookingId, bookingId), isNull(performerPayments.voidedAt)));
+  return (row?.n ?? 0) > 0;
 }
 
 /** True if any of the event's bookings is settled by a LIVE payment line (guardrail — FR-013, H1). */

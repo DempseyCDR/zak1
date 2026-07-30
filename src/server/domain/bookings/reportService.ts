@@ -37,6 +37,7 @@ export type BookingsReportRow = {
   hasSoundTech: boolean; // feature 020 US1 (FR-004); false → no sound-tech slot (community_dance)
   caller: string | null;
   band: string | null; // first named band, if any
+  bandId: string | null; // feature 024 US2: the band on the event, so the report can offer a re-point
   musicians: string[];
   soundTech: string | null;
   cancelled: boolean;
@@ -102,7 +103,7 @@ export async function assembleBookingsReport(
       .map((b) => b.performerName);
 
     let band: string | null = null;
-    const bandId = bookings.find((b) => b.bandId !== null)?.bandId;
+    const bandId = bookings.find((b) => b.bandId !== null)?.bandId ?? null;
     if (bandId) {
       const bandRow = await db.query.bands.findFirst({ where: eq(bands.id, bandId) });
       band = bandRow?.name ?? null;
@@ -120,6 +121,7 @@ export async function assembleBookingsReport(
       hasSoundTech: ev.hasSoundTech,
       caller,
       band,
+      bandId,
       musicians,
       soundTech,
       cancelled: ev.status === "cancelled",

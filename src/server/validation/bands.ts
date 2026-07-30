@@ -44,6 +44,13 @@ export const bookBandSchema = z.object({
     .optional(),
 });
 
+// Feature 024 US2: re-point an event's band to a different one.
+export const repointBandSchema = z.object({
+  fromBandId: z.string().uuid(),
+  toBandId: z.string().uuid(),
+});
+
 export type BandCreateInput = z.infer<typeof bandCreateSchema>;
+export type RepointBandInput = z.infer<typeof repointBandSchema>;
 export type BandPatchInput = z.infer<typeof bandPatchSchema>;
 export type BookBandInput = z.infer<typeof bookBandSchema>;
