@@ -5,6 +5,9 @@ export default tseslint.config(
     ignores: [
       "node_modules/",
       ".next/",
+      // Agent/task worktrees are full repo checkouts nested here; linting them double-counts every
+      // file and breaks path-keyed overrides (e.g. seed.ts). markdownlint already ignores this.
+      ".claude/",
       "dist/",
       "build/",
       "coverage/",
