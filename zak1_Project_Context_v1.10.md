@@ -1,13 +1,12 @@
 # zak1 — Project Context for Session Transfer (v1.10)
 
-**Snapshot:** 2026-07-29 (in-place update of v1.10) · **Repo:** `/Users/rcd/Repositories/zak1` · **Remote:**
-`github.com/DempseyCDR/zak1` · **Head:** `ad248c5` (024 planning; this context update on top) — local `main`
-is **~5 commits ahead of `origin/main` (unpushed)**: 023 planning+impl, the prior context update, 024 planning,
-this doc. Since the original v1.10 snapshot: **020 follow-up + features 021, 022, 023 shipped** (021/022
-pushed; 023 committed, not pushed), and **024 booker amendments is specced + planned (spec/plan/tasks
-committed) but NOT yet implemented**; **Phase 3 COMPLETE, Phase 4 well underway**; the **Node-18 Bash gotcha
-is RESOLVED** (Bash runs Node 24 by default; the stale Node 16 was purged). Purpose: seed a fresh session to
-continue work on zak1 (CDR).
+**Snapshot:** 2026-07-30 (in-place update of v1.10) · **Repo:** `/Users/rcd/Repositories/zak1` · **Remote:**
+`github.com/DempseyCDR/zak1` · **Head:** `c9971be` (025 impl) — local `main` is **level with `origin/main`
+(everything pushed, working tree clean)**. Since the original v1.10 snapshot: **020 follow-up + features
+021, 022, 023, 024, 025 all shipped and pushed**. **Phase 3 COMPLETE; Phase 4 COMPLETE — Areas A–D all
+delivered** (A = 024 booker amendments · B = 023 FS payments + 021 · C = 025 door-attendant experience ·
+D/B41 = 022). The **Node-18 Bash gotcha is RESOLVED** (Bash runs Node 24 by default; the stale Node 16 was
+purged). Purpose: seed a fresh session to continue work on zak1 (CDR).
 
 ---
 
@@ -18,7 +17,7 @@ contra/English dance club): contacts & membership, door attendance & gate money,
 treasurer & organizer reports, mailing-list exports, a public website, staff auth, authorization, check-in,
 booking & event management, membership acquisition (door + online), the Booker's booking-report/modal UX, and
 the Financial-Secretary payment substrate.
-**23 features shipped (001–023).** Money is always **integer cents**. Single tenant (multi-tenant deferred).
+**25 features shipped (001–025).** Money is always **integer cents**. Single tenant (multi-tenant deferred).
 
 > **Naming:** `zak1` is the internal codename; the club-facing name is **cdrochester** (what Google's
 > consent screen shows). No rename wanted.
@@ -54,7 +53,8 @@ set +a`.
 - **`zak1_test`** (`TEST_DATABASE_URL`) — auto-migrated; `resetDb()` TRUNCATEs (list includes the 019/020
   tables).
 - **Migrations:** additive SQL in `src/server/db/migrations/`, `pnpm run db:migrate`. **Latest =
-  `0027_payment_allocation_and_voids.sql`** (023) — `payment_bookings.amount_cents` (per-line allocation,
+  `0027_payment_allocation_and_voids.sql`** (023) — **features 024 and 025 added NO migration** (both are
+  operations/UI over the existing schema). `0027` = `payment_bookings.amount_cents` (per-line allocation,
   **backfilled** proportionally so lines sum to the check total) + `performer_payments` void columns
   (`voided_at`, `void_reason`, `replaces_payment_id`). `0026_drop_bookings_check_number.sql` (021) **removed**
   `bookings.check_number` (reconcile-then-drop; `performer_payments` is now the sole check store).
@@ -68,11 +68,11 @@ set +a`.
 ## 4. Tests & governance
 
 Pipeline `/speckit-specify → clarify → plan → tasks → analyze → implement`. Active pointer
-`.specify/feature.json` → **`specs/024-booker-amendments`** (specced/planned; implementation pending).
-**Constitution v1.3.0** (non-negotiable):
+`.specify/feature.json` → **`specs/025-door-checkin-experience`** (shipped). **Constitution v1.3.0**
+(non-negotiable):
 I Test-First (Red-Green-Refactor), II YAGNI, III Type Safety (Zod at boundaries), IV Observability.
 Testing standard: integration against **real** local infra; DBs never mocked; third-party services (Google,
-PayPal) exercised at their **boundary**, never production endpoints. **Suite: 563 tests / 167 files green.**
+PayPal) exercised at their **boundary**, never production endpoints. **Suite: 601 tests / 179 files green.**
 tsc, eslint, markdownlint, prettier, production build all clean on Next 16.
 
 **⚠️ Two test types (feature 020, closes analyze finding C1):**
@@ -108,15 +108,17 @@ src/app/
   (admin)/payments/page.tsx        FS/Treasurer performer payments: per-line allocation + void (023) + parked online-payment linking (019)
   (admin)/door-parameters/page.tsx per-series seed float (019 US5)
   (admin)/venues/page.tsx          venue CRUD + short name (020) + landlord picker (018)
-  (door)/gate/page.tsx             door money; named membership line → enrollment (019); seed float prefill
+  (door)/gate/page.tsx             door money; named membership line → enrollment (019); seed float prefill; substitute add-booking (024)
+  (door)/checkin/page.tsx          check-in; default-recent + desc selector, inline single-row entry, roster correction modal, staff nav on home (025)
   (public)/join/page.tsx           public membership capture + PayPal hosted button (019 US3)
   api/**/route.ts                  all declare withAuth({ requires }) EXCEPT the two withPublic routes below
   api/public/membership, api/webhooks/paypal  the ONLY unauthenticated routes (withPublic + allowlist, 019)
   api/me/capabilities              { bookingWrite, eventWrite } so the report gates edit affordances (020)
 src/server/
   auth/                capabilities.ts · can.ts · fields.ts · pii.ts · nav.ts · withAuth.ts · withPublic.ts
-  domain/bookings/     bookingService · bookingStatus (tentative) · reportService (sort/venue/hasSoundTech)
-  domain/payments/     performerPaymentService (per-line, void, cross-event, settlement helper — 023) · reconcile
+  domain/bookings/     bookingService (lead cascade · re-point/clear guard · substitutePerformer — 024) · bandRepoint (024) · bookingStatus (tentative) · reportService (sort/venue/hasSoundTech/bandId)
+  domain/payments/     performerPaymentService (per-line, void, cross-event, settlement + bookingHasLivePayment — 023/024) · reconcile
+  domain/attendance/   attendanceService (recordAttendance · roster · deleteAttendance/patchAttendance/moveAttendance — 025 corrections)
   app/apiFetch.ts      shared client 401→/login wrapper (022, B41) — all staff /api fetches go through it
   domain/paypal/       verify (injectable seam) · captureService (019)
   domain/membership/   membershipService (DbOrTx) · membershipTerm · classify
@@ -139,13 +141,12 @@ tests/{unit,integration,component}/
 ## 6. Implementation status (001–023 done)
 
 Phase 1 (001–009) · Phase 2 (010–014) · **Phase 3 COMPLETE: 015 auth · 016 authz · 017 check-in · 018
-booking/event mgmt · 019 payments & membership** · **Phase 4: 020 Booker experience (P4-1) · 021 drop
-`bookings.check_number` · 022 client 401→`/login` (B41) · 023 FS payments substrate** — all **implemented**;
-**024 booker amendments** (Area A — lead cascade, band re-point, written-check discriminator) is
-**specced + planned only (spec/plan/tasks committed `ad248c5`, 17 tasks, NOT implemented)**. Through **022 is
-pushed**; 023 (impl+planning), the prior context update, and 024 planning are **unpushed**. Phase-4 remaining:
-**implement 024** (`/speckit-implement`, feature.json already points there) and **Meg's door-attendant
-experience** (Area C).
+booking/event mgmt · 019 payments & membership** · **Phase 4 COMPLETE: 020 Booker experience (P4-1) · 021 drop
+`bookings.check_number` · 022 client 401→`/login` (B41) · 023 FS payments substrate · 024 booker amendments
+(Area A — lead cascade, band re-point, written-check discriminator; no migration) · 025 door-attendant
+experience (Area C — per-record roster corrections + selection/entry polish; no migration)** — all
+**implemented and pushed**. **Nothing outstanding in Phase 4** (Areas A–D all delivered). Next work would be
+Phase 5 / remaining backlog (see §11) or the pre-rollout operational TODOs (§10).
 
 ## 7. Load-bearing decisions (do not undo without reading why)
 
@@ -197,8 +198,36 @@ events** (cross-event delayed checks — the same-event constraint was relaxed);
 per-event report = checks **written-at** the event with a per-line breakdown, voided shown distinctly;
 organizer performer cost = **one combined figure** (actual-paid + still-outstanding) by **incurred** date. The
 event-delete guardrail was **widened** to block a live **cross-event** settlement (FR-013). Payment-create
-input changed `bookingIds` → per-line **`lines: [{ bookingId, amount }]`**. Out of scope (next feature): the
-booker-side of substitution + the lead cascade + band re-point; and B42 (non-performer reimbursement, Mike's).
+input changed `bookingIds` → per-line **`lines: [{ bookingId, amount }]`**. B42 (non-performer reimbursement,
+Mike's) stays deferred.
+
+**024 booker amendments (Area A, no migration):** three booking-state rules on 020/023. (1) **Lead status
+cascade** inside `patchBooking`: a band lead's status change propagates to sibling bookings still at the lead's
+**previous** status (lockstep → every follower move is a legal transition by construction; diverged/declined
+skipped; status-only). (2) **Written-check discriminator** — `bookingHasLivePayment(db, bookingId)` on the 023
+payments domain; `patchBooking` re-point and `deleteBooking` **refuse** a booking settled by a **live** check;
+`substitutePerformer` branches (unpaid → clean re-point; paid → keep original as a **direct** `declined`
+no-show + a fresh booking for the sub). (3) **`repointBand`** (`bandRepoint.ts`): remove the outgoing band's
+unpaid bookings, keep paid ones as no-shows, re-book the incoming roster via `bookBand` (widened to `DbOrTx`).
+⚠️ **analyze H1**: the internal no-show `declined` (substitution / band re-point) is a **direct `bookings`
+update, never via `patchBooking`**, so it bypasses the FR-001 cascade — substituting a no-show lead does NOT
+decline the band. Routes: `POST /api/bookings/[id]/substitute`, `POST /api/events/[id]/repoint-band`.
+
+**025 door-attendant experience (Area C, no migration):** per-record roster **corrections** over the existing
+017/016/010 shape (the `attendance` table already had `children_count`, `is_open_band`, nullable `contact_id`;
+`events.attendance_count` is already denormalized). `deleteAttendance` / `patchAttendance` (children /
+reassign-with-dup-guard / open-band toggle) / `moveAttendance` keep `events.attendance_count` **and**
+`door_records.open_band_count` **exact**; `adjustDoorCount` does comp/gift **±1** (counts-only, floor 0);
+`getGroupSiblings` + a **server-validated** move. ⚠️ Move guardrails (analyze): refuse a **non-sibling** target
+(L1), refuse when the dancer is **already on the target** (G1), and **clear `is_open_band` + release the source
+`open_band_count`** when an open-band admission moves to a non-community-dance sibling (G2). **FR-015**:
+children now ride the **unmatched/anonymous** path too (reverses a 017 rule; updated `checkin.family` test).
+Mutations follow `recordAttendance`'s **non-transactional** style (not `db.transaction` — widening
+`ensureDoorRecord`/`resolveSeedFloatCents` to a tx would cascade; YAGNI). Routes: `PATCH`/`DELETE
+/api/attendance/[id]`, `GET /api/events/[id]/group-siblings`, `POST /api/events/[id]/door-count` (all
+`attendance.write`). UI: default-recent + descending selector, inline single-row check-in + focus-to-search,
+clickable-row correction modal, staff nav on `/` home, dropped the vestigial "open door record" button. New
+audit kinds `attendance.updated`/`.deleted`; `ATTENDANCE_NOT_FOUND` error.
 
 **018 booking/event mgmt:** `patchBooking` validates status transitions + re-point (change performerId →
 reset to `proposed`). Public shows only CONFIRMED bookings. Recurrence = every-N-weeks, independent rows,
@@ -214,13 +243,9 @@ event modal** (prior-event venue/start defaults, dynamic rent) · **US5 venue sh
 node-tested; modal/report interactions component-tested (jsdom).
 
 **Phase 4 requirements (consolidated, committed at repo root):** `zak1_Phase4_Requirements_v1.md` (umbrella,
-§7 sequencing) + the two drafts `zak1_Phase4_FS_Payments_DRAFT.md` and `zak1_Phase4_Meg_Checkin_NOTES.md`.
-Shipped so far: 021, 022, 023. **Booker amendments (Area A) are now specced + planned as feature 024** (lead
-status cascade + band re-point + the "written check is the discriminator" rule; `substitutePerformer` +
-`repointBand` + a `bookingHasLivePayment` helper on 023; **no migration**) — run `/speckit-implement` to build
-it. **Remaining after that: Meg's door-attendant experience (Area C — the check-in punch-list in the Meg
-notes).** ⚠️ 024 analyze surfaced H1: the internal no-show `declined` (substitution / band re-point) must be a
-**direct** update, never via `patchBooking`, or it would cascade-decline the band.
+§7 sequencing — now marks **all areas SHIPPED**) + the two drafts `zak1_Phase4_FS_Payments_DRAFT.md` and
+`zak1_Phase4_Meg_Checkin_NOTES.md`. **Phase 4 is fully shipped: 021, 022, 023, 024, 025.** See §7 for the 024
+and 025 load-bearing decisions.
 
 ## 9. Known issues / gotchas found in real use
 
@@ -293,8 +318,8 @@ pnpm run db:seed               # ⚠️ WIPES zak1_dev — do NOT run
 
 ## 14. Uncommitted / unpushed at handoff
 
-Working tree clean after this doc is committed. Local `main` is **~5 commits ahead of `origin/main`
-(unpushed)**: `1a45d31` (023 planning), `dd64ba1` (023 impl), `5f72e97` (prior context update), `ad248c5`
-(024 planning), and this doc update. Everything through `a4b67fd` (022 impl) is pushed — i.e. 020-follow-up,
-021, and 022 are on the remote. **Push these when ready** (`git push`); commits are SSH-signed via 1Password
-(unlock if a commit fails with "failed to fill whole buffer").
+Working tree clean; local `main` is **level with `origin/main` — everything is pushed**. Recent head chain:
+`c9971be` (025 impl) → `4369391` (025 planning) → `5ffbc79` (eslint ignores `.claude/`) → `246bd95` (pre-existing
+markdown-lint fixes) → `5a67618` (024 impl) → `ad248c5` (024 planning). Commits are SSH-signed via 1Password
+(unlock if a commit fails with "1Password: failed to fill whole buffer"). Only this doc update is pending until
+committed.
