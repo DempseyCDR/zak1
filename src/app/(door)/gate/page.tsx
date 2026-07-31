@@ -114,14 +114,50 @@ export default function GatePage() {
     const res = await apiFetch(`/api/events/${selectedEventId}/door-record`, { method: "POST" });
     if (!res.ok) return setMessage("Could not open door record");
     const data = await res.json();
-    setDoorRecordId(data.doorRecord.id);
+    const dr = data.doorRecord;
+    setDoorRecordId(dr.id);
     // Feature 019 US5: the seed float now comes from the door record (seeded from the series parameter,
     // FR-022), not a hard-coded 15. The FS can still override it for this record.
-    setSeedFloat(String(data.doorRecord.seedFloat ?? 15));
+    setSeedFloat(String(dr.seedFloat ?? 15));
     // Pre-fill the counts the Door Attendant captured at check-in, for the FS to confirm (FR-015).
-    setCompCount(String(data.doorRecord.compCount ?? 0));
-    setGiftCount(String(data.doorRecord.giftCardRedemptionCount ?? 0));
-    setOpenBandCount(data.doorRecord.openBandCount ?? 0);
+    setCompCount(String(dr.compCount ?? 0));
+    setGiftCount(String(dr.giftCardRedemptionCount ?? 0));
+    setOpenBandCount(dr.openBandCount ?? 0);
+    // D2 (data-loss fix): reload the money the FS already entered — previously these stayed blank on a return
+    // visit, and the next Save wrote the blanks (0 / replace-all) over the saved record. Show a stored value,
+    // blank when zero/unset so the placeholders stay clean.
+    const money = (v: number) => (v ? String(v) : "");
+    setGrossCash(money(dr.grossCash ?? 0));
+    setPcGross(money(dr.pcGross ?? 0));
+    setPosTxns(money(dr.posTransactionCount ?? 0));
+    setCashPaidOut(money(dr.cashPaidOut ?? 0));
+    setCashPaidOutReason(dr.cashPaidOutReason ?? "");
+    // D2: rebuild the anon + named sale lines from the persisted gate sales, so a re-save round-trips them
+    // instead of wiping them (putGateSales is replace-all).
+    const anonNext: AnonAmounts = JSON.parse(JSON.stringify(emptyAnon));
+    const namedNext: NamedLine[] = [];
+    for (const s of (data.gateSales ?? []) as {
+      category: string;
+      paymentMethod: PaymentMethod;
+      amountCents: number;
+      contactId: string | null;
+      contactName: string | null;
+    }[]) {
+      const amount = String(s.amountCents / 100);
+      if ((ANON_CATEGORIES as readonly string[]).includes(s.category)) {
+        anonNext[s.category]![s.paymentMethod] = amount;
+      } else if ((NAMED_CATEGORIES as readonly string[]).includes(s.category) && s.contactId) {
+        namedNext.push({
+          category: s.category as (typeof NAMED_CATEGORIES)[number],
+          contactId: s.contactId,
+          contactName: s.contactName ?? "(unknown)",
+          amount,
+          paymentMethod: s.paymentMethod,
+        });
+      }
+    }
+    setAnon(anonNext);
+    setNamed(namedNext);
   }
 
   function setAnonAmt(cat: string, method: PaymentMethod, v: string) {

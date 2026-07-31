@@ -1,0 +1,103 @@
+// @vitest-environment jsdom
+import { describe, it, expect, vi, afterEach } from "vitest";
+import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import GatePage from "@/app/(door)/gate/page";
+
+// D2 (gate data-loss fix): re-opening a door record must REPOPULATE the form from the persisted record —
+// money scalars + gate-sale lines — so a subsequent Save round-trips them instead of writing blanks (0 /
+// replace-all) over the saved data (the reproduced bug).
+type Call = { url: string; init?: RequestInit };
+
+const SAVED = {
+  doorRecord: {
+    id: "dr1",
+    seedFloat: 15,
+    compCount: 0,
+    giftCardRedemptionCount: 0,
+    openBandCount: 0,
+    grossCash: 344,
+    pcGross: 223,
+    posTransactionCount: 16,
+    cashPaidOut: 0,
+    cashPaidOutReason: null,
+  },
+  gateSales: [
+    {
+      category: "membership",
+      paymentMethod: "card",
+      amountCents: 4000,
+      contactId: "c1",
+      contactName: "Jane Doe",
+    },
+    {
+      category: "merchandise",
+      paymentMethod: "cash",
+      amountCents: 1200,
+      contactId: null,
+      contactName: null,
+    },
+  ],
+};
+
+function stub(calls: Call[]) {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async (url: string, init?: RequestInit) => {
+      calls.push({ url: String(url), init });
+      const u = String(url);
+      const json = async () => {
+        if (u.endsWith("/door-record")) return SAVED; // POST open → full reload payload
+        if (u.includes("/gate-sales")) return { enrolled: [] };
+        if (u.includes("/door-records/")) return { deposit: 0 }; // PATCH door record
+        if (u.includes("/bookings")) return { bookings: [] }; // 025 substitute section
+        if (u.includes("/api/events")) return { items: [{ id: "e1", eventDate: "2026-06-25" }] };
+        return { items: [] };
+      };
+      return { ok: true, status: 200, json };
+    }),
+  );
+}
+
+describe("GatePage — reload persisted state on open (D2)", () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("repopulates money + sale lines, and a Save round-trips them (no wipe)", async () => {
+    const calls: Call[] = [];
+    stub(calls);
+    const user = userEvent.setup();
+    render(<GatePage />);
+
+    await user.selectOptions(await screen.findByRole("combobox", { name: /event/i }), "e1");
+
+    // Money fields reload from the saved record (previously blank on return).
+    await waitFor(() =>
+      expect((screen.getByLabelText(/gross cash/i) as HTMLInputElement).value).toBe("344"),
+    );
+    expect((screen.getByLabelText(/card gross/i) as HTMLInputElement).value).toBe("223");
+    expect((screen.getByLabelText(/card transactions/i) as HTMLInputElement).value).toBe("16");
+    // The named membership line reloads with its payer's name.
+    expect(screen.getByText(/membership — Jane Doe/)).toBeInTheDocument();
+
+    // Saving now round-trips the reloaded lines instead of wiping them.
+    await user.click(screen.getByRole("button", { name: /^save$/i }));
+    await waitFor(() => {
+      const put = calls.find((c) => c.init?.method === "PUT" && c.url.includes("/gate-sales"));
+      expect(put).toBeTruthy();
+      const sales = JSON.parse(put!.init!.body as string).sales as {
+        category: string;
+        amount: number;
+        contactId?: string;
+      }[];
+      expect(sales).toContainEqual(
+        expect.objectContaining({ category: "membership", amount: 40, contactId: "c1" }),
+      );
+      expect(sales).toContainEqual(
+        expect.objectContaining({ category: "merchandise", amount: 12 }),
+      );
+    });
+    // And the money PATCH carries the reloaded gross cash, not 0.
+    const patch = calls.find((c) => c.init?.method === "PATCH" && c.url.includes("/door-records/"));
+    expect(JSON.parse(patch!.init!.body as string)).toMatchObject({ grossCash: 344, pcGross: 223 });
+  });
+});

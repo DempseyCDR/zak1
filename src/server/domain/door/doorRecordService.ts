@@ -1,4 +1,4 @@
-import { eq, sql } from "drizzle-orm";
+import { eq, getTableColumns, sql } from "drizzle-orm";
 import type { Db, DbOrTx } from "@/server/db/client";
 import {
   clubSettings,
@@ -310,12 +310,21 @@ async function enrollDoorMemberships(
   return enrolled;
 }
 
+/** A gate sale plus the payer's display name (null for anonymous lines) — for redisplay on the gate form. */
+export type GateSaleView = GateSaleRow & { contactName: string | null };
+
 export async function getDoorRecord(
   db: Db,
   id: string,
-): Promise<{ doorRecord: DoorRecordView; gateSales: GateSaleRow[] }> {
+): Promise<{ doorRecord: DoorRecordView; gateSales: GateSaleView[] }> {
   const row = await db.query.doorRecords.findFirst({ where: eq(doorRecords.id, id) });
   if (!row) throw errors.doorRecordNotFound();
-  const sales = await db.select().from(gateSales).where(eq(gateSales.doorRecordId, id));
+  // D2: join the contact so a NAMED sale (donation/future_event/membership) can be re-shown with its payer's
+  // name when the gate form reloads — the raw row carries only contact_id.
+  const sales = await db
+    .select({ ...getTableColumns(gateSales), contactName: contacts.displayName })
+    .from(gateSales)
+    .leftJoin(contacts, eq(contacts.id, gateSales.contactId))
+    .where(eq(gateSales.doorRecordId, id));
   return { doorRecord: toView(row), gateSales: sales };
 }
