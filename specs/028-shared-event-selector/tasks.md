@@ -30,7 +30,7 @@ sequential on that file. The four surface pages are distinct files (parallelizab
 
 ## Phase 1: Setup
 
-- [ ] T001 No new infra — confirm **no API/schema/migration** (reuse `/api/events` desc + `/api/series`), the jsdom harness (`tests/setup.dom.ts`) is present, and note the two contracts to preserve: check-in's `Event` select aria-label + option format (keeps `checkin.selector.test.tsx` green), and the treasurer route change (`/treasurer/[eventId]` → `/treasurer`).
+- [X] T001 No new infra — confirm **no API/schema/migration** (reuse `/api/events` desc + `/api/series`), the jsdom harness (`tests/setup.dom.ts`) is present, and note the two contracts to preserve: check-in's `Event` select aria-label + option format (keeps `checkin.selector.test.tsx` green), and the treasurer route change (`/treasurer/[eventId]` → `/treasurer`).
 
 ---
 
@@ -42,12 +42,12 @@ sequential on that file. The four surface pages are distinct files (parallelizab
 **Independent Test**: On each surface, opening it pre-selects the most recent event ≤ today, newest-first, with
 readable labels.
 
-- [ ] T002 [P] [US1] Write `tests/component/eventSelector.test.tsx` (jsdom, stubbed `/api/events` + `/api/series`): defaults to the most recent event with `date ≤ today` (else the soonest upcoming) and calls `onSelect` once with it; options are newest-first, each `date · HH:MM · label` (time normalized to `HH:MM`); the event control has `aria-label="Event"`; an empty event list shows an empty state and selects nothing.
-- [ ] T003 [US1] Create `src/app/EventSelector.tsx` (props `{ value, onSelect }`): fetch `/api/events` (already descending) + `/api/series`; extract `toHHMM`/`eventLabel` from the check-in page; render the `Event` `<select>` with those options; compute + report the default once when `value` is empty; empty state. (Filters added in US2.)
-- [ ] T004 [P] [US1] Refactor `src/app/(door)/checkin/page.tsx` to use `<EventSelector value={eventId} onSelect={setEventId} />`, removing the inline `toHHMM`/`eventLabel`/default effect + `<select>`; keep the roster load keyed on `eventId`. `checkin.selector.test.tsx` must stay green unedited.
-- [ ] T005 [P] [US1] Refactor `src/app/(door)/gate/page.tsx` to use `<EventSelector value={eventId} onSelect={openDoorRecord} />` (the D2 handler opens/loads the door record), removing the inline `<select>`.
-- [ ] T006 [P] [US1] Refactor `src/app/(admin)/payments/page.tsx` to use `<EventSelector value={eventId} onSelect={loadEvent} />`, removing the inline `<select>`.
-- [ ] T007 [US1] Treasurer entry point: create `src/app/(admin)/treasurer/page.tsx` hosting `<EventSelector value={eventId} onSelect={setEventId} />` + the report (relocate the report-fetch/render from `[eventId]/page.tsx`, keyed on state); **delete** `src/app/(admin)/treasurer/[eventId]/page.tsx`; change `src/server/auth/nav.ts` `/treasurer/latest` → `/treasurer` (fixes the broken entry, FR-010).
+- [X] T002 [P] [US1] Write `tests/component/eventSelector.test.tsx` (jsdom, stubbed `/api/events` + `/api/series`): defaults to the most recent event with `date ≤ today` (else the soonest upcoming) and calls `onSelect` once with it; options are newest-first, each `date · HH:MM · label` (time normalized to `HH:MM`); the event control has `aria-label="Event"`; an empty event list shows an empty state and selects nothing.
+- [X] T003 [US1] Create `src/app/EventSelector.tsx` (props `{ value, onSelect }`): fetch `/api/events` (already descending) + `/api/series`; extract `toHHMM`/`eventLabel` from the check-in page; render the `Event` `<select>` with those options; compute + report the default once when `value` is empty; empty state. (Filters added in US2.)
+- [X] T004 [P] [US1] Refactor `src/app/(door)/checkin/page.tsx` to use `<EventSelector value={eventId} onSelect={setEventId} />`, removing the inline `toHHMM`/`eventLabel`/default effect + `<select>`; keep the roster load keyed on `eventId`. `checkin.selector.test.tsx` must stay green unedited.
+- [X] T005 [P] [US1] Refactor `src/app/(door)/gate/page.tsx` to use `<EventSelector value={eventId} onSelect={openDoorRecord} />` (the D2 handler opens/loads the door record), removing the inline `<select>`.
+- [X] T006 [P] [US1] Refactor `src/app/(admin)/payments/page.tsx` to use `<EventSelector value={eventId} onSelect={loadEvent} />`, removing the inline `<select>`.
+- [X] T007 [US1] Treasurer entry point: create `src/app/(admin)/treasurer/page.tsx` hosting `<EventSelector value={eventId} onSelect={setEventId} />` + the report (relocate the report-fetch/render from `[eventId]/page.tsx`, keyed on state); **delete** `src/app/(admin)/treasurer/[eventId]/page.tsx`; change `src/server/auth/nav.ts` `/treasurer/latest` → `/treasurer` (fixes the broken entry, FR-010).
 
 **Checkpoint**: all four surfaces land on the right event with one shared control.
 
@@ -60,8 +60,8 @@ readable labels.
 **Independent Test**: With many events, apply a series filter and a date range and confirm the list narrows
 accordingly, newest-first.
 
-- [ ] T008 [US2] Extend `tests/component/eventSelector.test.tsx`: a **series** filter shows only that series' events; a **from/to date range** shows only events in range; both keep newest-first ordering.
-- [ ] T009 [US2] Add to `src/app/EventSelector.tsx` a series `<select>` (from `/api/series`) and **from/to date inputs**, filtering the fetched event list **client-side**; the default is computed within the current (initially empty) filter. Filters reshape the option list only — they do **not** call `onSelect`.
+- [X] T008 [US2] Extend `tests/component/eventSelector.test.tsx`: a **series** filter shows only that series' events; a **from/to date range** shows only events in range; both keep newest-first ordering.
+- [X] T009 [US2] Add to `src/app/EventSelector.tsx` a series `<select>` (from `/api/series`) and **from/to date inputs**, filtering the fetched event list **client-side**; the default is computed within the current (initially empty) filter. Filters reshape the option list only — they do **not** call `onSelect`.
 
 **Checkpoint**: the selector scales — an older or specific-series event is quick to find.
 
@@ -75,7 +75,7 @@ a filter change.
 **Independent Test**: Adjust a filter without picking → the selected event does not change and no side effect
 fires; pick an event → it commits once.
 
-- [ ] T010 [US3] Extend `tests/component/eventSelector.test.tsx`: adjusting the series/date filter does **not** call `onSelect`; only choosing an option in the `Event` `<select>` calls `onSelect` (exactly once). (Confirms the US2 wiring keeps filters separate from the committing control.)
+- [X] T010 [US3] Extend `tests/component/eventSelector.test.tsx`: adjusting the series/date filter does **not** call `onSelect`; only choosing an option in the `Event` `<select>` calls `onSelect` (exactly once). (Confirms the US2 wiring keeps filters separate from the committing control.)
 
 **Checkpoint**: filtering never thrashes a surface's side effects (e.g. opening door records).
 
@@ -89,9 +89,9 @@ on selection.
 **Independent Test**: Exercise the selector on each surface; confirm identical behavior and that each side
 effect fires on the confirmed pick.
 
-- [ ] T011 [P] [US4] Write `tests/component/gate.eventSelector.test.tsx` (jsdom): selecting an event on the gate opens/loads that event's door record (the gate's own behavior), driven by the shared selector.
-- [ ] T012 [P] [US4] Write `tests/component/treasurer.page.test.tsx` (jsdom): `/treasurer` renders the selector + the report for the default event, and switching the selected event reloads the report. (Check-in stays covered by the preserved `checkin.selector.test.tsx`.)
-- [ ] T013 [P] [US4] Write `tests/component/payments.eventSelector.test.tsx` (jsdom): selecting an event on the payments page calls its `loadEvent` handler (loads that event's bookings/payments), driven by the shared selector — the payments analog of the gate/treasurer side-effect tests (analyze G1). (Or fold this assertion into the existing `payments.allocation.test.tsx`.)
+- [X] T011 [P] [US4] Write `tests/component/gate.eventSelector.test.tsx` (jsdom): selecting an event on the gate opens/loads that event's door record (the gate's own behavior), driven by the shared selector.
+- [X] T012 [P] [US4] Write `tests/component/treasurer.page.test.tsx` (jsdom): `/treasurer` renders the selector + the report for the default event, and switching the selected event reloads the report. (Check-in stays covered by the preserved `checkin.selector.test.tsx`.)
+- [X] T013 [P] [US4] Write `tests/component/payments.eventSelector.test.tsx` (jsdom): selecting an event on the payments page calls its `loadEvent` handler (loads that event's bookings/payments), driven by the shared selector — the payments analog of the gate/treasurer side-effect tests (analyze G1). (Or fold this assertion into the existing `payments.allocation.test.tsx`.)
 
 **Checkpoint**: consistency across surfaces; side effects intact.
 
@@ -99,8 +99,8 @@ effect fires on the confirmed pick.
 
 ## Phase 6: Polish + cross-cutting
 
-- [ ] T014 Full gate (solo-maintainer mode): `pnpm exec tsc --noEmit`; `pnpm exec eslint <changed>`; `pnpm exec prettier --check <changed>`; `pnpm test` (incl. the generated `auth.routeInventory.test.ts`, which picks up the treasurer route change); `pnpm build`. All green.
-- [ ] T015 [P] Update `zak1_Phase5_Requirements.md`: mark **P5-R1 SHIPPED as feature 028** (shared filterable event selector on check-in/gate/payments/treasurer; in-page state, no deep links; treasurer now `/treasurer`); note B39 (reusable picker) is realized.
+- [X] T014 Full gate (solo-maintainer mode): `pnpm exec tsc --noEmit`; `pnpm exec eslint <changed>`; `pnpm exec prettier --check <changed>`; `pnpm test` (incl. the generated `auth.routeInventory.test.ts`, which picks up the treasurer route change); `pnpm build`. All green.
+- [X] T015 [P] Update `zak1_Phase5_Requirements.md`: mark **P5-R1 SHIPPED as feature 028** (shared filterable event selector on check-in/gate/payments/treasurer; in-page state, no deep links; treasurer now `/treasurer`); note B39 (reusable picker) is realized.
 
 ---
 

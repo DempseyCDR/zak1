@@ -1,9 +1,9 @@
 "use client";
 import { apiFetch } from "@/app/apiFetch";
+import { EventSelector } from "@/app/EventSelector";
 
 import { useEffect, useState } from "react";
 
-type EventRow = { id: string; eventDate: string };
 type Candidate = { id: string; displayName: string };
 type BookingLite = { id: string; performerName: string; performerType: string; status: string };
 
@@ -25,7 +25,6 @@ type NamedLine = {
 };
 
 export default function GatePage() {
-  const [events, setEvents] = useState<EventRow[]>([]);
   const [eventId, setEventId] = useState("");
   const [doorRecordId, setDoorRecordId] = useState("");
   const [anon, setAnon] = useState<AnonAmounts>(emptyAnon);
@@ -56,12 +55,6 @@ export default function GatePage() {
   const [subQ, setSubQ] = useState("");
   const [subHits, setSubHits] = useState<Candidate[]>([]);
   const [subMsg, setSubMsg] = useState<string | null>(null);
-
-  useEffect(() => {
-    void apiFetch("/api/events")
-      .then((r) => r.json())
-      .then((d) => setEvents(d.items ?? []));
-  }, []);
 
   useEffect(() => {
     if (!search.trim()) return setCandidates([]);
@@ -256,17 +249,7 @@ export default function GatePage() {
   return (
     <main style={{ padding: 24, maxWidth: 680 }}>
       <h1>Gate money</h1>
-      <label>
-        Event:{" "}
-        <select value={eventId} onChange={(e) => void openDoorRecord(e.target.value)}>
-          <option value="">— select —</option>
-          {events.map((e) => (
-            <option key={e.id} value={e.id}>
-              {e.eventDate}
-            </option>
-          ))}
-        </select>
-      </label>
+      <EventSelector value={eventId} onSelect={(e) => void openDoorRecord(e.id)} />
       {doorRecordId && (
         <p style={{ color: "#666" }}>Door record open ({doorRecordId.slice(0, 8)}…)</p>
       )}

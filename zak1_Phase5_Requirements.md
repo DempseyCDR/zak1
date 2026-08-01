@@ -15,6 +15,17 @@ Phase 5 continues the "make the real day-to-day surfaces pleasant and consistent
 
 ### P5-R1 — Smart event selector on the Gate, Payments, and Treasurer pages
 
+> **Status: SHIPPED as feature `028`** (2026-08-01). One shared `EventSelector` component
+> (`src/app/EventSelector.tsx`) now backs all **four** single-event surfaces — check-in, gate, payments,
+> treasurer: default most-recent-≤-today (else soonest upcoming), newest-first, `date · HH:MM · label`
+> options, plus **series + date-range filters** (narrow the list only; never auto-commit). Selection is
+> **in-page state — no deep links / per-event URLs** (clarified YAGNI), so the **treasurer report moved from
+> `/treasurer/[eventId]` to a single `/treasurer` page** and the broken `/treasurer/latest` nav link is fixed
+> (FR-010). Each surface keeps its own follow-on side effect in `onSelect` (gate opens the door record,
+> payments loads bookings/payments, treasurer reloads the report); check-in's 025 contract is preserved so its
+> test stays green unedited. **No API/schema/migration.** This realizes backlog **B39** (general reusable
+> picker).
+
 **What:** The **Gate page** (`/gate`, FS door money), the **Payments page** (`/payments`, FS performer checks
 — see P5-R3), and the **Treasurer report** (`/treasurer/[eventId]`) should each get the same smart event
 selector that the **check-in** page got in feature 025 (US2): it already shows the event the user almost

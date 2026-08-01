@@ -1,15 +1,9 @@
 "use client";
 import { apiFetch } from "@/app/apiFetch";
+import { EventSelector } from "@/app/EventSelector";
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
-type EventRow = {
-  id: string;
-  eventDate: string;
-  seriesId: string;
-  startTime: string | null;
-  label: string | null;
-};
 type SeriesRow = { id: string; key: string; name: string };
 type Candidate = { id: string; displayName: string; membershipStatus: string; emails: string[] };
 type Attendee = {
@@ -30,21 +24,20 @@ type Sibling = {
   label: string | null;
 };
 
-/** The DB `time` column round-trips as HH:MM:SS; the selector shows HH:MM (feature 020 normalization). */
-function toHHMM(t: string | null | undefined): string {
+/** The DB `time` column round-trips as HH:MM:SS; show HH:MM (feature 020 normalization). Used by the
+ * correction modal's sibling-event dropdown; the event selector has its own copy. */
+function toHHMM(t: string | null): string {
   if (!t) return "";
   const m = /^(\d{2}):(\d{2})/.exec(t);
   return m ? `${m[1]}:${m[2]}` : t;
 }
 
-function eventLabel(e: EventRow): string {
-  return [e.eventDate, toHHMM(e.startTime), e.label].filter(Boolean).join(" · ");
-}
-
 export default function CheckinPage() {
-  const [events, setEvents] = useState<EventRow[]>([]);
   const [series, setSeries] = useState<SeriesRow[]>([]);
   const [eventId, setEventId] = useState<string>("");
+  // Feature 028: the shared selector owns the event list; we keep the selected event's series to know whether
+  // it is a community dance (open-band is community-dance only).
+  const [selectedSeriesId, setSelectedSeriesId] = useState<string | null>(null);
   const [q, setQ] = useState("");
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [message, setMessage] = useState<string | null>(null);
@@ -69,27 +62,14 @@ export default function CheckinPage() {
   const [rosterSort, setRosterSort] = useState<RosterSort>("last");
   const [editing, setEditing] = useState<Attendee | null>(null);
 
-  const selectedEvent = events.find((e) => e.id === eventId);
   const communityDanceSeriesId = series.find((s) => s.key === "community_dance")?.id ?? null;
-  const isCommunityDance = !!selectedEvent && selectedEvent.seriesId === communityDanceSeriesId;
+  const isCommunityDance = !!selectedSeriesId && selectedSeriesId === communityDanceSeriesId;
 
   useEffect(() => {
-    void apiFetch("/api/events")
-      .then((r) => r.json())
-      .then((d) => setEvents(d.items ?? []));
     void apiFetch("/api/series")
       .then((r) => r.json())
       .then((d) => setSeries(d.items ?? []));
   }, []);
-
-  // Feature 025 US2 (FR-011): default to the most recent event on or before today (events arrive descending
-  // by date; the first one ≤ today is the most-recent past/today). Fall back to the soonest upcoming.
-  useEffect(() => {
-    if (!events.length || eventId) return;
-    const today = new Date().toISOString().slice(0, 10);
-    const def = events.find((e) => e.eventDate <= today) ?? events[events.length - 1];
-    if (def) setEventId(def.id);
-  }, [events, eventId]);
 
   const loadRoster = useCallback(async (id: string, sort: RosterSort) => {
     if (!id) return setRoster([]);
@@ -184,17 +164,13 @@ export default function CheckinPage() {
   return (
     <main style={{ padding: 24, maxWidth: 720 }}>
       <h1>Door check-in</h1>
-      <label>
-        Event:{" "}
-        <select aria-label="Event" value={eventId} onChange={(e) => setEventId(e.target.value)}>
-          <option value="">— select —</option>
-          {events.map((e) => (
-            <option key={e.id} value={e.id}>
-              {eventLabel(e)}
-            </option>
-          ))}
-        </select>
-      </label>
+      <EventSelector
+        value={eventId}
+        onSelect={(e) => {
+          setEventId(e.id);
+          setSelectedSeriesId(e.seriesId);
+        }}
+      />
 
       {message && <p>{message}</p>}
 

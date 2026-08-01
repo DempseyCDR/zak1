@@ -43,7 +43,7 @@ describe("US5: role-aware navigation", () => {
     expect(nav).toContain("/checkin");
     expect(nav).toContain("/organizer/tnc"); // oversight is the base
     expect(nav).not.toContain("/gate");
-    expect(nav).not.toContain("/treasurer/latest");
+    expect(nav).not.toContain("/treasurer");
     expect(nav).not.toContain("/access");
   });
 
@@ -55,7 +55,7 @@ describe("US5: role-aware navigation", () => {
     const nav = hrefs(navItemsFor(await actorFromToken(token)));
 
     expect(nav).toContain("/gate");
-    expect(nav).toContain("/treasurer/latest");
+    expect(nav).toContain("/treasurer");
   });
 
   it("a President sees access control; a base-only volunteer does not", async () => {

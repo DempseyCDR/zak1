@@ -30,7 +30,7 @@ const NAV: { href: string; label: string; capability: Capability | null }[] = [
   { href: "/venues", label: "Venues", capability: "venue.write" },
   { href: "/rate-parameters", label: "Rate parameters", capability: "parameter.write" },
   { href: "/expense-parameters", label: "Expense parameters", capability: "parameter.write" },
-  { href: "/treasurer/latest", label: "Treasurer report", capability: "treasurer_report.write" },
+  { href: "/treasurer", label: "Treasurer report", capability: "treasurer_report.write" },
   { href: "/qbo-mapping", label: "QBO mapping", capability: "treasurer_report.write" },
   { href: "/exports", label: "Mailing-list exports", capability: "export.read" },
   { href: "/dedup", label: "Duplicate review", capability: "dedup.write" },

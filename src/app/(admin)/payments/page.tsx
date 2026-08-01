@@ -1,9 +1,9 @@
 "use client";
 import { apiFetch } from "@/app/apiFetch";
+import { EventSelector } from "@/app/EventSelector";
 
 import { useCallback, useEffect, useState } from "react";
 
-type EventRow = { id: string; eventDate: string };
 type Performer = { id: string; displayName: string };
 type Booking = { id: string; performerName: string; performerType: string; payCents: number };
 type PaymentLine = { bookingId: string; amount: number };
@@ -28,7 +28,6 @@ type ContactHit = { id: string; displayName: string };
  * persists for the treasurer), never deleted, when it was wrong or the performer no-showed.
  */
 export default function PaymentsPage() {
-  const [events, setEvents] = useState<EventRow[]>([]);
   const [performers, setPerformers] = useState<Performer[]>([]);
   const [eventId, setEventId] = useState("");
   const [bookings, setBookings] = useState<Booking[]>([]);
@@ -55,10 +54,6 @@ export default function PaymentsPage() {
   }, []);
 
   useEffect(() => {
-    void apiFetch("/api/events")
-      .then((r) => r.json())
-      .then((d) => setEvents(Array.isArray(d.items) ? d.items : []))
-      .catch(() => setError("Could not load events"));
     void apiFetch("/api/performers")
       .then((r) => r.json())
       .then((d) => setPerformers(Array.isArray(d.items) ? d.items : []))
@@ -170,17 +165,7 @@ export default function PaymentsPage() {
       <h1>Performer payments</h1>
       {error && <p role="alert">{error}</p>}
 
-      <label>
-        Event{" "}
-        <select value={eventId} onChange={(e) => void loadEvent(e.target.value)}>
-          <option value="">— select an event —</option>
-          {events.map((ev) => (
-            <option key={ev.id} value={ev.id}>
-              {ev.eventDate}
-            </option>
-          ))}
-        </select>
-      </label>
+      <EventSelector value={eventId} onSelect={(e) => void loadEvent(e.id)} />
 
       {eventId && (
         <>

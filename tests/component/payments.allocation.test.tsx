@@ -62,11 +62,14 @@ describe("PaymentsPage — per-line allocation + void (023)", () => {
 
   it("records a check with a per-line amount, and voids an existing check", async () => {
     render(<PaymentsPage />);
-    await userEvent.selectOptions(await screen.findByRole("combobox"), "ev1");
+    // Feature 028: the shared EventSelector drives loadEvent — selecting the event loads its
+    // bookings/payments (the payments-surface side effect, T013).
+    await userEvent.selectOptions(await screen.findByRole("combobox", { name: /^event$/i }), "ev1");
     await screen.findByText(/booked \$125\.00/);
+    expect(calls.some((c) => c.url.includes("/events/ev1/bookings"))).toBe(true);
 
     // Pick the payee, put the booking on the check (seeds its amount), record.
-    const payeeSelect = screen.getAllByRole("combobox")[1]!;
+    const payeeSelect = screen.getByRole("combobox", { name: /payee/i });
     await userEvent.selectOptions(payeeSelect, "perf1");
     await userEvent.click(screen.getByRole("checkbox"));
     await userEvent.click(screen.getByRole("button", { name: "Record check" }));
