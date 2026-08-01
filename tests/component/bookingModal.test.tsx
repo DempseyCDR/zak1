@@ -97,12 +97,14 @@ describe("BookingModal", () => {
     );
     const post = calls.find((c) => c.init?.method === "POST" && c.url === "/api/performers")!;
     const body = JSON.parse(post.init!.body as string);
+    // Feature 026: structured names (seeded by splitting the typed query), not a single displayName.
     expect(body).toMatchObject({
-      displayName: "Micah Wiesner",
-      performerType: "musician",
+      firstName: "Micah",
+      lastName: "Wiesner",
       email: "micah@ex.com",
       emailPurpose: "booking",
     });
+    expect(body.displayName).toBeUndefined();
     expect(body.contactId).toBeUndefined(); // brand-new: no contact linked
     // The new performer is selected for the booking.
     expect(screen.getByText(/Selected: Micah Wiesner/)).toBeInTheDocument();

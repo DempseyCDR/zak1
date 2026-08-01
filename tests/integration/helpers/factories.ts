@@ -25,7 +25,13 @@ export async function makeEvent(opts?: {
 }
 
 export async function makePerformer(displayName = "Test Performer"): Promise<PerformerRow> {
-  return createPerformer(db, { displayName });
+  // Feature 026: the create contract is structured (first/last). Split the convenience string on the last
+  // space so existing tests keep their names AND now produce structured contacts (test-only heuristic).
+  const trimmed = displayName.trim();
+  const i = trimmed.lastIndexOf(" ");
+  const firstName = i === -1 ? trimmed : trimmed.slice(0, i);
+  const lastName = i === -1 ? undefined : trimmed.slice(i + 1);
+  return createPerformer(db, { firstName, ...(lastName ? { lastName } : {}) });
 }
 
 /**

@@ -28,7 +28,7 @@ contacts (R5-P2); the public join form; phones (R5-R6); dedup display (R5-R7).
 
 ## Phase 1: Setup
 
-- [ ] T001 No new infra — confirm **no migration** (the `contacts` first/last/override/display/normalized columns already exist) and that the jsdom component-test harness (`tests/setup.dom.ts`, feature 020) is present. Note the input-contract change ripples to `makePerformer` (handled in T005).
+- [X] T001 No new infra — confirm **no migration** (the `contacts` first/last/override/display/normalized columns already exist) and that the jsdom component-test harness (`tests/setup.dom.ts`, feature 020) is present. Note the input-contract change ripples to `makePerformer` (handled in T005).
 
 ---
 
@@ -41,10 +41,10 @@ door/directory contact.
 **Independent Test**: Create a brand-new performer with first + last; the created contact has first in
 first-name and last in last-name (not the full name jammed into first-name) and a correct display name.
 
-- [ ] T002 [P] [US1] Write `tests/integration/performer.nameCapture.test.ts`: `createPerformer` with `{ firstName: "Chuck", lastName: "Abell" }` → contact `first_name="Chuck"`, `last_name="Abell"`, `display_name="Chuck Abell"`, and the performer's `display_name="Chuck Abell"`; **mononym** `{ firstName: "Fiddlehead" }` → `last_name` null, sensible display, not blocked; **display override** `{ firstName:"Charles", lastName:"Abell", displayNameOverride:"Chuck Abell" }` → `display_name="Chuck Abell"` but `dedup_normalized` derives from "Charles Abell"; **link path** `{ contactId }` (existing contact) → no new contact created and the performer's `display_name` equals that contact's; **validation** neither `contactId` nor `firstName` → rejected; and **no existing contact is modified** by creating a performer — the pre-existing contact's stored names are unchanged (FR-007 guard — analyze V1).
-- [ ] T003 [US1] Change `performerCreateSchema` in `src/server/validation/performers.ts`: replace the single required `displayName` with `firstName` (string) + `lastName?` + `displayNameOverride?`; keep `contactId?`/`email?`/`emailPurpose?`/`phone?`/`bio?`/`photoUrl?`; add a refinement — `contactId` present (link) **XOR** `firstName` present (create). Export the updated `PerformerCreateInput`.
-- [ ] T004 [US1] Update `createPerformer` in `src/server/domain/performers/performerService.ts`: on the create path build the contact via `deriveContactNames({ firstName, lastName, displayNameOverride })` and store `first_name`/`last_name`/`display_name_override` + derived `display_name`/`name_normalized`/`dedup_normalized`; set `performers.display_name` = the derived display name; on the **link** path (`contactId`) fetch the contact and set `performers.display_name` from it (no contact created). Keep the email/phone seeding + `needs_review` behavior.
-- [ ] T005 [US1] Adapt callers to the new contract (keeps the suite green): in `tests/integration/helpers/factories.ts`, `makePerformer(displayName)` splits its string on the last space into `{ firstName, lastName }` before calling `createPerformer` (single-word → firstName only); and update the direct `createPerformer({ displayName })` call(s) in `tests/integration/performers.contact.test.ts` to structured input.
+- [X] T002 [P] [US1] Write `tests/integration/performer.nameCapture.test.ts`: `createPerformer` with `{ firstName: "Chuck", lastName: "Abell" }` → contact `first_name="Chuck"`, `last_name="Abell"`, `display_name="Chuck Abell"`, and the performer's `display_name="Chuck Abell"`; **mononym** `{ firstName: "Fiddlehead" }` → `last_name` null, sensible display, not blocked; **display override** `{ firstName:"Charles", lastName:"Abell", displayNameOverride:"Chuck Abell" }` → `display_name="Chuck Abell"` but `dedup_normalized` derives from "Charles Abell"; **link path** `{ contactId }` (existing contact) → no new contact created and the performer's `display_name` equals that contact's; **validation** neither `contactId` nor `firstName` → rejected; and **no existing contact is modified** by creating a performer — the pre-existing contact's stored names are unchanged (FR-007 guard — analyze V1).
+- [X] T003 [US1] Change `performerCreateSchema` in `src/server/validation/performers.ts`: replace the single required `displayName` with `firstName` (string) + `lastName?` + `displayNameOverride?`; keep `contactId?`/`email?`/`emailPurpose?`/`phone?`/`bio?`/`photoUrl?`; add a refinement — `contactId` present (link) **XOR** `firstName` present (create). Export the updated `PerformerCreateInput`.
+- [X] T004 [US1] Update `createPerformer` in `src/server/domain/performers/performerService.ts`: on the create path build the contact via `deriveContactNames({ firstName, lastName, displayNameOverride })` and store `first_name`/`last_name`/`display_name_override` + derived `display_name`/`name_normalized`/`dedup_normalized`; set `performers.display_name` = the derived display name; on the **link** path (`contactId`) fetch the contact and set `performers.display_name` from it (no contact created). Keep the email/phone seeding + `needs_review` behavior.
+- [X] T005 [US1] Adapt callers to the new contract (keeps the suite green): in `tests/integration/helpers/factories.ts`, `makePerformer(displayName)` splits its string on the last space into `{ firstName, lastName }` before calling `createPerformer` (single-word → firstName only); and update the direct `createPerformer({ displayName })` call(s) in `tests/integration/performers.contact.test.ts` to structured input.
 
 **Checkpoint**: performer-created contacts are structured; the whole suite compiles and passes on the new contract.
 
@@ -58,10 +58,10 @@ link-existing-contact path captures no name.
 **Independent Test**: Create a new performer from the performers page and from the booking add-performer step;
 both post structured names; linking an existing contact posts only `contactId`.
 
-- [ ] T006 [P] [US2] Write `tests/component/performersPage.nameCapture.test.tsx` (jsdom, stubbed fetch): the performers-page create form shows first / last / display fields and POSTs `{ firstName, lastName, … }` to `/api/performers` (no single `displayName`).
-- [ ] T007 [P] [US2] Write `tests/component/bookingModal.addPerformer.test.tsx` (jsdom, stubbed fetch): the add-performer **create-brand-new** step captures first/last and POSTs structured input; the **link existing contact** action POSTs only `{ contactId }` (no `displayName`).
-- [ ] T008 [P] [US2] Update the create form in `src/app/(admin)/performers/page.tsx` to capture first / last / optional display and POST the structured input.
-- [ ] T009 [P] [US2] Update `src/app/(admin)/_modals/BookingModal.tsx`: the "create brand-new performer" step captures first/last/display and POSTs structured input (replacing the single `displayName: q`); the add-existing-contact (`addPerformer`) POSTs only `{ contactId }` (+ the existing optionals), dropping the now-unused `displayName`.
+- [X] T006 [P] [US2] Write `tests/component/performersPage.nameCapture.test.tsx` (jsdom, stubbed fetch): the performers-page create form shows first / last / display fields and POSTs `{ firstName, lastName, … }` to `/api/performers` (no single `displayName`).
+- [X] T007 [P] [US2] Write `tests/component/bookingModal.addPerformer.test.tsx` (jsdom, stubbed fetch): the add-performer **create-brand-new** step captures first/last and POSTs structured input; the **link existing contact** action POSTs only `{ contactId }` (no `displayName`).
+- [X] T008 [P] [US2] Update the create form in `src/app/(admin)/performers/page.tsx` to capture first / last / optional display and POST the structured input.
+- [X] T009 [P] [US2] Update `src/app/(admin)/_modals/BookingModal.tsx`: the "create brand-new performer" step captures first/last/display and POSTs structured input (replacing the single `displayName: q`); the add-existing-contact (`addPerformer`) POSTs only `{ contactId }` (+ the existing optionals), dropping the now-unused `displayName`.
 
 **Checkpoint**: data quality no longer depends on which create surface was used.
 
@@ -69,8 +69,8 @@ both post structured names; linking an existing contact posts only `contactId`.
 
 ## Phase 4: Polish + cross-cutting
 
-- [ ] T010 Full gate (solo-maintainer mode): `pnpm exec tsc --noEmit`; `pnpm exec eslint <changed>`; `pnpm exec prettier --check <changed>`; `pnpm test` (the `makePerformer` factory now feeds structured names, so the whole suite exercises the corrected path); `pnpm build`. All green.
-- [ ] T011 [P] Update `zak1_Phase5_Requirements.md`: mark **R5-P1 (structured name capture) SHIPPED as feature 026**; note R5-P2 (backfill of existing mis-split contacts) still pending.
+- [X] T010 Full gate (solo-maintainer mode): `pnpm exec tsc --noEmit`; `pnpm exec eslint <changed>`; `pnpm exec prettier --check <changed>`; `pnpm test` (the `makePerformer` factory now feeds structured names, so the whole suite exercises the corrected path); `pnpm build`. All green.
+- [X] T011 [P] Update `zak1_Phase5_Requirements.md`: mark **R5-P1 (structured name capture) SHIPPED as feature 026**; note R5-P2 (backfill of existing mis-split contacts) still pending.
 
 ---
 

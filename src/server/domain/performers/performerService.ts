@@ -18,12 +18,24 @@ import type { PerformerCreateInput, PerformerPatchInput } from "@/server/validat
 export async function createPerformer(db: Db, input: PerformerCreateInput): Promise<PerformerRow> {
   return db.transaction(async (tx) => {
     let contactId = input.contactId ?? null;
+    let performerDisplayName: string;
     if (!contactId) {
-      const names = deriveContactNames({ firstName: input.displayName });
+      // Feature 026: build the new contact from STRUCTURED names (first/last/override) — the same
+      // deriveContactNames the directory/check-in use — instead of stuffing a single name into first_name.
+      const firstName = input.firstName;
+      if (!firstName)
+        throw errors.validation("A first name is required to create a performer's contact.");
+      const names = deriveContactNames({
+        firstName,
+        lastName: input.lastName ?? null,
+        displayNameOverride: input.displayNameOverride ?? null,
+      });
       const [contact] = await tx
         .insert(contacts)
         .values({
-          firstName: input.displayName,
+          firstName,
+          lastName: input.lastName ?? null,
+          displayNameOverride: input.displayNameOverride ?? null,
           displayName: names.displayName,
           nameNormalized: names.nameNormalized,
           dedupNormalized: names.dedupNormalized,
@@ -34,6 +46,7 @@ export async function createPerformer(db: Db, input: PerformerCreateInput): Prom
         .returning();
       if (!contact) throw new Error("contact insert failed");
       contactId = contact.id;
+      performerDisplayName = names.displayName;
 
       if (input.email) {
         await addEmailInTx(tx, contact, {
@@ -44,11 +57,16 @@ export async function createPerformer(db: Db, input: PerformerCreateInput): Prom
           isLogin: false,
         });
       }
+    } else {
+      // Link path: the performer's display name comes from the linked contact (never free-typed).
+      const existing = await tx.query.contacts.findFirst({ where: eq(contacts.id, contactId) });
+      if (!existing) throw errors.contactNotFound();
+      performerDisplayName = existing.displayName;
     }
     const [row] = await tx
       .insert(performers)
       .values({
-        displayName: input.displayName,
+        displayName: performerDisplayName,
         contactId,
         bio: input.bio ?? null,
         photoUrl: input.photoUrl ?? null,

@@ -218,6 +218,10 @@ section**, since it describes the mix ("3 CDs, 2 shirts").
 
 ### P5-R5 — Consistent structured name capture on every contact-creation route
 
+> **Status:** **R5-P1 (the capture fix) SHIPPED as feature `026`** (performer creation now captures structured
+> first/last/display, reusing `deriveContactNames`; no migration). **R5-P2 (backfill of existing mis-split
+> contacts) still pending.**
+
 **What:** Every path that creates a contact MUST capture **first name, last name, and display name
 separately** — the structured shape feature 012 introduced. Today some routes capture only a single "name" and
 stuff it into `contacts.first_name` with no split, while others already capture first/last.

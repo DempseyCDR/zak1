@@ -59,6 +59,9 @@ export function BookingModal({ mode, eventId, eventDate, role, booking, onClose,
   const [addingContactQ, setAddingContactQ] = useState<string | null>(null);
   const [contactHits, setContactHits] = useState<{ id: string; displayName: string }[]>([]);
   const [newEmail, setNewEmail] = useState(""); // optional email for a brand-new performer's contact
+  // Feature 026: structured names for a brand-new performer (seeded by splitting the typed query).
+  const [newFirst, setNewFirst] = useState("");
+  const [newLast, setNewLast] = useState("");
 
   // mailto (edit/readonly): PII, fetched from a contact.pii.read endpoint
   const [mailto, setMailto] = useState<string | null>(null);
@@ -92,38 +95,49 @@ export function BookingModal({ mode, eventId, eventDate, role, booking, onClose,
     setContactHits((await res.json()).items ?? []);
   }
 
-  // Add-performer hand-off (FR-013): create a performer bound to an EXISTING contact, then select it.
-  async function addPerformer(contactId: string, displayName: string) {
+  /** Split a typed name into first/last on the last space (a convenience seed; the fields stay editable). */
+  function seedNames(name: string) {
+    const trimmed = name.trim();
+    const i = trimmed.lastIndexOf(" ");
+    setNewFirst(i === -1 ? trimmed : trimmed.slice(0, i));
+    setNewLast(i === -1 ? "" : trimmed.slice(i + 1));
+  }
+
+  // Add-performer hand-off (FR-013): link an EXISTING contact to a new performer, then select it. Feature 026:
+  // no name is captured — the performer's display comes from the linked contact.
+  async function addPerformer(contactId: string) {
     const res = await apiFetch("/api/performers", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ displayName, contactId, ...(role ? { performerType: role } : {}) }),
+      body: JSON.stringify({ contactId }),
     });
     if (!res.ok) return setError("Could not add performer");
     const created = await res.json();
-    pick(created.id, created.displayName ?? displayName);
+    pick(created.id, created.displayName);
     setAddingContactQ(null);
   }
 
-  // Feature 020: the person isn't a contact yet → create a brand-new contact + performer inline. An
-  // optional email is labeled 'booking' (the purpose the performer mailto prefers). Named from the
-  // original performer query `q`. createPerformer creates the contact when no contactId is given.
+  // Feature 020 + 026: the person isn't a contact yet → create a brand-new contact + performer inline, with
+  // STRUCTURED first/last (+ optional email labeled 'booking'). Names are seeded from the typed query but the
+  // FS can correct the split before creating.
   async function createNewPerformer() {
-    const displayName = q.trim();
-    if (!displayName) return;
+    const firstName = newFirst.trim();
+    if (!firstName) return setError("A first name is required");
     const res = await apiFetch("/api/performers", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        displayName,
-        ...(role ? { performerType: role } : {}),
+        firstName,
+        ...(newLast.trim() ? { lastName: newLast.trim() } : {}),
         ...(newEmail.trim() ? { email: newEmail.trim(), emailPurpose: "booking" } : {}),
       }),
     });
     if (!res.ok) return setError("Could not create performer");
     const created = await res.json();
-    pick(created.id, created.displayName ?? displayName);
+    pick(created.id, created.displayName);
     setAddingContactQ(null);
+    setNewFirst("");
+    setNewLast("");
     setNewEmail("");
   }
 
@@ -220,7 +234,13 @@ export function BookingModal({ mode, eventId, eventDate, role, booking, onClose,
           </ul>
           {q.trim() && hits.length === 0 && (
             <div>
-              <button type="button" onClick={() => void searchContacts(q)}>
+              <button
+                type="button"
+                onClick={() => {
+                  seedNames(q);
+                  void searchContacts(q);
+                }}
+              >
                 Add performer “{q}”
               </button>
               {addingContactQ !== null && (
@@ -233,10 +253,7 @@ export function BookingModal({ mode, eventId, eventDate, role, booking, onClose,
                   <ul>
                     {contactHits.map((c) => (
                       <li key={c.id}>
-                        <button
-                          type="button"
-                          onClick={() => void addPerformer(c.id, c.displayName)}
-                        >
+                        <button type="button" onClick={() => void addPerformer(c.id)}>
                           Link {c.displayName}
                         </button>
                       </li>
@@ -245,8 +262,20 @@ export function BookingModal({ mode, eventId, eventDate, role, booking, onClose,
                   {addingContactQ.trim().length >= 2 && contactHits.length === 0 && (
                     <div style={{ marginTop: 6 }}>
                       <p style={{ margin: "4px 0", color: "#555" }}>
-                        No contact found — create “{q}” as a new performer and contact:
+                        No contact found — create a new performer and contact:
                       </p>
+                      <input
+                        aria-label="New performer first name"
+                        placeholder="First name"
+                        value={newFirst}
+                        onChange={(e) => setNewFirst(e.target.value)}
+                      />{" "}
+                      <input
+                        aria-label="New performer last name"
+                        placeholder="Last name (optional)"
+                        value={newLast}
+                        onChange={(e) => setNewLast(e.target.value)}
+                      />{" "}
                       <input
                         aria-label="New performer email"
                         type="email"
@@ -254,8 +283,12 @@ export function BookingModal({ mode, eventId, eventDate, role, booking, onClose,
                         value={newEmail}
                         onChange={(e) => setNewEmail(e.target.value)}
                       />{" "}
-                      <button type="button" onClick={() => void createNewPerformer()}>
-                        Create performer “{q}”
+                      <button
+                        type="button"
+                        disabled={!newFirst.trim()}
+                        onClick={() => void createNewPerformer()}
+                      >
+                        Create performer
                       </button>
                     </div>
                   )}

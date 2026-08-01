@@ -7,7 +7,10 @@ type Performer = { id: string; displayName: string; bio: string | null };
 
 export default function PerformersPage() {
   const [items, setItems] = useState<Performer[]>([]);
-  const [displayName, setDisplayName] = useState("");
+  // Feature 026: capture structured names (first/last/optional display) like the directory/check-in flows.
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [displayNameOverride, setDisplayNameOverride] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [bio, setBio] = useState("");
@@ -33,7 +36,9 @@ export default function PerformersPage() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        displayName,
+        firstName: firstName.trim(),
+        ...(lastName.trim() ? { lastName: lastName.trim() } : {}),
+        ...(displayNameOverride.trim() ? { displayNameOverride: displayNameOverride.trim() } : {}),
         ...(bio ? { bio } : {}),
         ...(email.trim() ? { email: email.trim() } : {}),
         ...(phone.trim() ? { phone: phone.trim() } : {}),
@@ -46,7 +51,9 @@ export default function PerformersPage() {
     if (!hasContactInfo) {
       setWarning("Performer created with no email or phone on file — flagged for follow-up.");
     }
-    setDisplayName("");
+    setFirstName("");
+    setLastName("");
+    setDisplayNameOverride("");
     setEmail("");
     setPhone("");
     setBio("");
@@ -65,9 +72,22 @@ export default function PerformersPage() {
       <h2>Add performer</h2>
       <form onSubmit={create} style={{ display: "grid", gap: 6, maxWidth: 420 }}>
         <input
-          placeholder="Name"
-          value={displayName}
-          onChange={(e) => setDisplayName(e.target.value)}
+          placeholder="First name"
+          aria-label="First name"
+          value={firstName}
+          onChange={(e) => setFirstName(e.target.value)}
+        />
+        <input
+          placeholder="Last name (optional)"
+          aria-label="Last name"
+          value={lastName}
+          onChange={(e) => setLastName(e.target.value)}
+        />
+        <input
+          placeholder="Display name (optional — a stage name)"
+          aria-label="Display name"
+          value={displayNameOverride}
+          onChange={(e) => setDisplayNameOverride(e.target.value)}
         />
         <input
           placeholder="Email (optional)"
@@ -84,7 +104,9 @@ export default function PerformersPage() {
           value={bio}
           onChange={(e) => setBio(e.target.value)}
         />
-        <button type="submit">Create</button>
+        <button type="submit" disabled={!firstName.trim()}>
+          Create
+        </button>
         {error && <p style={{ color: "crimson" }}>{error}</p>}
         {warning && <p style={{ color: "#a15c00" }}>{warning}</p>}
       </form>

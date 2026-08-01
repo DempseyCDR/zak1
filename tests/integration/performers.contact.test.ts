@@ -12,7 +12,7 @@ describe("performer → contact", () => {
   afterAll(closeDb);
 
   it("auto-creates a contact when none is linked", async () => {
-    const p = await createPerformer(db, { displayName: "Fiona Fiddle" });
+    const p = await createPerformer(db, { firstName: "Fiona", lastName: "Fiddle" });
     expect(p.contactId).toBeTruthy();
     const contact = await db.query.contacts.findFirst({ where: eq(contacts.id, p.contactId!) });
     expect(contact?.displayName).toBe("Fiona Fiddle");
@@ -20,13 +20,17 @@ describe("performer → contact", () => {
   });
 
   it("flags the auto-created contact for review when no email or phone is given", async () => {
-    const p = await createPerformer(db, { displayName: "No Contact Info" });
+    const p = await createPerformer(db, { firstName: "No", lastName: "Info" });
     const contact = await db.query.contacts.findFirst({ where: eq(contacts.id, p.contactId!) });
     expect(contact?.needsReview).toBe(true);
   });
 
   it("seeds the auto-created contact's phone and does not flag it for review", async () => {
-    const p = await createPerformer(db, { displayName: "Phone Fiddle", phone: "585-555-0102" });
+    const p = await createPerformer(db, {
+      firstName: "Phone",
+      lastName: "Fiddle",
+      phone: "585-555-0102",
+    });
     const contact = await db.query.contacts.findFirst({ where: eq(contacts.id, p.contactId!) });
     expect(contact?.phone).toBe("585-555-0102");
     expect(contact?.needsReview).toBe(false);
@@ -34,7 +38,8 @@ describe("performer → contact", () => {
 
   it("seeds the auto-created contact's email", async () => {
     const p = await createPerformer(db, {
-      displayName: "Email Fiddle",
+      firstName: "Email",
+      lastName: "Fiddle",
       email: "email-fiddle@example.com",
     });
     const contact = await db.query.contacts.findFirst({ where: eq(contacts.id, p.contactId!) });
@@ -48,7 +53,8 @@ describe("performer → contact", () => {
 
   it("labels the seeded email 'booking' when emailPurpose is given (feature 020 add-performer)", async () => {
     const p = await createPerformer(db, {
-      displayName: "Micah Wiesner",
+      firstName: "Micah",
+      lastName: "Wiesner",
       email: "micah@example.com",
       emailPurpose: "booking",
     });
@@ -61,7 +67,7 @@ describe("performer → contact", () => {
 
   it("reuses an existing contact when one is provided", async () => {
     const [existing] = await db.insert(contacts).values(contactRow("Existing")).returning();
-    const p = await createPerformer(db, { displayName: "Existing", contactId: existing!.id });
+    const p = await createPerformer(db, { contactId: existing!.id });
     expect(p.contactId).toBe(existing!.id);
     const all = await db.select().from(performers).where(eq(performers.id, p.id));
     expect(all).toHaveLength(1);
