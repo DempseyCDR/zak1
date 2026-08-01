@@ -15,7 +15,7 @@ export const GET = withAuth({ requires: "base" }, async (req) => {
     caller: p.get("caller") ?? undefined,
     band: p.get("band") ?? undefined,
     musician: p.get("musician") ?? undefined,
-    sort: p.get("sort") === "desc" ? "desc" : "asc", // feature 020 US1
+    sort: p.get("sort") === "asc" ? "asc" : "desc", // feature 029 (P5-R2): default desc (was asc in 020 US1)
   });
   return NextResponse.json(report);
 });

@@ -68,7 +68,7 @@ const ROWS = [
 describe("BookingsReportPage", () => {
   afterEach(() => vi.unstubAllGlobals());
 
-  it("shows venue short names and per-performer status letters; sort toggles re-request desc", async () => {
+  it("shows venue short names and per-performer status letters; defaults to sort=desc and the toggle flips it", async () => {
     const calls: Call[] = [];
     vi.stubGlobal("fetch", stub(calls, { bookingWrite: true, eventWrite: true }, ROWS));
     const user = userEvent.setup();
@@ -81,11 +81,21 @@ describe("BookingsReportPage", () => {
     expect(within(row).getByText("T")).toBeInTheDocument();
     expect(within(row).getByText("C")).toBeInTheDocument();
 
+    // Feature 029 (P5-R2): the report defaults to descending — the first request carries sort=desc,
+    // with no interaction.
+    const reportCalls = () => calls.filter((c) => c.url.includes("/api/bookings/report"));
+    await waitFor(() => expect(reportCalls().length).toBeGreaterThan(0));
+    expect(reportCalls()[0]!.url).toContain("sort=desc");
+
+    // One toggle flips to ascending…
+    await user.click(screen.getByRole("button", { name: /sort/i }));
+    await waitFor(() => expect(reportCalls().some((c) => c.url.includes("sort=asc"))).toBe(true));
+    // …and a second toggle returns to descending.
     await user.click(screen.getByRole("button", { name: /sort/i }));
     await waitFor(() =>
       expect(
-        calls.some((c) => c.url.includes("/api/bookings/report") && c.url.includes("sort=desc")),
-      ).toBe(true),
+        reportCalls().filter((c) => c.url.includes("sort=desc")).length,
+      ).toBeGreaterThanOrEqual(2),
     );
   });
 

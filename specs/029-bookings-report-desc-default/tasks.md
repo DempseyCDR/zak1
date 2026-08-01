@@ -31,7 +31,7 @@ parallel to each other — but all three source edits come **after** both tests.
 
 ## Phase 1: Setup
 
-- [ ] T001 Confirm **no infra/schema/migration** and note the exact change sites: page initial state `src/app/(admin)/bookings-report/page.tsx:106` (`useState<"asc" | "desc">("asc")`), service default `src/server/domain/bookings/reportService.ts` (`.orderBy(filters.sort === "desc" ? desc : asc)` + the `sort?: … default asc` field comment), route default `src/app/api/bookings/report/route.ts` (`sort: p.get("sort") === "desc" ? "desc" : "asc"`); and the two tests that encode the old default (`tests/integration/bookingsReport.booker.test.ts`, `tests/component/bookingsReport.test.tsx`).
+- [X] T001 Confirm **no infra/schema/migration** and note the exact change sites: page initial state `src/app/(admin)/bookings-report/page.tsx:106` (`useState<"asc" | "desc">("asc")`), service default `src/server/domain/bookings/reportService.ts` (`.orderBy(filters.sort === "desc" ? desc : asc)` + the `sort?: … default asc` field comment), route default `src/app/api/bookings/report/route.ts` (`sort: p.get("sort") === "desc" ? "desc" : "asc"`); and the two tests that encode the old default (`tests/integration/bookingsReport.booker.test.ts`, `tests/component/bookingsReport.test.tsx`).
 
 ---
 
@@ -45,14 +45,14 @@ rows descend by date; toggling once flips to ascending, again returns to descend
 
 ### Tests first (Red)
 
-- [ ] T002 [P] [US1] Update `tests/integration/bookingsReport.booker.test.ts` "sorts by date asc (default) and desc": change the no-arg `assembleBookingsReport(db, {})` assertion to expect **descending** order (`["2026-06-18", "2026-06-04"]`), and add an explicit `assembleBookingsReport(db, { sort: "asc" })` assertion for the ascending order. (FR-002; fails against today's ascending default.)
-- [ ] T003 [P] [US1] Update `tests/component/bookingsReport.test.tsx` (the sort test): assert the **initial** report request carries `sort=desc` (no interaction), then that one sort-toggle click re-requests `sort=asc`, and a second click re-requests `sort=desc`. Remove the old "toggle re-requests desc" expectation. (FR-001 + FR-003; fails against today's ascending default.)
+- [X] T002 [P] [US1] Update `tests/integration/bookingsReport.booker.test.ts` "sorts by date asc (default) and desc": change the no-arg `assembleBookingsReport(db, {})` assertion to expect **descending** order (`["2026-06-18", "2026-06-04"]`), and add an explicit `assembleBookingsReport(db, { sort: "asc" })` assertion for the ascending order. (FR-002; fails against today's ascending default.)
+- [X] T003 [P] [US1] Update `tests/component/bookingsReport.test.tsx` (the sort test): assert the **initial** report request carries `sort=desc` (no interaction), then that one sort-toggle click re-requests `sort=asc`, and a second click re-requests `sort=desc`. Remove the old "toggle re-requests desc" expectation. (FR-001 + FR-003; fails against today's ascending default.)
 
 ### Implementation (Green)
 
-- [ ] T004 [P] [US1] In `src/server/domain/bookings/reportService.ts`, flip the default order branch to descending: `.orderBy(filters.sort === "asc" ? asc(events.eventDate) : desc(events.eventDate))`; update the `sort?: "asc" | "desc"; // … (default asc)` field comment to `default desc` (feature 029).
-- [ ] T005 [P] [US1] In `src/app/api/bookings/report/route.ts`, default an absent/unrecognized `sort` param to descending: `sort: p.get("sort") === "asc" ? "asc" : "desc"` (feature 029; was `=== "desc" ? "desc" : "asc"`).
-- [ ] T006 [P] [US1] In `src/app/(admin)/bookings-report/page.tsx:106`, change the initial sort state `useState<"asc" | "desc">("asc")` → `useState<"asc" | "desc">("desc")` (feature 029). Leave the toggle button and everything else untouched.
+- [X] T004 [P] [US1] In `src/server/domain/bookings/reportService.ts`, flip the default order branch to descending: `.orderBy(filters.sort === "asc" ? asc(events.eventDate) : desc(events.eventDate))`; update the `sort?: "asc" | "desc"; // … (default asc)` field comment to `default desc` (feature 029).
+- [X] T005 [P] [US1] In `src/app/api/bookings/report/route.ts`, default an absent/unrecognized `sort` param to descending: `sort: p.get("sort") === "asc" ? "asc" : "desc"` (feature 029; was `=== "desc" ? "desc" : "asc"`).
+- [X] T006 [P] [US1] In `src/app/(admin)/bookings-report/page.tsx:106`, change the initial sort state `useState<"asc" | "desc">("asc")` → `useState<"asc" | "desc">("desc")` (feature 029). Leave the toggle button and everything else untouched.
 
 **Checkpoint**: T002/T003 pass; the report lands descending and the toggle still reaches both orderings.
 
@@ -60,8 +60,8 @@ rows descend by date; toggling once flips to ascending, again returns to descend
 
 ## Phase 3: Polish + cross-cutting
 
-- [ ] T007 Full gate (solo-maintainer mode): `pnpm exec tsc --noEmit`; `pnpm exec eslint <changed>`; `pnpm exec prettier --check <changed>`; `pnpm test` (full suite green — FR-004: no other bookings-report assertion regresses); `pnpm build`. All green.
-- [ ] T008 [P] Update `zak1_Phase5_Requirements.md`: mark **P5-R2 SHIPPED as feature 029** (bookings report now defaults to descending date; toggle unchanged; no migration), closing the last ascending-default surface (SC-003).
+- [X] T007 Full gate (solo-maintainer mode): `pnpm exec tsc --noEmit`; `pnpm exec eslint <changed>`; `pnpm exec prettier --check <changed>`; `pnpm test` (full suite green — FR-004: no other bookings-report assertion regresses); `pnpm build`. All green.
+- [X] T008 [P] Update `zak1_Phase5_Requirements.md`: mark **P5-R2 SHIPPED as feature 029** (bookings report now defaults to descending date; toggle unchanged; no migration), closing the last ascending-default surface (SC-003).
 
 ---
 

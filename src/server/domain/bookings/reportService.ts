@@ -18,7 +18,7 @@ export type BookingsReportFilters = {
   caller?: string; // performer id
   band?: string; // band id
   musician?: string; // performer id
-  sort?: "asc" | "desc"; // by event date; feature 020 US1 (default asc)
+  sort?: "asc" | "desc"; // by event date; default desc (feature 029, P5-R2; was asc in 020 US1)
 };
 
 export type BookingsReportBookingLine = {
@@ -73,7 +73,7 @@ export async function assembleBookingsReport(
     .innerJoin(series, eq(series.id, events.seriesId))
     .leftJoin(venues, eq(venues.id, events.venueId))
     .where(conds.length ? and(...conds) : undefined)
-    .orderBy(filters.sort === "desc" ? desc(events.eventDate) : asc(events.eventDate));
+    .orderBy(filters.sort === "asc" ? asc(events.eventDate) : desc(events.eventDate));
 
   const rows: BookingsReportRow[] = [];
   for (const ev of eventRows) {

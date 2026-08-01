@@ -93,6 +93,15 @@ selector — is fixed.
 
 ### P5-R2 — Bookings report defaults to descending date
 
+> **Status: SHIPPED as feature `029`** (2026-08-01). The bookings report now defaults to **descending** event
+> date (newest-relevant-first), matching the shared event selector direction (025/028) — closing the last
+> ascending-default surface. The default was flipped test-first in **three coordinated spots**: the page's
+> initial sort state (`bookings-report/page.tsx`), the service default (`reportService.ts` `orderBy` when no
+> `sort` is given), and the route's absent-`sort` default (`api/bookings/report/route.ts`). The sort toggle is
+> unchanged and still reaches both directions. **No schema/migration/API-shape change.** (Analyze noted one
+> MEDIUM: the route's absent-`sort` branch is covered only indirectly — the service default is tested and the
+> page always sends `sort` explicitly; accepted as a trivial pass-through.)
+
 **What:** The **bookings report** (`/bookings-report`) should default its sort to **descending date**
 (newest-relevant-first), matching the direction the smart selector uses everywhere else.
 

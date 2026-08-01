@@ -103,7 +103,7 @@ export default function BookingsReportPage() {
   const [caller, setCaller] = useState("");
   const [band, setBand] = useState("");
   const [musician, setMusician] = useState("");
-  const [sort, setSort] = useState<"asc" | "desc">("asc");
+  const [sort, setSort] = useState<"asc" | "desc">("desc"); // feature 029 (P5-R2): default newest-first
 
   const [bookingModal, setBookingModal] = useState<BookingModalState | null>(null);
   const [eventModal, setEventModal] = useState<EventModalState | null>(null);

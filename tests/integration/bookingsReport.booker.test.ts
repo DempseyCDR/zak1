@@ -14,14 +14,18 @@ describe("bookings report — booker view", () => {
   beforeEach(resetDb);
   afterAll(closeDb);
 
-  it("sorts by date asc (default) and desc", async () => {
+  it("sorts by date desc (default, feature 029) and asc", async () => {
     await makeEvent({ seriesKey: "tnc", eventDate: "2026-06-04" });
     await makeEvent({ seriesKey: "tnc", eventDate: "2026-06-18" });
 
-    const asc = await assembleBookingsReport(db, {});
-    expect(asc.rows.map((r) => r.date)).toEqual(["2026-06-04", "2026-06-18"]);
+    // Feature 029 (P5-R2): the no-`sort` default is now descending (newest-relevant-first).
+    const def = await assembleBookingsReport(db, {});
+    expect(def.rows.map((r) => r.date)).toEqual(["2026-06-18", "2026-06-04"]);
     const desc = await assembleBookingsReport(db, { sort: "desc" });
     expect(desc.rows.map((r) => r.date)).toEqual(["2026-06-18", "2026-06-04"]);
+    // Explicit ascending still works.
+    const asc = await assembleBookingsReport(db, { sort: "asc" });
+    expect(asc.rows.map((r) => r.date)).toEqual(["2026-06-04", "2026-06-18"]);
   });
 
   it("shows the venue short name, falling back to derived initials when null", async () => {
