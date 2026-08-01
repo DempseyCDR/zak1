@@ -1,7 +1,7 @@
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan
-at specs/027-backfill-contact-names/plan.md
+at specs/028-shared-event-selector/plan.md
 <!-- SPECKIT END -->
 
 ## Development conventions
