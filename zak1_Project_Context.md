@@ -1,12 +1,19 @@
-# zak1 — Project Context for Session Transfer (v1.10)
+# zak1 — Project Context for Session Transfer
 
-**Snapshot:** 2026-07-30 (in-place update of v1.10) · **Repo:** `/Users/rcd/Repositories/zak1` · **Remote:**
-`github.com/DempseyCDR/zak1` · **Head:** `c9971be` (025 impl) — local `main` is **level with `origin/main`
-(everything pushed, working tree clean)**. Since the original v1.10 snapshot: **020 follow-up + features
-021, 022, 023, 024, 025 all shipped and pushed**. **Phase 3 COMPLETE; Phase 4 COMPLETE — Areas A–D all
-delivered** (A = 024 booker amendments · B = 023 FS payments + 021 · C = 025 door-attendant experience ·
-D/B41 = 022). The **Node-18 Bash gotcha is RESOLVED** (Bash runs Node 24 by default; the stale Node 16 was
-purged). Purpose: seed a fresh session to continue work on zak1 (CDR).
+> Single living doc — no versioned copies. Update in place each session.
+
+**Snapshot:** 2026-08-01 · **Repo:** `/Users/rcd/Repositories/zak1` · **Remote:**
+`github.com/DempseyCDR/zak1` · **Head:** local `main` is **unpushed ahead of `origin/main` (`49c6b0e`, 027
+impl)** — landed since 027: `9e87411` (028 planning) and `d30c8d7` (028 impl, tree-verified: 619 tests green,
+clean build). **028 (shared filterable event selector, P5-R1) is SHIPPED** — nothing pushed yet.
+**Phase 3 & Phase 4 COMPLETE; Phase 5 UNDERWAY.** Shipped through **028**: Phase 4 (021–025), then **026**
+(structured performer name capture, R5-P1) + **027** (backfill mis-split contact names, R5-P2, migration
+`0028`) + **028** (shared event selector, P5-R1 — no migration), plus a **gate data-loss fix** (`aea57c6`).
+**029** (bookings report defaults to descending date, P5-R2) is **specced/planned/tasked/analyzed, not yet
+implemented** — the planning artifacts under `specs/029-bookings-report-desc-default/` are committed as the
+029 planning commit; implementation is the next step (`/speckit-implement`). The **Node-18 Bash gotcha is
+RESOLVED** (Bash runs Node 24; the stale Node 16 was purged). Purpose: seed a fresh session to continue work
+on zak1 (CDR).
 
 ---
 
@@ -17,7 +24,8 @@ contra/English dance club): contacts & membership, door attendance & gate money,
 treasurer & organizer reports, mailing-list exports, a public website, staff auth, authorization, check-in,
 booking & event management, membership acquisition (door + online), the Booker's booking-report/modal UX, and
 the Financial-Secretary payment substrate.
-**25 features shipped (001–025).** Money is always **integer cents**. Single tenant (multi-tenant deferred).
+**28 features shipped (001–028); 029 specced (not yet implemented).** Money is always **integer cents**.
+Single tenant (multi-tenant deferred).
 
 > **Naming:** `zak1` is the internal codename; the club-facing name is **cdrochester** (what Google's
 > consent screen shows). No rename wanted.
@@ -53,8 +61,11 @@ set +a`.
 - **`zak1_test`** (`TEST_DATABASE_URL`) — auto-migrated; `resetDb()` TRUNCATEs (list includes the 019/020
   tables).
 - **Migrations:** additive SQL in `src/server/db/migrations/`, `pnpm run db:migrate`. **Latest =
-  `0027_payment_allocation_and_voids.sql`** (023) — **features 024 and 025 added NO migration** (both are
-  operations/UI over the existing schema). `0027` = `payment_bookings.amount_cents` (per-line allocation,
+  `0028_backfill_contact_names.sql`** (027, R5-P2) — a data-only idempotent `UPDATE` re-splitting mis-split
+  contact names (full name in `first_name`, empty `last_name`) at the last space; guarded by `last_name IS
+  NULL`; applied to `zak1_dev` (snapshot `~/zak1_pre_0028.dump`, reviewed OK). **Features 024, 025, 026, 028
+  add NO migration** (UI/operations over the existing schema). `0027_payment_allocation_and_voids.sql` (023) =
+  `payment_bookings.amount_cents` (per-line allocation,
   **backfilled** proportionally so lines sum to the check total) + `performer_payments` void columns
   (`voided_at`, `void_reason`, `replaces_payment_id`). `0026_drop_bookings_check_number.sql` (021) **removed**
   `bookings.check_number` (reconcile-then-drop; `performer_payments` is now the sole check store).
@@ -68,12 +79,12 @@ set +a`.
 ## 4. Tests & governance
 
 Pipeline `/speckit-specify → clarify → plan → tasks → analyze → implement`. Active pointer
-`.specify/feature.json` → **`specs/025-door-checkin-experience`** (shipped). **Constitution v1.3.0**
-(non-negotiable):
+`.specify/feature.json` → **`specs/029-bookings-report-desc-default`** (planned + tasked + analyzed;
+implementation not yet started). **Constitution v1.3.0** (non-negotiable):
 I Test-First (Red-Green-Refactor), II YAGNI, III Type Safety (Zod at boundaries), IV Observability.
 Testing standard: integration against **real** local infra; DBs never mocked; third-party services (Google,
-PayPal) exercised at their **boundary**, never production endpoints. **Suite: 601 tests / 179 files green.**
-tsc, eslint, markdownlint, prettier, production build all clean on Next 16.
+PayPal) exercised at their **boundary**, never production endpoints. **Suite: 619 tests / 188 files green
+through 028**. tsc, eslint, markdownlint, prettier, production build all clean on Next 16.
 
 **⚠️ Two test types (feature 020, closes analyze finding C1):**
 
@@ -145,8 +156,17 @@ booking/event mgmt · 019 payments & membership** · **Phase 4 COMPLETE: 020 Boo
 `bookings.check_number` · 022 client 401→`/login` (B41) · 023 FS payments substrate · 024 booker amendments
 (Area A — lead cascade, band re-point, written-check discriminator; no migration) · 025 door-attendant
 experience (Area C — per-record roster corrections + selection/entry polish; no migration)** — all
-**implemented and pushed**. **Nothing outstanding in Phase 4** (Areas A–D all delivered). Next work would be
-Phase 5 / remaining backlog (see §11) or the pre-rollout operational TODOs (§10).
+**implemented and pushed**. **Nothing outstanding in Phase 4** (Areas A–D all delivered).
+
+**Phase 5 (UNDERWAY):** requirements collected in **`zak1_Phase5_Requirements.md`** (P5-R1..R7 + defects D1/D2;
+all questions Q1–Q14 resolved). Shipped: **D2** gate data-loss fix (`aea57c6`); **026** structured performer
+name capture (R5-P1, no migration); **027** backfill mis-split contact names (R5-P2, migration `0028`) — R5
+complete. **Shipped: 028** shared filterable event selector (P5-R1) — the `EventSelector` component adopted on
+check-in/gate/payments/treasurer, **in-page state / no deep links**, treasurer moved `/treasurer/[eventId]` →
+single `/treasurer` page. **Specced (029, next to implement): R2** bookings report defaults to descending
+date. **Remaining Phase 5:** R3 (payments per-performer workflow), R4 (gate cash counting, migration
+`gate_sales.note`), R6 (phone normalize → E.164 + backfill), R7 (dedup page phone/email display), and defect
+**D1** (`/payments` has no nav link — quick fix). New backlog item: dedup phone/email matching.
 
 ## 7. Load-bearing decisions (do not undo without reading why)
 
@@ -229,6 +249,48 @@ Mutations follow `recordAttendance`'s **non-transactional** style (not `db.trans
 clickable-row correction modal, staff nav on `/` home, dropped the vestigial "open door record" button. New
 audit kinds `attendance.updated`/`.deleted`; `ATTENDANCE_NOT_FOUND` error.
 
+**026 structured name capture (R5-P1, no migration):** `createPerformer` was the only route writing a
+`contacts` row from a single free-typed name (`firstName: input.displayName`). Fixed: `performerCreateSchema`
+is now structured (`firstName` + `lastName?` + `displayNameOverride?`, with a refinement **contactId XOR
+firstName**); the contact is built via `deriveContactNames` (012); the performer's `display_name` is **derived**
+(from the names on create, or the linked contact on the link path — never free-typed). Surfaces: performers
+page + booking add-performer capture structured names; linking an existing contact posts only `{ contactId }`.
+The `makePerformer` factory splits its convenience string → structured (kept the suite green + upgraded test
+data).
+
+**027 backfill mis-split contact names (R5-P2, migration `0028`):** one-time idempotent `UPDATE` re-splitting
+`last_name IS NULL AND btrim(first_name) LIKE '% %'` at the **last** space; writes **only** first/last
+(`display_name`/`name_normalized`/`dedup_normalized` unchanged — already derived from the full name). ⚠️
+**Testing a one-time migration**: the integration test **reads + executes the `0028` SQL file** against seeded
+rows (single source of truth; the `last_name IS NULL` guard makes re-exec safe = the idempotency proof).
+
+**028 shared event selector (P5-R1, SHIPPED `d30c8d7`, no migration):** extracted 025's smart selector into one
+shared client component **`src/app/EventSelector.tsx`** (`{ value, onSelect(event) }`) used on all four
+single-event surfaces (check-in, gate, payments, treasurer). Owns the `/api/events` (already desc) +
+`/api/series` fetch; default most-recent-≤-today (else soonest upcoming) fired **once** via a `didDefault`
+ref; **series + date-range filters** narrow client-side; native `<select>` (`aria-label="Event"`, options
+`date · HH:MM · label`) — so "confirm on pick, not on filter" falls out; empty state. ⚠️ **NO deep links /
+per-event URLs** (in-page state) → treasurer restructured `/treasurer/[eventId]` → single `/treasurer` page
+(fixed the broken `/treasurer/latest` nav link, FR-010). Check-in's `Event` aria-label + option format
+preserved so 025's `checkin.selector.test.tsx` stays green **unedited**. Each surface keeps its own follow-on
+side effect in `onSelect` (gate opens the door record, payments loads bookings/payments, treasurer reloads
+the report). ⚠️ **Gotcha found in impl:** the default fires `onSelect` on open, so the gate/payments surfaces
+auto-run their side effect for the default event — intended ("land on the right event"), and the reused local
+`toHHMM` in check-in's correction modal had to be re-added when the shared copy moved to `EventSelector`.
+Realizes backlog **B39**.
+
+**029 bookings report desc default (P5-R2, SPECCED — not yet implemented, no migration):** flip the bookings
+report's default sort from ascending (020 US1) to **descending** (newest-relevant-first), matching the shared
+selector direction. Change in **three coordinated spots** kept consistent: page initial state
+(`bookings-report/page.tsx:106` `useState("asc")` → `"desc"`), service default (`reportService.ts`
+`orderBy` no-`sort` → desc), route absent-`sort` default (`api/bookings/report/route.ts` → desc). Encoded
+test-first: two existing ascending-default assertions (`bookingsReport.booker.test.ts` service default;
+`bookingsReport.test.tsx` component toggle) move to the new descending expectation (Red), then the three
+defaults flip (Green). ⚠️ **analyze C1 (MEDIUM):** the route's absent-`sort` → desc branch has no *direct*
+test — the service default is tested and the page always sends `sort` explicitly, so the route's default is
+only covered indirectly; optionally add a route-level assertion or accept it as a trivial pass-through. See
+`specs/029-bookings-report-desc-default/` (spec + plan + research + data-model + contracts + tasks T001–T008).
+
 **018 booking/event mgmt:** `patchBooking` validates status transitions + re-point (change performerId →
 reset to `proposed`). Public shows only CONFIRMED bookings. Recurrence = every-N-weeks, independent rows,
 capped 60/run. Advertised price display-only.
@@ -278,8 +340,8 @@ and 025 load-bearing decisions.
 
 ## 11. Backlog (`specs/BACKLOG.md`) — remainder
 
-**B39** general reusable entity-picker component (020 shipped the first inline typeaheads — the
-`searchPerformers` picker and the add-performer contact search — but did NOT generalise the pattern) ·
+~~**B39** general reusable entity-picker component~~ (✅ **realized by 028's shared `EventSelector`** — the
+first generalised picker; the 020 inline typeaheads remain bespoke but the pattern now has a home) ·
 **B40** contact email management UI ·
 ~~**B41** client 401 → `/login`~~ (✅ **shipped as 022**) · **B42** organizer expense reimbursement (pay a
 non-performer with no booking; **still deferred — it's the Treasurer's, confirmed out of 023**) · **B38**
@@ -293,7 +355,7 @@ enforcing "every performer has a contact" as NOT NULL (a few nulls today).
 ```bash
 # Bash already runs Node 24 (nvm default) — no prefix needed. For psql/pg_dump: set -a; . ./.env; set +a
 pnpm run db:migrate            # apply migrations (0027 already applied to zak1_dev)
-pnpm test                      # 563 green / 167 files (node + jsdom)
+pnpm test                      # 619 green / 188 files (node + jsdom)
 pnpm exec vitest run tests/component/…   # run a component test (jsdom via docblock)
 pnpm exec tsc --noEmit         # typecheck
 pnpm run lint                  # eslint + markdownlint
@@ -318,8 +380,12 @@ pnpm run db:seed               # ⚠️ WIPES zak1_dev — do NOT run
 
 ## 14. Uncommitted / unpushed at handoff
 
-Working tree clean; local `main` is **level with `origin/main` — everything is pushed**. Recent head chain:
-`c9971be` (025 impl) → `4369391` (025 planning) → `5ffbc79` (eslint ignores `.claude/`) → `246bd95` (pre-existing
-markdown-lint fixes) → `5a67618` (024 impl) → `ad248c5` (024 planning). Commits are SSH-signed via 1Password
-(unlock if a commit fails with "1Password: failed to fill whole buffer"). Only this doc update is pending until
-committed.
+**`origin/main` is at `49c6b0e` (027 impl); nothing pushed since 027.** Local `main` is **ahead, unpushed**:
+`9e87411` (028 planning) → `d30c8d7` (028 impl), then this context-doc commit and the **029 planning commit**
+(spec + plan + research + data-model + contracts + tasks under `specs/029-bookings-report-desc-default/`).
+Working tree otherwise clean. Recent pushed chain: `49c6b0e` (027 impl) → `7085f5a` (027 planning) →
+`30982d6` (026 impl) → `2f94b22` (026 planning) → `ae74bba` (Phase 5 requirements doc) → `aea57c6` (gate
+data-loss fix). **To resume: implement 029** — `/speckit-implement` runs tasks T001–T008 (flip the bookings
+report default to descending; test-first). **Then push** the unpushed chain (028 impl + docs + 029) once
+ready. Commits are SSH-signed via 1Password (unlock if a commit fails with "1Password: failed to fill whole
+buffer").
