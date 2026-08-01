@@ -220,7 +220,8 @@ section**, since it describes the mix ("3 CDs, 2 shirts").
 
 > **Status:** **R5-P1 (the capture fix) SHIPPED as feature `026`** (performer creation now captures structured
 > first/last/display, reusing `deriveContactNames`; no migration). **R5-P2 (backfill of existing mis-split
-> contacts) still pending.**
+> contacts) SHIPPED as feature `027`** — migration `0028` re-splits the historical rows at the last space
+> (idempotent; display/search/dedup keys unchanged). Latest migration is now `0028`. **P5-R5 complete.**
 
 **What:** Every path that creates a contact MUST capture **first name, last name, and display name
 separately** — the structured shape feature 012 introduced. Today some routes capture only a single "name" and

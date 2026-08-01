@@ -28,7 +28,7 @@ commit; the operational apply to `zak1_dev` (snapshot → `db:migrate`) is a man
 
 ## Phase 1: Setup
 
-- [ ] T001 No new infra — confirm **no schema change** (data-only `UPDATE`), that the next migration number is **0028**, and that the test helper re-exports the raw `sql` client (`tests/integration/helpers/db.ts` → `sql` from `@/server/db/client`) for executing the migration file.
+- [X] T001 No new infra — confirm **no schema change** (data-only `UPDATE`), that the next migration number is **0028**, and that the test helper re-exports the raw `sql` client (`tests/integration/helpers/db.ts` → `sql` from `@/server/db/client`) for executing the migration file.
 
 ---
 
@@ -40,8 +40,8 @@ commit; the operational apply to `zak1_dev` (snapshot → `db:migrate`) is a man
 **Independent Test**: Seed a mis-split contact, run the repair, and confirm first/last are split correctly and
 the display name is unchanged.
 
-- [ ] T002 [P] [US1] Write `tests/integration/contactNameBackfill.test.ts` (US1 cases): seed via `contactRow(...)` a mis-split contact (`"Chuck Abell"` → `first_name` holds the full name, `last_name` null) and a three-word mis-split (`"David Van Buren"`); read `src/server/db/migrations/0028_backfill_contact_names.sql` from disk and execute it (`sql.unsafe(text)`); assert `"Chuck Abell"` → `first_name="Chuck"`, `last_name="Abell"`, `display_name` **unchanged** = "Chuck Abell" (and `dedup_normalized` unchanged); `"David Van Buren"` → `first_name="David Van"`, `last_name="Buren"`.
-- [ ] T003 [US1] Create `src/server/db/migrations/0028_backfill_contact_names.sql`: one `UPDATE contacts SET first_name = btrim(substring(btrim(first_name) from '^(.*) [^ ]+$')), last_name = btrim(substring(btrim(first_name) from ' ([^ ]+)$')) WHERE last_name IS NULL AND btrim(first_name) LIKE '% %';` — both fields computed from the original `first_name` in one statement; do **not** write `display_name`/`name_normalized`/`dedup_normalized`. Header comment explains the R5-P2 repair + idempotency guard.
+- [X] T002 [P] [US1] Write `tests/integration/contactNameBackfill.test.ts` (US1 cases): seed via `contactRow(...)` a mis-split contact (`"Chuck Abell"` → `first_name` holds the full name, `last_name` null) and a three-word mis-split (`"David Van Buren"`); read `src/server/db/migrations/0028_backfill_contact_names.sql` from disk and execute it (`sql.unsafe(text)`); assert `"Chuck Abell"` → `first_name="Chuck"`, `last_name="Abell"`, `display_name` **unchanged** = "Chuck Abell" (and `dedup_normalized` unchanged); `"David Van Buren"` → `first_name="David Van"`, `last_name="Buren"`.
+- [X] T003 [US1] Create `src/server/db/migrations/0028_backfill_contact_names.sql`: one `UPDATE contacts SET first_name = btrim(substring(btrim(first_name) from '^(.*) [^ ]+$')), last_name = btrim(substring(btrim(first_name) from ' ([^ ]+)$')) WHERE last_name IS NULL AND btrim(first_name) LIKE '% %';` — both fields computed from the original `first_name` in one statement; do **not** write `display_name`/`name_normalized`/`dedup_normalized`. Header comment explains the R5-P2 repair + idempotency guard.
 
 **Checkpoint**: mis-split contacts are correctly split; display/search/dedup keys unchanged.
 
@@ -55,7 +55,7 @@ changes nothing.
 **Independent Test**: Run the repair on a directory of already-structured + mononym contacts; none change; run
 again → zero further change.
 
-- [ ] T004 [US2] Extend `tests/integration/contactNameBackfill.test.ts` with US2 cases: also seed an already-structured contact (explicit `first_name`/`last_name`) and a mononym (`contactRow("Madonna")` → no space); after executing 0028, assert both are **unchanged** and the **total contact count is unchanged** (no delete/merge); then execute the 0028 SQL a **second** time and assert **zero** further change (idempotency — corrected rows now have a `last_name` and no longer match).
+- [X] T004 [US2] Extend `tests/integration/contactNameBackfill.test.ts` with US2 cases: also seed an already-structured contact (explicit `first_name`/`last_name`) and a mononym (`contactRow("Madonna")` → no space); after executing 0028, assert both are **unchanged** and the **total contact count is unchanged** (no delete/merge); then execute the 0028 SQL a **second** time and assert **zero** further change (idempotency — corrected rows now have a `last_name` and no longer match).
 
 **Checkpoint**: correct data is never corrupted; the repair is safe to re-run.
 
@@ -63,9 +63,9 @@ again → zero further change.
 
 ## Phase 4: Polish + cross-cutting
 
-- [ ] T005 Full gate (solo-maintainer mode): `pnpm exec tsc --noEmit`; `pnpm exec eslint <changed>`; `pnpm exec prettier --check <changed>`; `pnpm test`; `pnpm build`. All green. (The 0028 migration is applied to `zak1_test` at `ensureSchema` on empty data — a no-op there; the test exercises it against seeded rows.)
-- [ ] T006 [P] Update `zak1_Phase5_Requirements.md`: mark **R5-P2 SHIPPED as feature 027** (backfill migration `0028`); the R5 cluster's remaining piece done. Note latest migration is now `0028`.
-- [ ] T007 **Operational (manual, post-commit — not part of the gate):** apply to `zak1_dev` — `pg_dump -Fc "$DATABASE_URL" -f ~/zak1_pre_0028.dump` (snapshot), then `pnpm run db:migrate`, then verify `select count(*) from contacts where last_name is null and btrim(first_name) like '% %';` returns `0` (SC-001); spot-check compound surnames and hand-correct any odd split.
+- [X] T005 Full gate (solo-maintainer mode): `pnpm exec tsc --noEmit`; `pnpm exec eslint <changed>`; `pnpm exec prettier --check <changed>`; `pnpm test`; `pnpm build`. All green. (The 0028 migration is applied to `zak1_test` at `ensureSchema` on empty data — a no-op there; the test exercises it against seeded rows.)
+- [X] T006 [P] Update `zak1_Phase5_Requirements.md`: mark **R5-P2 SHIPPED as feature 027** (backfill migration `0028`); the R5 cluster's remaining piece done. Note latest migration is now `0028`.
+- [X] T007 **Operational (manual, post-commit — not part of the gate):** apply to `zak1_dev` — `pg_dump -Fc "$DATABASE_URL" -f ~/zak1_pre_0028.dump` (snapshot), then `pnpm run db:migrate`, then verify `select count(*) from contacts where last_name is null and btrim(first_name) like '% %';` returns `0` (SC-001); spot-check compound surnames and hand-correct any odd split.
 
 ---
 
