@@ -1,15 +1,12 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import PaymentsPage from "@/app/(admin)/payments/page";
 
-// Feature 023 US1/US3: the payments page records a check with PER-LINE amounts and can VOID a check. Over a
+// Feature 023 US1/US3, re-presented by feature 030 US4: the one-check-many-bookings path now lives in a
+// MULTI-APPLY POPUP (a single payee settling several bookings), and a recorded check is still voided. Over a
 // stubbed fetch (UI-boundary isolation; the API behaviour is covered by node integration tests).
-function json(body: unknown, status = 200) {
-  return { ok: status < 400, status, json: async () => body } as Response;
-}
-
 const calls: { url: string; method: string; body: unknown }[] = [];
 function stub() {
   vi.stubGlobal(
@@ -19,60 +16,93 @@ function stub() {
       const method = init?.method ?? "GET";
       const body = init?.body ? JSON.parse(String(init.body)) : undefined;
       calls.push({ url: u, method, body });
-      if (u.includes("/bookings"))
-        return json({
-          bookings: [
-            { id: "bk1", performerName: "Pat", performerType: "musician", payCents: 12500 },
-          ],
-        });
-      if (u.includes("/performer-payments/") && u.endsWith("/void"))
-        return json({ id: "pay1", voided: true });
-      if (u.includes("/performer-payments") && method === "POST") return json({ id: "pay1" }, 201);
-      if (u.includes("/performer-payments"))
-        return json({
-          payments: [
-            {
-              id: "pay1",
-              payee: "Pat",
-              amount: 125,
-              checkNumber: "1",
-              overrideReason: null,
-              voided: false,
-              voidReason: null,
-              lines: [{ bookingId: "bk1", amount: 125 }],
-            },
-          ],
-          reconciliation: { expected: 125, actual: 125, delta: 0 },
-        });
-      if (u.includes("/api/performers"))
-        return json({ items: [{ id: "perf1", displayName: "Pat" }] });
-      if (u.includes("/api/events"))
-        return json({ items: [{ id: "ev1", eventDate: "2026-06-18" }] });
-      return json({});
+      const json = async () => {
+        if (u.includes("/api/series")) return { items: [{ id: "s1", key: "tnc", name: "TNC" }] };
+        if (u.includes("/void")) return { id: "pay1", voided: true };
+        if (u.includes("/events/ev1/performer-payments"))
+          return {
+            payments: [
+              {
+                id: "pay1",
+                payee: "Dana",
+                amount: 60,
+                checkNumber: "9",
+                overrideReason: null,
+                voided: false,
+                voidReason: null,
+                lines: [{ bookingId: "bk2", amount: 60 }],
+              },
+            ],
+            reconciliation: { expected: 185, actual: 60, delta: -125 },
+            settledByBooking: { bk1: 0, bk2: 60 },
+          };
+        if (u === "/api/performer-payments" && method === "POST") return { id: "pay2" };
+        if (u.includes("/events/ev1/bookings"))
+          return {
+            bookings: [
+              {
+                id: "bk1",
+                performerId: "perf1",
+                performerName: "Pat",
+                performerType: "musician",
+                payCents: 12500,
+                requiresCheck: true,
+                isDonated: false,
+              },
+              {
+                id: "bk2",
+                performerId: "perf2",
+                performerName: "Dana",
+                performerType: "musician",
+                payCents: 6000,
+                requiresCheck: true,
+                isDonated: false,
+              },
+            ],
+          };
+        if (u.includes("/api/events"))
+          return {
+            items: [
+              { id: "ev1", eventDate: "2026-06-18", seriesId: "s1", startTime: null, label: null },
+            ],
+          };
+        if (u.includes("/api/performers"))
+          return {
+            items: [
+              { id: "perf1", displayName: "Pat" },
+              { id: "perf2", displayName: "Dana" },
+            ],
+          };
+        if (u.includes("/membership-captures/parked")) return { parked: [] };
+        return { items: [] };
+      };
+      return { ok: true, status: 200, json };
     }),
   );
 }
 
-describe("PaymentsPage — per-line allocation + void (023)", () => {
+describe("PaymentsPage — multi-apply popup + void (030 US4)", () => {
   beforeEach(() => {
     calls.length = 0;
     stub();
   });
   afterEach(() => vi.unstubAllGlobals());
 
-  it("records a check with a per-line amount, and voids an existing check", async () => {
+  it("records a shared check to one payee across a booking via the popup, and voids an existing check", async () => {
+    const user = userEvent.setup();
     render(<PaymentsPage />);
-    // Feature 028: the shared EventSelector drives loadEvent — selecting the event loads its
-    // bookings/payments (the payments-surface side effect, T013).
-    await userEvent.selectOptions(await screen.findByRole("combobox", { name: /^event$/i }), "ev1");
-    await screen.findByText(/booked \$125\.00/);
-    expect(calls.some((c) => c.url.includes("/events/ev1/bookings"))).toBe(true);
+    await screen.findByText("Pat"); // auto-selected event's rows loaded
 
-    // Pick the payee, put the booking on the check (seeds its amount), record.
-    const payeeSelect = screen.getByRole("combobox", { name: /payee/i });
-    await userEvent.selectOptions(payeeSelect, "perf1");
-    await userEvent.click(screen.getByRole("checkbox"));
-    await userEvent.click(screen.getByRole("button", { name: "Record check" }));
+    await user.click(
+      screen.getByRole("button", { name: /apply one check to multiple performers/i }),
+    );
+    const dialog = await screen.findByRole("dialog", { name: /one check to multiple bookings/i });
+    await user.selectOptions(within(dialog).getByLabelText("Payee"), "perf1");
+    const patLabel = within(dialog)
+      .getByText(/Pat \(musician\)/)
+      .closest("label") as HTMLElement;
+    await user.click(within(patLabel).getByRole("checkbox"));
+    await user.click(within(dialog).getByRole("button", { name: "Record check" }));
 
     await waitFor(() => {
       const post = calls.find((c) => c.url === "/api/performer-payments" && c.method === "POST");
@@ -84,8 +114,9 @@ describe("PaymentsPage — per-line allocation + void (023)", () => {
       });
     });
 
-    // Void the existing recorded check.
-    await userEvent.click(screen.getByRole("button", { name: "Void" }));
+    // The popup closed on success; void the existing check on Dana's paid row.
+    const danaRow = screen.getByText("Dana").closest("li") as HTMLElement;
+    await user.click(within(danaRow).getByRole("button", { name: "Void" }));
     await waitFor(() =>
       expect(
         calls.some((c) => c.url.endsWith("/performer-payments/pay1/void") && c.method === "POST"),

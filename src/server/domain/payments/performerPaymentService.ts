@@ -35,7 +35,7 @@ export type PerformerPaymentView = {
 };
 
 /** Assert the money boundary against the payment's EVENT scope (FR-009), like the gate does. */
-async function assertPaymentScope(
+export async function assertPaymentScope(
   db: Db,
   authz: Actor | undefined,
   eventId: string,
@@ -290,7 +290,11 @@ export async function eventHasLiveSettlement(db: Db, eventId: string): Promise<b
 export async function listPerformerPayments(
   db: Db,
   eventId: string,
-): Promise<{ payments: PerformerPaymentView[]; reconciliation: ReconciliationView }> {
+): Promise<{
+  payments: PerformerPaymentView[];
+  reconciliation: ReconciliationView;
+  settledByBooking: Record<string, number>;
+}> {
   const paymentRows = await db
     .select()
     .from(performerPayments)
@@ -315,6 +319,10 @@ export async function listPerformerPayments(
       actual: centsToDollars(recon.actualCents),
       delta: centsToDollars(recon.deltaCents),
     },
+    // Feature 030 (FR-016): per-booking LIVE settled cents (cross-event aware — a check recorded at another
+    // event still counts here) so the per-performer page classifies a settled booking as paid, never
+    // outstanding. Same map already computed for reconciliation; reconciliation math is unchanged.
+    settledByBooking: Object.fromEntries(bookingRows.map((b) => [b.id, settled.get(b.id) ?? 0])),
   };
 }
 

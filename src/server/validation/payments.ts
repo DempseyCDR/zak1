@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { bookingCreateSchema } from "@/server/validation/performers";
 
 /**
  * Feature 019 US2 (B28) + feature 023: recording an actual performer disbursement (a check).
@@ -35,7 +36,16 @@ export const performerPaymentVoidSchema = z.object({
   reason: z.string().min(1),
 });
 
+// Feature 030 (FR-011): add a last-minute performer at settlement (FS-gated, performer_payment.write). Only
+// the performer + role — pay derives from the rate in createBooking; the FS never sets an arbitrary amount
+// via this narrow path.
+export const settlementPerformerSchema = bookingCreateSchema.pick({
+  performerId: true,
+  performerType: true,
+});
+
 export type PerformerPaymentLineInput = z.infer<typeof performerPaymentLineSchema>;
 export type PerformerPaymentCreateInput = z.infer<typeof performerPaymentCreateSchema>;
 export type PerformerPaymentPatchInput = z.infer<typeof performerPaymentPatchSchema>;
 export type PerformerPaymentVoidInput = z.infer<typeof performerPaymentVoidSchema>;
+export type SettlementPerformerInput = z.infer<typeof settlementPerformerSchema>;

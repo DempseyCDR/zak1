@@ -36,6 +36,8 @@ export type AuditEvent = {
     | "booking.created"
     | "booking.updated"
     | "booking.deleted"
+    | "booking.donated" // feature 030: donate-at-settlement (FS, payment-write)
+    | "booking.settlement_added" // feature 030: add-a-performer at settlement (FS, payment-write)
     | "rate_parameter.created"
     | "door_parameter.created"
     | "treasurer_report.generated"

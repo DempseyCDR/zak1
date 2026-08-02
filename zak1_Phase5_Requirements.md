@@ -115,6 +115,18 @@ call). Small, no migration. **Ships as its own tiny standalone feature** (not fo
 
 ### P5-R3 — Payments page optimized for Mary's per-performer check workflow
 
+> **Status: SHIPPED as feature `030`** (2026-08-02). `/payments` is now **one row per performer**: enter a
+> check number → a payment to that performer for the booked amount (or a typed amount); rows commit
+> independently. Non-paying bookings (donated / instructor / `$0`) render **free**; open-band musicians are
+> comped attendees, not rows — only the paid **lead musicians** appear. A paid performer is **donated at
+> settlement** (`0` + no check#) via a narrow `POST /api/bookings/[id]/donate`, and a walk-in is added via
+> `POST /api/events/[id]/settlement-performer` — **both gated on `performer_payment.write`, not
+> `booking.write`** (the FS/Treasurer lack booking-write). The one-check-many-bookings path moved to a
+> **multi-apply popup**; a recorded payment is **edited inline**; a positive amount with no check# confirms
+> with a **comment** (stored as the note). **No schema/migration** — a UI/UX redesign over the 023 substrate;
+> the payments read gained one derived field `settledByBooking` so a **cross-event**-settled booking reads
+> paid, not outstanding (FR-016). Suite 637/195 green.
+
 **What (Mary's workflow, verbatim intent):**
 
 1. Mary opens `/payments` to see the **payments due for this event**.

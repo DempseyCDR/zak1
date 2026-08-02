@@ -9,7 +9,10 @@ import { writeAudit } from "@/server/lib/audit";
 import { centsToDollars, dollarsToCents } from "@/server/lib/money";
 import { PERFORMER_RULES, bookingRequiresCheck } from "@/server/domain/performers/performerRules";
 import { resolveParameterCents } from "@/server/domain/parameters/seriesParameterService";
-import { bookingHasLivePayment } from "@/server/domain/payments/performerPaymentService";
+import {
+  assertPaymentScope,
+  bookingHasLivePayment,
+} from "@/server/domain/payments/performerPaymentService";
 import { isAllowedBookingTransition } from "./bookingStatus";
 import type { BookingCreateInput, BookingPatchInput } from "@/server/validation/performers";
 
@@ -343,4 +346,67 @@ export async function substitutePerformer(
     details: { bookingId, substitutePaid: true, newBookingId: result.booking.id },
   });
   return result;
+}
+
+/**
+ * Feature 030 (FR-007/008): the FS donates a performer's fee at settlement — flips the booking to donated
+ * (appearance kept, earnings 0, no check) WITHOUT holding booking.write. Gated on performer_payment.write
+ * scope (like recording a payment). A direct bookings update, NOT patchBooking, so it never cascades the
+ * band-lead status (mirrors 024 H1). Refused once a live check exists (void it first) or if already donated.
+ */
+export async function donateBookingAtSettlement(
+  db: Db,
+  bookingId: string,
+  actor: string | null = null,
+  authz?: Actor,
+): Promise<BookingRow> {
+  const current = await db.query.bookings.findFirst({ where: eq(bookings.id, bookingId) });
+  if (!current) throw errors.bookingNotFound();
+  await assertPaymentScope(db, authz, current.eventId);
+  if (current.isDonated) throw errors.validation("Booking is already donated.");
+  if (await bookingHasLivePayment(db, bookingId)) {
+    throw errors.validation("Void the performer's check before donating this booking.");
+  }
+  const [row] = await db
+    .update(bookings)
+    .set({ isDonated: true, payCents: 0, requiresCheck: false, updatedAt: new Date() })
+    .where(eq(bookings.id, bookingId))
+    .returning();
+  if (!row) throw errors.bookingNotFound();
+  writeAudit({ kind: "booking.donated", actor, details: { bookingId, eventId: current.eventId } });
+  return row;
+}
+
+/**
+ * Feature 030 (FR-011): the FS adds a last-minute performer at settlement so they can be paid — creates a
+ * booking WITHOUT holding booking.write. Gated on performer_payment.write scope; createBooking runs with no
+ * authz (booking scope already asserted here). Dedupes: a performer already booked on the event returns the
+ * existing booking (no duplicate).
+ */
+export async function addSettlementPerformer(
+  db: Db,
+  eventId: string,
+  input: { performerId: string; performerType: PerformerType },
+  actor: string | null = null,
+  authz?: Actor,
+): Promise<BookingRow> {
+  await assertPaymentScope(db, authz, eventId);
+  const existing = await db.query.bookings.findFirst({
+    where: and(eq(bookings.eventId, eventId), eq(bookings.performerId, input.performerId)),
+  });
+  if (existing) return existing;
+  const booking = await createBooking(
+    db,
+    eventId,
+    { performerId: input.performerId, performerType: input.performerType },
+    actor,
+    null,
+    undefined, // booking scope already asserted via performer_payment.write; bypass booking.write
+  );
+  writeAudit({
+    kind: "booking.settlement_added",
+    actor,
+    details: { bookingId: booking.id, eventId, performerId: input.performerId },
+  });
+  return booking;
 }
