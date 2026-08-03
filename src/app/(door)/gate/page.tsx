@@ -9,6 +9,8 @@ type BookingLite = { id: string; performerName: string; performerType: string; s
 
 const ANON_CATEGORIES = ["merchandise", "gift_card", "misc_sales"] as const;
 const NAMED_CATEGORIES = ["donation", "future_event", "membership"] as const;
+// Feature 031 (P5-R4): the denomination helper's bill faces, largest first.
+const BILLS = [100, 50, 20, 10, 5, 1] as const;
 type PaymentMethod = "cash" | "card";
 
 type AnonAmounts = Record<string, { cash: string; card: string }>;
@@ -28,7 +30,14 @@ export default function GatePage() {
   const [eventId, setEventId] = useState("");
   const [doorRecordId, setDoorRecordId] = useState("");
   const [anon, setAnon] = useState<AnonAmounts>(emptyAnon);
+  // Feature 031 (P5-R4): one free-text comment for the whole anonymous-sales section ("3 CDs, 2 shirts").
+  const [anonNote, setAnonNote] = useState("");
   const [named, setNamed] = useState<NamedLine[]>([]);
+  // Feature 031 (P5-R4): the OPTIONAL, TRANSIENT denomination helper — bill counts + coins + checks → a grand
+  // cash total the FS can push into gross cash. Not persisted (Q8); the direct gross-cash entry always exists.
+  const [billCounts, setBillCounts] = useState<Record<number, string>>({});
+  const [coins, setCoins] = useState("");
+  const [checks, setChecks] = useState("");
   const [posTxns, setPosTxns] = useState("");
   const [grossCash, setGrossCash] = useState("");
   const [pcGross, setPcGross] = useState("");
@@ -102,6 +111,10 @@ export default function GatePage() {
     setDeposit(null);
     setMessage(null);
     setAnon(JSON.parse(JSON.stringify(emptyAnon)));
+    setAnonNote("");
+    setBillCounts({});
+    setCoins("");
+    setChecks("");
     setNamed([]);
     if (!selectedEventId) return;
     const res = await apiFetch(`/api/events/${selectedEventId}/door-record`, { method: "POST" });
@@ -129,16 +142,20 @@ export default function GatePage() {
     // instead of wiping them (putGateSales is replace-all).
     const anonNext: AnonAmounts = JSON.parse(JSON.stringify(emptyAnon));
     const namedNext: NamedLine[] = [];
+    let firstAnonNote: string | null = null;
     for (const s of (data.gateSales ?? []) as {
       category: string;
       paymentMethod: PaymentMethod;
       amountCents: number;
       contactId: string | null;
       contactName: string | null;
+      note: string | null;
     }[]) {
       const amount = String(s.amountCents / 100);
       if ((ANON_CATEGORIES as readonly string[]).includes(s.category)) {
         anonNext[s.category]![s.paymentMethod] = amount;
+        // Feature 031: one comment for the section — take the first anon line that carries one (R3).
+        if (firstAnonNote === null && s.note) firstAnonNote = s.note;
       } else if ((NAMED_CATEGORIES as readonly string[]).includes(s.category) && s.contactId) {
         namedNext.push({
           category: s.category as (typeof NAMED_CATEGORIES)[number],
@@ -150,6 +167,7 @@ export default function GatePage() {
       }
     }
     setAnon(anonNext);
+    setAnonNote(firstAnonNote ?? "");
     setNamed(namedNext);
   }
 
@@ -178,11 +196,15 @@ export default function GatePage() {
 
   async function save() {
     setMessage(null);
+    const note = anonNote.trim();
     const sales = [
       ...ANON_CATEGORIES.flatMap((c) =>
         (["cash", "card"] as const).flatMap((m) => {
           const v = Number(anon[c]![m]);
-          return v > 0 ? [{ category: c, paymentMethod: m, amount: v }] : [];
+          // Feature 031: the section comment rides on the anon line(s) (R3).
+          return v > 0
+            ? [{ category: c, paymentMethod: m, amount: v, ...(note ? { note } : {}) }]
+            : [];
         }),
       ),
       ...named.flatMap((l) => {
@@ -246,6 +268,13 @@ export default function GatePage() {
     }
   }
 
+  // Feature 031 (P5-R4): the denomination helper's grand cash total = Σ(bill count × face) + coins + checks
+  // (checks fold into gross cash — Q9). Transient; the FS pushes it into gross cash with the button below.
+  const denomTotal =
+    BILLS.reduce((a, f) => a + f * (Number(billCounts[f]) || 0), 0) +
+    (Number(coins) || 0) +
+    (Number(checks) || 0);
+
   return (
     <main style={{ padding: 24, maxWidth: 680 }}>
       <h1>Gate money</h1>
@@ -283,6 +312,16 @@ export default function GatePage() {
           ))}
         </tbody>
       </table>
+      <label style={{ display: "block", marginTop: 6, maxWidth: 460 }}>
+        <small>Comment (what sold, e.g. &quot;3 CDs, 2 shirts&quot;)</small>
+        <textarea
+          aria-label="Anonymous sales comment"
+          value={anonNote}
+          onChange={(e) => setAnonNote(e.target.value)}
+          rows={2}
+          style={{ width: "100%" }}
+        />
+      </label>
 
       <h2>Named-customer sales (donation / future event / membership)</h2>
       <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
@@ -340,10 +379,45 @@ export default function GatePage() {
         Admission is derived: gross cash − seed float − non-admission cash, and Card gross −
         non-admission card.
       </p>
+      <details style={{ maxWidth: 360, marginBottom: 8 }}>
+        <summary>Count cash by denomination (optional)</summary>
+        <div style={{ display: "grid", gap: 4, marginTop: 6 }}>
+          {BILLS.map((f) => (
+            <label key={f}>
+              ${f} bills{" "}
+              <input
+                aria-label={`$${f} bills`}
+                inputMode="numeric"
+                value={billCounts[f] ?? ""}
+                onChange={(e) => setBillCounts((m) => ({ ...m, [f]: e.target.value }))}
+                style={{ width: 60 }}
+              />
+            </label>
+          ))}
+          <label>
+            Coins ($){" "}
+            <input aria-label="Coins" value={coins} onChange={(e) => setCoins(e.target.value)} />
+          </label>
+          <label>
+            Checks ($){" "}
+            <input aria-label="Checks" value={checks} onChange={(e) => setChecks(e.target.value)} />
+          </label>
+          <p style={{ margin: "4px 0" }}>
+            Grand cash total: <strong>${denomTotal.toFixed(2)}</strong>
+          </p>
+          <button type="button" onClick={() => setGrossCash(denomTotal.toFixed(2))}>
+            Use as gross cash
+          </button>
+        </div>
+      </details>
       <div style={{ display: "grid", gap: 6, maxWidth: 360 }}>
         <label>
           Gross cash (total counted){" "}
-          <input value={grossCash} onChange={(e) => setGrossCash(e.target.value)} />
+          <input
+            aria-label="Gross cash"
+            value={grossCash}
+            onChange={(e) => setGrossCash(e.target.value)}
+          />
         </label>
         <label>
           Card gross (total card){" "}

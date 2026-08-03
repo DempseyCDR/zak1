@@ -210,6 +210,16 @@ line = that booking, payee = that performer, amount defaulted to booked.
 
 ### P5-R4 — Gate cash counting: denomination helper (Mary) + direct total (Pat), and a merchandise comment
 
+> **Status: SHIPPED as feature `031`** (2026-08-02). The gate gained an **optional, transient denomination
+> helper** — bill counts per denomination + coins + checks → a grand cash total the FS pushes into the single
+> gross-cash field ("Use as gross cash"); the **direct gross-cash entry** always exists (one value, last
+> entered wins). **Checks fold into gross cash** (no separate tender/column). A **single free-text comment**
+> on the anonymous-sales section persists via the new nullable **`gate_sales.note`** and reloads on reopen
+> (attached to the anon line(s); read back from the first anon line with a note — one section comment over a
+> per-row column). The denomination breakdown is **not persisted** (Q8). Migration **`0029_gate_sales_note.sql`**
+> — the **first Phase 5 migration**; latest migration is now `0029`. Deposit/card/seed-float/comp math and the
+> FS-only write boundary unchanged. Suite 643/198 green.
+
 **What:**
 
 1. **Mary counts cash by denomination.** She enters **how many bills of each denomination**, **coins**, and

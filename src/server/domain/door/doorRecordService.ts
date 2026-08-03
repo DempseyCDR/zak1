@@ -241,6 +241,7 @@ export async function putGateSales(
           paymentMethod: s.paymentMethod,
           amountCents: dollarsToCents(s.amount),
           contactId: s.contactId ?? null,
+          note: s.note ?? null, // feature 031: the anonymous-sales comment (null on named lines)
         })),
       )
       .returning();

@@ -39,6 +39,9 @@ export const gateSales = pgTable("gate_sales", {
   amountCents: integer("amount_cents").notNull().default(0),
   // Required for named categories (donation/future_event/membership); null = anonymous.
   contactId: uuid("contact_id").references(() => contacts.id, { onDelete: "set null" }),
+  // Feature 031 (P5-R4): free-text comment for the anonymous-sales section ("3 CDs, 2 shirts"). Carried on
+  // the anonymous line(s); null on named lines. Transient denomination counts are NOT stored (Q8).
+  note: text("note"),
 });
 
 export const doorRecordAudit = pgTable("door_record_audit", {

@@ -60,6 +60,8 @@ export const gateSalesPutSchema = z.object({
           paymentMethod: z.enum(["cash", "card"]),
           amount: z.number().min(0),
           contactId: z.string().uuid().optional(),
+          // Feature 031 (P5-R4): optional free-text comment for the anonymous-sales section.
+          note: z.string().optional(),
         })
         .refine((s) => !NAMED_CATEGORIES.has(s.category) || !!s.contactId, {
           message: "donation, future_event, and membership lines require a contactId",
