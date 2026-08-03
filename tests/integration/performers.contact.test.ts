@@ -32,7 +32,7 @@ describe("performer → contact", () => {
       phone: "585-555-0102",
     });
     const contact = await db.query.contacts.findFirst({ where: eq(contacts.id, p.contactId!) });
-    expect(contact?.phone).toBe("585-555-0102");
+    expect(contact?.phone).toBe("+15855550102"); // feature 032: stored canonical
     expect(contact?.needsReview).toBe(false);
   });
 

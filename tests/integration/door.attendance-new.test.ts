@@ -40,7 +40,7 @@ describe("POST /api/events/:id/attendance (new contact)", () => {
     const att = await res.json();
 
     const contact = await db.query.contacts.findFirst({ where: eq(contacts.id, att.contactId) });
-    expect(contact?.phone).toBe("585-555-0101");
+    expect(contact?.phone).toBe("+15855550101"); // feature 032: stored canonical
   });
 
   it("accepts neither email nor phone (declined) without a 422", async () => {

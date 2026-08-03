@@ -5,6 +5,7 @@ import type { PerformerRow } from "@/server/db/schema";
 import { errors } from "@/server/lib/apiError";
 import { centsToDollars } from "@/server/lib/money";
 import { deriveContactNames } from "@/server/domain/contacts/normalize";
+import { normalizePhone } from "@/server/domain/contacts/phone";
 import { addEmailInTx } from "@/server/domain/contacts/emailService";
 import { mailtoEmailFor } from "@/server/domain/contacts/mailtoEmail";
 import type { PerformerCreateInput, PerformerPatchInput } from "@/server/validation/performers";
@@ -39,7 +40,7 @@ export async function createPerformer(db: Db, input: PerformerCreateInput): Prom
           displayName: names.displayName,
           nameNormalized: names.nameNormalized,
           dedupNormalized: names.dedupNormalized,
-          phone: input.phone ?? null,
+          phone: input.phone ? normalizePhone(input.phone) : null, // feature 032: canonical E.164
           needsReview: !input.email && !input.phone,
           source: "performer",
         })

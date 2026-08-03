@@ -17,7 +17,7 @@ describe("contact creation with optional email/phone", () => {
     );
     expect(res.status).toBe(201);
     const body = await res.json();
-    expect(body.phone).toBe("585-555-0100");
+    expect(body.phone).toBe("+15855550100"); // feature 032: stored canonical
     expect(body.emails).toEqual([]);
     expect(body.needsReview).toBe(false);
   });

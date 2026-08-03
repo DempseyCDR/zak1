@@ -5,6 +5,7 @@ import type { ContactRow } from "@/server/db/schema";
 import { errors } from "@/server/lib/apiError";
 import { writeAudit } from "@/server/lib/audit";
 import { deriveContactNames, normalizeName } from "./normalize";
+import { normalizePhone } from "./phone";
 import { addEmailInTx } from "./emailService";
 import type { ContactCreateInput, ContactPatchInput } from "@/server/validation/contacts";
 
@@ -33,7 +34,7 @@ export async function createContact(
         displayName: derived.displayName,
         nameNormalized: derived.nameNormalized,
         dedupNormalized: derived.dedupNormalized,
-        phone: input.phone ?? null,
+        phone: input.phone ? normalizePhone(input.phone) : null, // feature 032: canonical E.164
         // No email and no phone: allow the contact but flag it for admin follow-up.
         needsReview: !input.email && !input.phone,
       })
@@ -109,7 +110,9 @@ export async function patchContact(
             dedupNormalized: derived.dedupNormalized,
           }
         : {}),
-      ...(input.phone !== undefined ? { phone: input.phone } : {}),
+      ...(input.phone !== undefined
+        ? { phone: input.phone ? normalizePhone(input.phone) : input.phone } // feature 032
+        : {}),
       isVolunteer,
       updatedAt: new Date(),
     })

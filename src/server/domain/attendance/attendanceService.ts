@@ -14,6 +14,7 @@ import type { AttendanceRow } from "@/server/db/schema";
 import { errors } from "@/server/lib/apiError";
 import { writeAudit } from "@/server/lib/audit";
 import { deriveContactNames } from "@/server/domain/contacts/normalize";
+import { normalizePhone } from "@/server/domain/contacts/phone";
 import { ensureDoorRecord } from "@/server/domain/door/doorRecordService";
 import type { AttendanceInput, AttendancePatchInput } from "@/server/validation/attendance";
 
@@ -79,7 +80,7 @@ export async function recordAttendance(
         displayName: names.displayName,
         nameNormalized: names.nameNormalized,
         dedupNormalized: names.dedupNormalized,
-        phone: input.newContact.phone ?? null,
+        phone: input.newContact.phone ? normalizePhone(input.newContact.phone) : null, // feature 032
         needsReview: true,
         source: "door",
       })

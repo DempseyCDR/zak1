@@ -287,6 +287,17 @@ may ship as its own migration/feature separate from the capture fix** (both are 
 
 ### P5-R6 — Phone number normalization (store stripped, display dashed, US default)
 
+> **Status: SHIPPED as feature `032`** (2026-08-03). Contact phones are stored in one **canonical E.164** form
+> (`normalizePhone`, assume `+1`; `585.555.1234` / `(585) 555-1234` / `5855551234` → `+15855551234`), applied
+> at all **three** contact-write sites (directory, check-in new-contact, performer create — mirroring
+> `deriveContactNames`). **Unparseable input** (wrong length, letters, extension) is stored **raw** (never
+> rejected). A pure **`formatPhone`** renders dashed US (`585-555-1234`), keeps non-US country codes, and
+> passes raw values through — delivered + unit-tested, first consumed by **P5-R7** (no live phone display
+> today). One-time backfill migration **`0030_normalize_contact_phones.sql`** (values-only, idempotent,
+> pinned to `normalizePhone` by a parity test) → latest migration now `0030`. `contacts.phone`/`formatPhone`
+> live in `src/server/domain/contacts/phone.ts`. No schema change, matching unchanged (Q14 deferred). Suite
+> 659/201 green.
+
 **What:** Contact phone numbers are **stripped of punctuation for storage** and **displayed with standard
 dashed punctuation**. Assume **US (+1)** unless a country code is explicitly provided.
 
