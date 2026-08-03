@@ -312,6 +312,15 @@ unparseable input firms at spec (keep raw when unparseable).
 
 ### P5-R7 — Dedup page shows phone + email alongside display name
 
+> **Status: SHIPPED as feature `033`** (2026-08-03). The `/dedup` review queue now shows each candidate's
+> **phone** (dashed, via 032's `formatPhone` — its first live consumer) and **active email(s)** beside the
+> display name, with a clear "no phone" / "no email" when absent. `getMergeSuggestions` gained `phone` +
+> `emails` per candidate — phone from `contacts.phone` (canonical since 032), active emails via one
+> `ARRAY(SELECT … status='active')` subquery. **Display-only**: the pairs query's JOIN/WHERE/ORDER are
+> untouched (matching identical, guarded by a test); matching on phone/email stays deferred (Q14). No schema,
+> no migration, no new endpoint. Suite 661/203 green. **This completes all Phase 5 R-items (R1–R7).**
+> Remaining Phase 5: defect **D1** (`/payments` nav link) + backlog.
+
 **What:** The **dedup review page** (`/dedup`) shows **phone and email** as well as display name for each
 proposed merge, so the reviewer can tell real duplicates from coincidental name matches.
 

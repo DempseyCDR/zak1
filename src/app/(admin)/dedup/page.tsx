@@ -1,13 +1,19 @@
 "use client";
 import { apiFetch } from "@/app/apiFetch";
+import { formatPhone } from "@/server/domain/contacts/phone";
 
 import { useCallback, useEffect, useState } from "react";
 
-type Pair = {
-  a: { id: string; displayName: string; membershipStatus: string };
-  b: { id: string; displayName: string; membershipStatus: string };
-  similarity: number;
+// Feature 033 (P5-R7): each candidate carries phone (canonical, feature 032) + active emails so the reviewer
+// can tell a real duplicate from a coincidental same-name match.
+type Candidate = {
+  id: string;
+  displayName: string;
+  membershipStatus: string;
+  phone: string | null;
+  emails: string[];
 };
+type Pair = { a: Candidate; b: Candidate; similarity: number };
 
 export default function DedupPage() {
   const [pairs, setPairs] = useState<Pair[]>([]);
@@ -54,9 +60,14 @@ export default function DedupPage() {
             key={`${p.a.id}:${p.b.id}`}
             style={{ border: "1px solid #ddd", padding: 12, marginBottom: 8, borderRadius: 6 }}
           >
-            <div>
-              <strong>{p.a.displayName}</strong> ({p.a.membershipStatus}) ⟷{" "}
-              <strong>{p.b.displayName}</strong> ({p.b.membershipStatus}) —{" "}
+            <div style={{ display: "flex", gap: 16, alignItems: "flex-start" }}>
+              <CandidateDetail c={p.a} />
+              <span aria-hidden style={{ paddingTop: 4 }}>
+                ⟷
+              </span>
+              <CandidateDetail c={p.b} />
+            </div>
+            <div style={{ marginTop: 4 }}>
               <em>similarity {p.similarity.toFixed(2)}</em>
             </div>
             <div style={{ marginTop: 8, display: "flex", gap: 8 }}>
@@ -67,5 +78,23 @@ export default function DedupPage() {
         ))}
       </ul>
     </main>
+  );
+}
+
+// Feature 033: a candidate's name + membership status, plus phone (dashed via formatPhone) and active
+// email(s) — a clear "no phone" / "no email" when absent, never a bare blank.
+function CandidateDetail({ c }: { c: Candidate }) {
+  return (
+    <div style={{ minWidth: 200 }}>
+      <div>
+        <strong>{c.displayName}</strong> <small>({c.membershipStatus})</small>
+      </div>
+      <div style={{ color: c.phone ? "#333" : "#999" }}>
+        <small>{c.phone ? formatPhone(c.phone) : "no phone"}</small>
+      </div>
+      <div style={{ color: c.emails.length ? "#333" : "#999" }}>
+        <small>{c.emails.length ? c.emails.join(", ") : "no email"}</small>
+      </div>
+    </div>
   );
 }

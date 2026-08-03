@@ -1,9 +1,18 @@
 import { sql } from "drizzle-orm";
 import type { Db } from "@/server/db/client";
 
+// Feature 033 (P5-R7): each candidate also carries phone (canonical, feature 032) + ACTIVE emails, so the
+// reviewer can tell a real duplicate from a coincidental same-name match.
+export type MergeSuggestionContact = {
+  id: string;
+  displayName: string;
+  membershipStatus: string;
+  phone: string | null;
+  emails: string[];
+};
 export type MergeSuggestion = {
-  a: { id: string; displayName: string; membershipStatus: string };
-  b: { id: string; displayName: string; membershipStatus: string };
+  a: MergeSuggestionContact;
+  b: MergeSuggestionContact;
   similarity: number;
 };
 
@@ -21,13 +30,23 @@ export async function getMergeSuggestions(
     a_id: string;
     a_name: string;
     a_status: string;
+    a_phone: string | null;
+    a_emails: string[];
     b_id: string;
     b_name: string;
     b_status: string;
+    b_phone: string | null;
+    b_emails: string[];
     sim: number;
   }>(sql`
-    SELECT a.id AS a_id, a.display_name AS a_name, a.membership_status AS a_status,
-           b.id AS b_id, b.display_name AS b_name, b.membership_status AS b_status,
+    SELECT a.id AS a_id, a.display_name AS a_name, a.membership_status AS a_status, a.phone AS a_phone,
+           ARRAY(SELECT ce.email::text FROM contact_emails ce
+                 WHERE ce.contact_id = a.id AND ce.status = 'active'
+                 ORDER BY ce.is_login DESC, ce.created_at) AS a_emails,
+           b.id AS b_id, b.display_name AS b_name, b.membership_status AS b_status, b.phone AS b_phone,
+           ARRAY(SELECT ce.email::text FROM contact_emails ce
+                 WHERE ce.contact_id = b.id AND ce.status = 'active'
+                 ORDER BY ce.is_login DESC, ce.created_at) AS b_emails,
            similarity(a.dedup_normalized, b.dedup_normalized) AS sim
     FROM contacts a
     JOIN contacts b
@@ -41,8 +60,20 @@ export async function getMergeSuggestions(
   `);
 
   return [...rows].map((r) => ({
-    a: { id: r.a_id, displayName: r.a_name, membershipStatus: r.a_status },
-    b: { id: r.b_id, displayName: r.b_name, membershipStatus: r.b_status },
+    a: {
+      id: r.a_id,
+      displayName: r.a_name,
+      membershipStatus: r.a_status,
+      phone: r.a_phone,
+      emails: r.a_emails ?? [],
+    },
+    b: {
+      id: r.b_id,
+      displayName: r.b_name,
+      membershipStatus: r.b_status,
+      phone: r.b_phone,
+      emails: r.b_emails ?? [],
+    },
     similarity: Number(r.sim),
   }));
 }
