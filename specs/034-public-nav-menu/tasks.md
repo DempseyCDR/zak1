@@ -31,7 +31,7 @@ Single Next.js App Router project — `src/app/**` and `tests/component/**` at r
 
 **Purpose**: Confirm the tooling this feature needs already exists — no install.
 
-- [ ] T001 Confirm the jsdom component-test harness is available for a new
+- [x] T001 Confirm the jsdom component-test harness is available for a new
   `tests/component/publicNav.test.tsx` — the feature-020 setup (`tests/setup.dom.ts`, the
   `// @vitest-environment jsdom` docblock, RTL + `@testing-library/user-event` + jest-dom). No dependency
   install is required; note the pattern to follow (see an existing `tests/component/*.test.tsx`).
@@ -44,7 +44,7 @@ Single Next.js App Router project — `src/app/**` and `tests/component/**` at r
 
 **⚠️ CRITICAL**: The component (US1) and every test import this module — it must exist first.
 
-- [ ] T002 Create the hand-maintained entries module `src/app/publicNav.ts` exporting
+- [x] T002 Create the hand-maintained entries module `src/app/publicNavItems.ts` exporting
   `export const PUBLIC_NAV: readonly { href: string; label: string }[]` with exactly two entries in order —
   `{ href: "/whats-on", label: "What's On" }`, `{ href: "/join", label: "Join" }`. No `"use client"` directive
   (importable by server or client). This is the single edit point for FR-003 / SC-003.
@@ -63,7 +63,7 @@ every entry navigates correctly.
 
 ### Tests for User Story 1 (write FIRST — must FAIL before T005/T006)
 
-- [ ] T003 [US1] Create the failing component test `tests/component/publicNav.test.tsx` (jsdom docblock) that
+- [x] T003 [US1] Create the failing component test `tests/component/publicNav.test.tsx` (jsdom docblock) that
   renders `PublicNav` and asserts: a navigation landmark with `aria-label="Site"` exists; a wordmark/home link to
   `/whats-on` is present; one link per `PUBLIC_NAV` entry is rendered (mapping over the imported `PUBLIC_NAV`
   so the assertion is data-driven — "What's On" → `/whats-on`, "Join" → `/join`); the entry links are
@@ -74,14 +74,14 @@ every entry navigates correctly.
 
 ### Implementation for User Story 1
 
-- [ ] T004 [US1] Create `src/app/PublicNav.tsx` as a `"use client"` component: render `<nav aria-label="Site">`
+- [x] T004 [US1] Create `src/app/PublicNav.tsx` as a `"use client"` component: render `<nav aria-label="Site">`
   containing the club wordmark link to `/whats-on` (FR-006) followed by one `next/link` per `PUBLIC_NAV` entry
   (in array order) with `entry.label` text and `entry.href` target. Use a responsive `flex` + `flexWrap: "wrap"`
   style consistent with `src/app/Nav.tsx` (FR-008). (Active-state wiring lands in US2 — this component is the one
   US2 extends.) Makes T003 pass.
-- [ ] T005 [US1] Render `<PublicNav/>` in the root layout `src/app/layout.tsx`, inside `<body>` immediately
+- [x] T005 [US1] Render `<PublicNav/>` in the root layout `src/app/layout.tsx`, inside `<body>` immediately
   before `{children}`, so it is the topmost bar on **every** page (FR-001, clarification A).
-- [ ] T006 [US1] Remove the now-redundant wordmark header from `src/app/(public)/layout.tsx` (the club-name link
+- [x] T006 [US1] Remove the now-redundant wordmark header from `src/app/(public)/layout.tsx` (the club-name link
   and its `<header>`); `PublicNav` supplies the wordmark. Keep the layout otherwise passing `{children}` through.
 
 **Checkpoint**: The public menu renders on public pages and every entry navigates — MVP is demonstrable.
@@ -98,16 +98,16 @@ staff pages, volunteer nav beneath), and the current page/section is marked acti
 
 ### Tests for User Story 2 (write FIRST — must FAIL before T008)
 
-- [ ] T007 [US2] Extend `tests/component/publicNav.test.tsx` with active-state cases (re-mocking `usePathname`
+- [x] T007 [US2] Extend `tests/component/publicNav.test.tsx` with active-state cases (re-mocking `usePathname`
   per case): `/whats-on` and `/whats-on/evt-123` → the **What's On** link has `aria-current="page"`; `/join` →
   **Join** has it; `/gate` → no public entry has `aria-current`. Confirm the new cases FAIL.
 
 ### Implementation for User Story 2
 
-- [ ] T008 [US2] Add active-section logic to `src/app/PublicNav.tsx`: read `usePathname()` and mark an entry
+- [x] T008 [US2] Add active-section logic to `src/app/PublicNav.tsx`: read `usePathname()` and mark an entry
   active when `pathname === href || pathname.startsWith(href + "/")` (research R3), setting `aria-current="page"`
   and a visible active style on that link (FR-004). Makes T007 pass.
-- [ ] T009 [US2] Verify (no code expected) that the root-layout placement (T005) already yields the public menu
+- [x] T009 [US2] Verify (no code expected) that the root-layout placement (T005) already yields the public menu
   as the **topmost** bar on `/checkin` and `/gate` with the volunteer `<Nav/>` beneath it, per quickstart step 4
   — the `(admin)`/`(door)` layouts remain unchanged. If the two bars are indistinguishable to assistive tech,
   confirm the distinct landmarks (`aria-label="Site"` vs the volunteer nav's `aria-label="Main"`).
@@ -129,7 +129,7 @@ it disappears.
 
 ### Regression guard for User Story 3 (expected to PASS on write)
 
-- [ ] T010 [US3] Add a **regression-guard** test to `tests/component/publicNav.test.tsx` that locks the
+- [x] T010 [US3] Add a **regression-guard** test to `tests/component/publicNav.test.tsx` that locks the
   single-source property beyond T003's presence checks: assert the rendered entry links equal `PUBLIC_NAV` mapped
   to `{ text: label, href }` **in order** and that their **count equals `PUBLIC_NAV.length`** (so adding/removing
   an array entry changes the menu with no component edit). This encodes FR-003 / SC-003 as an executable
@@ -146,11 +146,11 @@ independently.
 
 **Purpose**: Gates, docs, and end-to-end validation.
 
-- [ ] T011 [P] Update `docs/zak1_Help_Glossary.md` with a short "Public navigation menu" entry pointing at
-  `src/app/PublicNav.tsx` + `src/app/publicNav.ts` (mirrors the glossary's term→file convention).
-- [ ] T012 Run the full local gate: `pnpm exec tsc --noEmit && pnpm run lint && pnpm exec vitest run` — all
+- [x] T011 [P] Update `docs/zak1_Help_Glossary.md` with a short "Public navigation menu" entry pointing at
+  `src/app/PublicNav.tsx` + `src/app/publicNavItems.ts` (mirrors the glossary's term→file convention).
+- [x] T012 Run the full local gate: `pnpm exec tsc --noEmit && pnpm run lint && pnpm exec vitest run` — all
   green (scope prettier/lint to changed files if run separately).
-- [ ] T013 Run the manual quickstart validation (`specs/034-public-nav-menu/quickstart.md`) via the dev server /
+- [x] T013 Run the manual quickstart validation (`specs/034-public-nav-menu/quickstart.md`) via the dev server /
   browser preview: public pages, event detail page, a staff page (two bars), and a mobile-width check;
   screenshot the result.
 
@@ -193,7 +193,7 @@ independently.
 # This feature has minimal parallelism. The one independent-file task:
 Task: "T011 Update docs/zak1_Help_Glossary.md with a Public navigation menu entry"
 # can proceed alongside preparing the T012 gate run; everything else touches
-# PublicNav.tsx, publicNav.ts, the layouts, or the single test file and must serialize.
+# PublicNav.tsx, publicNavItems.ts, the layouts, or the single test file and must serialize.
 ```
 
 ---

@@ -38,7 +38,7 @@ This feature exposes **no HTTP API**. Its contract is the UI/component surface b
 
 ## Data module: `PUBLIC_NAV`
 
-- **File**: `src/app/publicNav.ts`
+- **File**: `src/app/publicNavItems.ts`
 - **Export**: `export const PUBLIC_NAV: readonly { href: string; label: string }[]`
 - **Contract**: ordered, hand-maintained, no duplicate `href`. Adding/removing/reordering an entry here is the
   **only** change required for the menu to update site-wide (FR-003 / SC-003). No `"use client"` directive, so it

@@ -24,7 +24,7 @@ technical, resolved below. No open `NEEDS CLARIFICATION` remain.
   module importable by either side.
 - **Rationale**: Active-state (FR-004) requires the current path. In the App Router that is `usePathname()` from
   `next/navigation`, a **client** hook. The rest of the component is static. Keeping the entry array in a
-  separate non-`"use client"` module (`publicNav.ts`) means a future server consumer (e.g. a generated menu,
+  separate non-`"use client"` module (`publicNavItems.ts`) means a future server consumer (e.g. a generated menu,
   B44) can import it without pulling in the client boundary.
 - **Alternatives considered**:
   - *Server component, no active-state* — rejected: FR-004 requires the current section be indicated.
@@ -43,7 +43,7 @@ technical, resolved below. No open `NEEDS CLARIFICATION` remain.
 
 ## R4 — Data shape and single-source property (FR-003)
 
-- **Decision**: `export const PUBLIC_NAV: readonly { href: string; label: string }[]` in `src/app/publicNav.ts`,
+- **Decision**: `export const PUBLIC_NAV: readonly { href: string; label: string }[]` in `src/app/publicNavItems.ts`,
   hand-maintained; the component maps over it. The **home/wordmark** affordance is rendered explicitly by the
   component (it is the club identity, not a list entry) linking to `/whats-on`.
 - **Rationale**: One ordered array is the single edit point (FR-003, SC-003). `readonly` communicates it is

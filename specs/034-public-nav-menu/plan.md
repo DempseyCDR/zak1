@@ -84,7 +84,7 @@ specs/034-public-nav-menu/
 ```text
 src/app/
 ├── layout.tsx                 # EDIT — render <PublicNav/> in <body> before {children} (topmost, every page)
-├── publicNav.ts               # NEW  — hand-maintained PUBLIC_NAV: { href, label }[] (single source, FR-003)
+├── publicNavItems.ts               # NEW  — hand-maintained PUBLIC_NAV: { href, label }[] (single source, FR-003)
 ├── PublicNav.tsx              # NEW  — "use client" menu: wordmark + entries, active via usePathname, a11y
 ├── (public)/layout.tsx        # EDIT — remove the now-redundant wordmark header (PublicNav supplies it)
 ├── (admin)/layout.tsx         # UNCHANGED — <Nav/> volunteer menu now renders beneath the root PublicNav
@@ -97,7 +97,7 @@ tests/component/
 **Structure Decision**: Single Next.js App Router project. The menu is injected once at the **root layout** so
 "every page" (clarification A) is satisfied structurally rather than by touching each route group. `PublicNav` is
 a client component solely because active-state reads `usePathname`; its data is a static typed array in
-`publicNav.ts`. The `(admin)`/`(door)` layouts are deliberately **untouched** — their existing `<Nav/>` already
+`publicNavItems.ts`. The `(admin)`/`(door)` layouts are deliberately **untouched** — their existing `<Nav/>` already
 renders after the root menu, yielding "public bar on top, volunteer bar beneath" for free (the volunteer bar's
 own rework is P6-R2).
 

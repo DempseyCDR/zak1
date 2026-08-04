@@ -224,6 +224,11 @@ Each entry: plain-English definition, then **Files** (the code locations that ow
 - **Club settings** — Single-tenant club-wide settings. **Files:** [`schema/clubSettings.ts`](src/server/db/schema/clubSettings.ts).
 - **Migrations** — Hand-authored additive SQL, `0001…0019`, run by `src/server/db/migrate.ts`.
   **Files:** `src/server/db/migrations/`.
+- **Public navigation menu** — the site's top-level menu (feature 034, P6-R1), rendered on **every** page from
+  the root layout (topmost bar; on staff pages the volunteer nav sits beneath). Entries are a hand-maintained
+  single-source array (generation deferred, B44); active-section via `usePathname`. **Presentation only — never
+  an access control.** Distinct from the role-aware volunteer nav (`Nav.tsx` / `auth/nav.ts`).
+  **Files:** [`app/PublicNav.tsx`](src/app/PublicNav.tsx) · [`app/publicNavItems.ts`](src/app/publicNavItems.ts).
 
 ---
 

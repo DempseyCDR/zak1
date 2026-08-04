@@ -12,7 +12,7 @@ A single navigable item in the public menu.
 | `href` | `string` | Destination path (an app route, e.g. `/whats-on`). Must be an existing public route. |
 | `label` | `string` | Human-readable menu text (e.g. `What's On`). |
 
-- **Collection**: `PUBLIC_NAV` — a `readonly` **ordered** array of entries in `src/app/publicNav.ts`. Order is
+- **Collection**: `PUBLIC_NAV` — a `readonly` **ordered** array of entries in `src/app/publicNavItems.ts`. Order is
   display order. Hand-maintained (FR-003); generation deferred to backlog B44.
 - **Identity / uniqueness**: `href` is the natural key; no duplicate hrefs. Not enforced by a database — it is a
   code-reviewed constant.
