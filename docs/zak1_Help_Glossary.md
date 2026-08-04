@@ -229,6 +229,15 @@ Each entry: plain-English definition, then **Files** (the code locations that ow
   single-source array (generation deferred, B44); active-section via `usePathname`. **Presentation only — never
   an access control.** Distinct from the role-aware volunteer nav (`Nav.tsx` / `auth/nav.ts`).
   **Files:** [`app/PublicNav.tsx`](src/app/PublicNav.tsx) · [`app/publicNavItems.ts`](src/app/publicNavItems.ts).
+- **Volunteer navigation menu** — the role-aware staff menu (feature 016; restructured by 035, P6-R2). As of 035
+  it renders from the **root layout** on **every** page when signed in (the second bar, `aria-label="Main"`,
+  beneath the public menu; `Nav` returns null for anonymous visitors), no longer from the `(admin)`/`(door)`
+  layouts or the home page. Entries are the hand-maintained capability-tagged `NAV` list, filtered by the
+  actor's capabilities (`navItemsFor`); **kept complete** by the `auth.navCompleteness` guard, which walks the
+  staff page tree and fails on any orphan (documented allowlist for dynamic + outside-group routes). Server
+  loader `Nav.tsx` → client presenter `VolunteerNav.tsx` (active-section via `usePathname`). **Courtesy, not a
+  control.** **Files:** [`app/Nav.tsx`](src/app/Nav.tsx) · [`app/VolunteerNav.tsx`](src/app/VolunteerNav.tsx) ·
+  [`server/auth/nav.ts`](src/server/auth/nav.ts) · guard `tests/integration/auth.navCompleteness.test.ts`.
 
 ---
 

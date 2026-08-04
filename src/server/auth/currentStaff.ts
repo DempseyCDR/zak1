@@ -47,3 +47,15 @@ export async function requireActor(next?: string): Promise<Actor> {
   const staff = await requireStaff(next);
   return loadActor(db, staff);
 }
+
+/**
+ * The signed-in actor with grants, or `null` — the non-throwing sibling of `requireActor` (feature 035).
+ *
+ * For the root layout, which renders on every page (including anonymous public visitors): the volunteer
+ * nav uses this to render itself only when signed in and to never throw/redirect for a visitor. Page
+ * guards keep using `requireActor`/`requireStaff`.
+ */
+export async function getActor(): Promise<Actor | null> {
+  const staff = await getCurrentStaff();
+  return staff ? loadActor(db, staff) : null;
+}

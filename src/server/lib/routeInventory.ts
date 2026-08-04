@@ -87,3 +87,30 @@ export function uiInventory(root = process.cwd()): UiPage[] {
     })
     .sort((a, b) => a.path.localeCompare(b.path));
 }
+
+export type StaffPageRoute = { path: string; dynamic: boolean };
+
+/**
+ * Staff page routes — every `page.tsx` under the `(admin)` and `(door)` route groups, as URL paths
+ * (route-group folders stripped, `[param]` segments kept, and flagged `dynamic`).
+ *
+ * Feature 035 (P6-R2): the volunteer-nav completeness guard checks these against the hand-maintained
+ * `NAV` list, so an orphaned staff page fails CI. Staff pages OUTSIDE these two groups (e.g. `/dev/routes`
+ * under `src/app/dev`) are covered by the guard's documented allowlist, not here.
+ */
+export function staffPageRoutes(root = process.cwd()): StaffPageRoute[] {
+  const appRoot = join(root, "src/app");
+  const out: StaffPageRoute[] = [];
+  for (const group of ["(admin)", "(door)"]) {
+    const dir = join(appRoot, group);
+    for (const file of findFiles(dir, "page.tsx")) {
+      const rel = file
+        .slice(appRoot.length)
+        .replace(/\/page\.tsx$/, "")
+        .replace(/\/\([^/]+\)/g, ""); // drop route-group segments
+      const path = rel === "" ? "/" : rel;
+      out.push({ path, dynamic: /\[[^\]]+\]/.test(path) });
+    }
+  }
+  return out.sort((a, b) => a.path.localeCompare(b.path));
+}

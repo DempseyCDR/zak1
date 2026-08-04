@@ -32,7 +32,7 @@ Single Next.js App Router project — `src/app/**`, `src/server/**`, `tests/**` 
 
 **Purpose**: Confirm the tooling this feature needs already exists — no install.
 
-- [ ] T001 Confirm the two test harnesses are available: the jsdom component harness (`tests/setup.dom.ts`,
+- [x] T001 Confirm the two test harnesses are available: the jsdom component harness (`tests/setup.dom.ts`,
   `// @vitest-environment jsdom`, RTL) for the presenter test, and the plain **node** test env for the
   completeness walker test (see `tests/integration/auth.routeInventory.test.ts`, which reuses
   `src/server/lib/routeInventory.ts`'s `findFiles`). No dependency install required.
@@ -46,7 +46,7 @@ Single Next.js App Router project — `src/app/**`, `src/server/**`, `tests/**` 
 **⚠️ CRITICAL**: `Nav` must not throw for anonymous visitors once it moves to the root layout — it needs a
 non-throwing actor load.
 
-- [ ] T002 Add a nullable actor loader to `src/server/auth/currentStaff.ts` — e.g.
+- [x] T002 Add a nullable actor loader to `src/server/auth/currentStaff.ts` — e.g.
   `export async function getActor(): Promise<Actor | null>` (returns the capability-bearing `Actor` when signed
   in, else `null`). Leave the throwing/redirecting `requireActor()` untouched for page guards.
 
@@ -64,7 +64,7 @@ appear in the volunteer menu and navigate; run the completeness guard and see it
 
 ### Tests for User Story 1 (write FIRST — must FAIL before T004/T005)
 
-- [ ] T003 [US1] Create the completeness guard `tests/integration/auth.navCompleteness.test.ts` (node env) that:
+- [x] T003 [US1] Create the completeness guard `tests/integration/auth.navCompleteness.test.ts` (node env) that:
   (1) enumerates the **static** staff page routes via a new walker (below) and asserts each is an `NAV` href;
   (2) asserts every `NAV` href resolves to a real staff page — allowing a concrete href to satisfy a **dynamic**
   route (e.g. `/organizer/tnc` is served by `/organizer/[seriesKey]`); (3) treats dynamic `[param]` routes as a
@@ -75,11 +75,11 @@ appear in the volunteer menu and navigate; run the completeness guard and see it
 
 ### Implementation for User Story 1
 
-- [ ] T004 [US1] Add a staff-page-route walker to `src/server/lib/routeInventory.ts`: reuse `findFiles` over
+- [x] T004 [US1] Add a staff-page-route walker to `src/server/lib/routeInventory.ts`: reuse `findFiles` over
   `src/app/(admin)` and `src/app/(door)` to list `page.tsx` files, compute each URL path (strip route-group
   `(…)` folders, keep `[param]` segments), and flag `dynamic`. Export it for the T003 test (mirrors the existing
   API walker's shape).
-- [ ] T005 [US1] Add the missing entries to `NAV` in `src/server/auth/nav.ts` — `/payments`
+- [x] T005 [US1] Add the missing entries to `NAV` in `src/server/auth/nav.ts` — `/payments`
   (`performer_payment.write`, label "Payments"), `/bookings-report`, `/door-parameters`, `/venue-rents` — with
   each gating capability **confirmed from that page's primary-purpose authz** (best estimates: `booking.write`,
   `parameter.write`, `venue.write`; read each page/its API to confirm). Keep `/organizer/tnc` as the
@@ -100,25 +100,25 @@ bar on a public page and a staff page, marks the current page active, and shows 
 
 ### Tests for User Story 2 (write FIRST — must FAIL before T008/T009)
 
-- [ ] T006 [US2] Create `tests/component/volunteerNav.test.tsx` (jsdom) for the client presenter: given `items`,
+- [x] T006 [US2] Create `tests/component/volunteerNav.test.tsx` (jsdom) for the client presenter: given `items`,
   renders one `next/link` per item in order under a `nav aria-label="Main"`; marks the item matching a mocked
   `usePathname` with `aria-current="page"` (`pathname === href || startsWith(href + "/")`); renders nothing
   meaningful for empty `items`. Confirm it FAILS.
-- [ ] T007 [US2] Add a test that `Nav` renders **null** when `getActor()` returns null (anonymous) and renders
+- [x] T007 [US2] Add a test that `Nav` renders **null** when `getActor()` returns null (anonymous) and renders
   the presenter with role-filtered items when signed in (mock `getActor`/`navItemsFor`). Confirm it FAILS.
 
 ### Implementation for User Story 2
 
-- [ ] T008 [US2] Create `src/app/VolunteerNav.tsx` (`"use client"`): props `{ items: { href: string; label:
+- [x] T008 [US2] Create `src/app/VolunteerNav.tsx` (`"use client"`): props `{ items: { href: string; label:
   string }[] }`; render `<nav aria-label="Main">` with one `next/link` per item and active-state via
   `usePathname` (rule as T006). Makes T006 pass.
-- [ ] T009 [US2] Refactor `src/app/Nav.tsx` into a server loader: `const actor = await getActor()`; if `!actor`
+- [x] T009 [US2] Refactor `src/app/Nav.tsx` into a server loader: `const actor = await getActor()`; if `!actor`
   return `null`; else `items = navItemsFor(actor)` and render `<VolunteerNav items={items} />`. Makes T007 pass.
-- [ ] T010 [US2] Render `<Nav />` in the root layout `src/app/layout.tsx` immediately after `<PublicNav />` and
+- [x] T010 [US2] Render `<Nav />` in the root layout `src/app/layout.tsx` immediately after `<PublicNav />` and
   before `{children}` (the second bar; self-guards to null when anonymous). Root layout becomes async.
-- [ ] T011 [US2] Remove `<Nav />` from `src/app/(admin)/layout.tsx` and `src/app/(door)/layout.tsx` (keep their
+- [x] T011 [US2] Remove `<Nav />` from `src/app/(admin)/layout.tsx` and `src/app/(door)/layout.tsx` (keep their
   `requireStaff()` guard) — the nav now comes from the root layout, so no double render.
-- [ ] T012 [US2] Remove `{staff && <Nav />}` from `src/app/page.tsx` (superseded by the root-layout nav — retires
+- [x] T012 [US2] Remove `{staff && <Nav />}` from `src/app/page.tsx` (superseded by the root-layout nav — retires
   the 025 home-page-nav special case) and update/retire `tests/component/home.staffNav.test.tsx` accordingly
   (its behavior is now covered by T007's Nav-null / signed-in cases).
 
@@ -135,7 +135,7 @@ and role filtering; US1 still passes.
 
 ### Verification for User Story 3 (the guard already exists from US1)
 
-- [ ] T013 [US3] Demonstrate the future-orphan guarantee: temporarily add a throwaway `src/app/(admin)/_probe/
+- [x] T013 [US3] Demonstrate the future-orphan guarantee: temporarily add a throwaway `src/app/(admin)/_probe/
   page.tsx`, run `tests/integration/auth.navCompleteness.test.ts`, confirm it **fails** naming the probe route,
   then remove the probe. (No shipped code; proves SC-003. Optionally capture the expectation as a comment in the
   test.)
@@ -146,13 +146,13 @@ and role filtering; US1 still passes.
 
 ## Phase 6: Polish & Cross-Cutting Concerns
 
-- [ ] T014 [P] Update `docs/zak1_Help_Glossary.md`: note the volunteer nav now renders from the **root layout**
+- [x] T014 [P] Update `docs/zak1_Help_Glossary.md`: note the volunteer nav now renders from the **root layout**
   on every page when signed in (second bar, `aria-label="Main"`), is a **courtesy not a control**, and is kept
   complete by the `auth.navCompleteness` guard (mirrors the `routeInventory` note). Adjust the existing nav
   mention if present.
-- [ ] T015 Run the full local gate: `pnpm exec tsc --noEmit && pnpm run lint && pnpm exec vitest run` — all
+- [x] T015 Run the full local gate: `pnpm exec tsc --noEmit && pnpm run lint && pnpm exec vitest run` — all
   green (scope prettier/lint to changed files if run separately).
-- [ ] T016 Run the manual quickstart validation (`specs/035-volunteer-nav-menu/quickstart.md`) via the dev
+- [x] T016 Run the manual quickstart validation (`specs/035-volunteer-nav-menu/quickstart.md`) via the dev
   server / browser preview: anonymous (no "Main" bar), signed-in on `/whats-on` (Main bar appears beneath the
   public bar), `/payments` present + active, home page shows no double nav; screenshot the signed-in result.
 

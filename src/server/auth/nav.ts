@@ -18,18 +18,22 @@ import { actorCan } from "@/server/auth/can";
 export type NavItem = { href: string; label: string };
 
 /** Destination → the capability that makes it appear. `null` = every authenticated volunteer (base). */
-const NAV: { href: string; label: string; capability: Capability | null }[] = [
+export const NAV: { href: string; label: string; capability: Capability | null }[] = [
   { href: "/organizer/tnc", label: "Organizer report", capability: null }, // oversight — the base
   { href: "/contacts", label: "Contacts", capability: null }, // directory (PII-projected)
   { href: "/checkin", label: "Check-in", capability: "attendance.write" },
   { href: "/gate", label: "Gate money", capability: "gate.write" },
+  { href: "/payments", label: "Payments", capability: "performer_payment.write" }, // FS/Treasurer (fixes D1)
   { href: "/events", label: "Events", capability: "event.public.write" }, // Booker + Webmaster
   { href: "/bookings", label: "Bookings", capability: "booking.write" },
+  { href: "/bookings-report", label: "Booking report", capability: "booking.write" }, // Booker report (020)
   { href: "/performers", label: "Performers", capability: "performer.write" },
   { href: "/bands", label: "Bands", capability: "performer.write" },
   { href: "/venues", label: "Venues", capability: "venue.write" },
+  { href: "/venue-rents", label: "Venue rents", capability: "venue.write" },
   { href: "/rate-parameters", label: "Rate parameters", capability: "parameter.write" },
   { href: "/expense-parameters", label: "Expense parameters", capability: "parameter.write" },
+  { href: "/door-parameters", label: "Door parameters", capability: "parameter.write" }, // seed float (019 US5)
   { href: "/treasurer", label: "Treasurer report", capability: "treasurer_report.write" },
   { href: "/qbo-mapping", label: "QBO mapping", capability: "treasurer_report.write" },
   { href: "/exports", label: "Mailing-list exports", capability: "export.read" },
