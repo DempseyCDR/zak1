@@ -40,12 +40,16 @@ place. A shared menu makes every public page reachable and keeps the header cons
 - `src/app/(public)/layout.tsx` renders only a wordmark link ("Country Dancers of Rochester" → `/whats-on`) —
   **no menu of the public pages.**
 
+**Decided (2026-08-04):** the public menu list is **HAND-MAINTAINED** for now (Rich). The "derive it from the
+source tree / from published content" idea is **tabled to backlog B44** (static content pages / lightweight CMS)
+— revisit if/when a CMS lands, since the content pages would be the main driver for a generated public menu.
+⚠️ This accepts the hand-maintenance trade-off **for the public menu only**; the D1 lesson still governs the
+**volunteer** menu (P6-R2), where the miss actually occurred.
+
 **Open questions (for spec time, not now):**
 
 - Which pages count as "public menu" entries (e.g. is `/whats-on/[eventId]` a menu item or only reachable from
   the list)?
-- Is the list of public pages **hand-declared** or **derived from the source tree** (see the cross-cutting note
-  in §3 — this is the D1 lesson)?
 
 ### P6-R2 — Volunteer-pages menu component (second menu when signed in)
 
@@ -77,8 +81,12 @@ role-aware component closes the gap for good.
 
 The dev **route index** was deliberately converted from two hand-synced arrays to a list **generated from the
 source tree** (`src/server/lib/routeInventory.ts`; see `CLAUDE.md`) precisely so a new route can't be forgotten.
-D1 shows the **volunteer nav still has the old hand-maintained failure mode.** Whether P6-R1/R2 should adopt the
-same "generate from the source tree" approach is the key design question to settle when these go to spec.
+D1 shows the **volunteer nav still has the old hand-maintained failure mode.**
+
+**Decided (2026-08-04):** the **public menu (R1) stays hand-maintained** for now — the generation idea is tabled
+with **backlog B44** (static content pages / lightweight CMS), which would be the real driver for a generated
+public menu. The D1 "generate from the source tree" question remains live for the **volunteer menu (R2)**, where
+the miss actually happened — settle it when R2 goes to spec.
 
 ### P6-R3 — `/whats-on` is the public home page, showing a two-days-ago-onward window
 
@@ -241,7 +249,7 @@ not GL-account lines. The report should present the event in that shape so it ma
 
 1. **Sales Receipts** — money in, to a customer, by class:
    1. **Gate / attendance receipt FIRST** — customer **Contra Gate** / **English Gate**: admission (cash+card)
-      + merchandise, gift card, misc sales; with the card gross/fee verification.
+      plus merchandise, gift card, misc sales; with the card gross/fee verification.
    2. **Named receipts** — donation · advance ticket (`future_event`) · membership → each **named customer**.
 2. **Bills** — owed to a vendor:
    - **Venue rent → landlord.** Shown as a bill to record; **NOT paid by the FS** — no check line here (rent is
@@ -281,6 +289,9 @@ payment was stored with `check_number = NULL` and there is **no way to fix it** 
 - Print/handoff format unchanged (the page has a Print button) vs. a new layout for the reorganized sections.
 - Does the Bills section list **only rent**, or is it the future home for other event bills (B42 organizer
   reimbursement, still deferred)?
+
+**Note:** schema-touching only via R6/R7's drops; R8 itself is a **report reshape** (service + page + tests).
+Ships with / after R6+R7 as part of the treasurer-report feature (`034`).
 
 ### P6-R9 — Treasurer report shows comp-admission + gift-card-redemption counts
 
@@ -348,11 +359,6 @@ Mary gets a **403** on the gate today. The payments page (030) has *add-settleme
 set in 030 for donate/settlement-performer (both narrow settlement ops the FS/Treasurer can do without
 `booking.write`). ⚠️ Confirm the 024 substitution semantics are unchanged (unpaid → clean re-point; paid → keep
 original as a `declined` no-show + fresh booking for the sub); only the **surface + gate** move.
-
-## 4. Defects folded in
-
-**Note:** schema-touching only via R6/R7's drops; R8 itself is a **report reshape** (service + page + tests).
-Ships with / after R6+R7 as part of the treasurer-report feature (`034`).
 
 ## 4. Defects folded in
 
