@@ -2,17 +2,19 @@
 
 > Single living doc — no versioned copies. Update in place each session.
 
-**Snapshot:** 2026-08-03 · **Repo:** `/Users/rcd/Repositories/zak1` · **Remote:**
-`github.com/DempseyCDR/zak1` · **Head:** `origin/main` at `954748f` (029 impl — **028 + 029 pushed**); local
-`main` is **4 commits ahead, unpushed**: `c2596bd` (030 planning) → `37a88d7` (030 impl) → `5b695fb` (031) →
-`cbc94ee` (032). **Phase 3 & Phase 4 COMPLETE; Phase 5 UNDERWAY.** Shipped through **032**: Phase 4 (021–025);
-**026/027** (structured name capture + backfill, R5); then Phase 5 — **028** shared event selector (P5-R1) ·
-**029** bookings report descending default (P5-R2) · **030** payments per-performer workflow (P5-R3) · **031**
-gate cash counting (P5-R4, migration `0029`) · **032** phone normalization (P5-R6, migration `0030`), plus a
-**gate data-loss fix** (`aea57c6`). **Remaining Phase 5: R7** (dedup page shows phone+email — consumes 032's
-`formatPhone`) and defect **D1** (`/payments` has no nav link — quick fix). Suite **659 tests / 201 files
-green**; clean build. The **Node-18 Bash gotcha is RESOLVED** (Bash runs Node 24; the stale Node 16 was
-purged). Purpose: seed a fresh session to continue work on zak1 (CDR).
+**Snapshot:** 2026-08-04 · **Repo:** `/Users/rcd/Repositories/zak1` · **Remote:**
+`github.com/DempseyCDR/zak1` · **Head:** `origin/main` at `ea89f64` (033 impl). **Local `main` and
+`origin/main` are in sync — nothing unpushed** (the 030→033 chain was pushed `954748f..ea89f64`).
+**Phases 3, 4, and 5 all COMPLETE; Phase 6 UNDERWAY (requirements collection only — no specs yet).** Shipped
+through **033**: Phase 4 (021–025); **026/027** (structured name capture + backfill, R5); then Phase 5 — **028**
+shared event selector (P5-R1) · **029** bookings report descending default (P5-R2) · **030** payments
+per-performer workflow (P5-R3) · **031** gate cash counting (P5-R4, migration `0029`) · **032** phone
+normalization (P5-R6, migration `0030`) · **033** dedup review shows phone+email (P5-R7, display-only, no
+migration), plus a **gate data-loss fix** (`aea57c6`). **Phase 5's R-items R1–R7 are all delivered.** Defect
+**D1** (`/payments` has no nav link) is **deferred into Phase 6** — it is the motivating symptom for the new
+navigation work (see §6). Suite **661 tests / 203 files green**; clean build. The **Node-18 Bash gotcha is
+RESOLVED** (Bash runs Node 24; the stale Node 16 was purged). Purpose: seed a fresh session to continue work on
+zak1 (CDR).
 
 ---
 
@@ -23,7 +25,7 @@ contra/English dance club): contacts & membership, door attendance & gate money,
 treasurer & organizer reports, mailing-list exports, a public website, staff auth, authorization, check-in,
 booking & event management, membership acquisition (door + online), the Booker's booking-report/modal UX, and
 the Financial-Secretary payment substrate.
-**32 features shipped (001–032).** Money is always **integer cents**. Single tenant (multi-tenant deferred).
+**33 features shipped (001–033).** Money is always **integer cents**. Single tenant (multi-tenant deferred).
 
 > **Naming:** `zak1` is the internal codename; the club-facing name is **cdrochester** (what Google's
 > consent screen shows). No rename wanted.
@@ -64,8 +66,8 @@ set +a`.
   test; snapshot `~/zak1_pre_0030.dump`. `0029_gate_sales_note.sql` (031, P5-R4) added nullable
   `gate_sales.note` (the anonymous-sales comment) — additive, no backfill. `0028_backfill_contact_names.sql`
   (027, R5-P2) re-split mis-split contact names at the last space (guarded by `last_name IS NULL`; snapshot
-  `~/zak1_pre_0028.dump`). **Features 024, 025, 026, 028, 029, 030 add NO migration** (UI/operations over the
-  existing schema). `0027_payment_allocation_and_voids.sql` (023) =
+  `~/zak1_pre_0028.dump`). **Features 024, 025, 026, 028, 029, 030, 033 add NO migration** (UI/operations over
+  the existing schema; 033 is display-only over the existing `contacts.phone` + `contact_emails`). `0027_payment_allocation_and_voids.sql` (023) =
   `payment_bookings.amount_cents` (per-line allocation,
   **backfilled** proportionally so lines sum to the check total) + `performer_payments` void columns
   (`voided_at`, `void_reason`, `replaces_payment_id`). `0026_drop_bookings_check_number.sql` (021) **removed**
@@ -80,12 +82,12 @@ set +a`.
 ## 4. Tests & governance
 
 Pipeline `/speckit-specify → clarify → plan → tasks → analyze → implement`. Active pointer
-`.specify/feature.json` → **`specs/032-phone-normalization`** (shipped). **Constitution v1.3.0** (non-negotiable):
+`.specify/feature.json` → **`specs/033-dedup-phone-email`** (shipped). **Constitution v1.3.0** (non-negotiable):
 I Test-First (Red-Green-Refactor), II YAGNI, III Type Safety (Zod at boundaries), IV Observability.
 Testing standard: integration against **real** local infra; DBs never mocked; third-party services (Google,
-PayPal) exercised at their **boundary**, never production endpoints. **Suite: 659 tests / 201 files green
-through 032**. tsc, eslint, markdownlint, prettier, production build all clean on Next 16. Recent features
-ship **planning + implementation in one atomic commit** (031, 032); earlier ones split planning/impl.
+PayPal) exercised at their **boundary**, never production endpoints. **Suite: 661 tests / 203 files green
+through 033**. tsc, eslint, markdownlint, prettier, production build all clean on Next 16. Recent features
+ship **planning + implementation in one atomic commit** (031, 032, 033); earlier ones split planning/impl.
 
 **⚠️ Two test types (feature 020, closes analyze finding C1):**
 
@@ -150,7 +152,7 @@ tests/{unit,integration,component}/
 **Phase 4** notes: `zak1-phase4-requirements.md` (umbrella), `zak1-phase4-fs-payments-draft.md`,
 `zak1-phase4-meg-checkin-notes.md`.
 
-## 6. Implementation status (001–032)
+## 6. Implementation status (001–033)
 
 Phase 1 (001–009) · Phase 2 (010–014) · **Phase 3 COMPLETE: 015 auth · 016 authz · 017 check-in · 018
 booking/event mgmt · 019 payments & membership** · **Phase 4 COMPLETE: 020 Booker experience (P4-1) · 021 drop
@@ -159,16 +161,48 @@ booking/event mgmt · 019 payments & membership** · **Phase 4 COMPLETE: 020 Boo
 experience (Area C — per-record roster corrections + selection/entry polish; no migration)** — all
 **implemented and pushed**. **Nothing outstanding in Phase 4** (Areas A–D all delivered).
 
-**Phase 5 (UNDERWAY):** requirements collected in **`zak1_Phase5_Requirements.md`** (P5-R1..R7 + defects D1/D2;
+**Phase 5 (COMPLETE):** requirements collected in **`zak1_Phase5_Requirements.md`** (P5-R1..R7 + defects D1/D2;
 all questions Q1–Q14 resolved). **Shipped: D2** gate data-loss fix (`aea57c6`); **026/027** structured name
 capture + backfill (R5, migration `0028`); **028** shared event selector (P5-R1, no migration — adopted on
 check-in/gate/payments/treasurer, in-page state, treasurer moved to a single `/treasurer` page); **029**
 bookings report descending default (P5-R2, no migration); **030** payments per-performer workflow (P5-R3, no
 migration); **031** gate cash counting (P5-R4, migration `0029` `gate_sales.note`); **032** phone
-normalization (P5-R6, migration `0030`). **Remaining Phase 5: R7** (dedup page shows phone+email — display
-only; consumes 032's `formatPhone`; matching stays deferred) and defect **D1** (`/payments` has no nav link —
-quick fix; `/treasurer/latest` was already fixed in 028). Backlog: **B43** (simplify `is_donated` model —
-deferred during 030) and dedup phone/email matching.
+normalization (P5-R6, migration `0030`); **033** dedup review shows phone+email (P5-R7, display-only, no
+migration). **All R-items R1–R7 delivered.** Deferred out of Phase 5: dedup phone/email **matching** (Q14),
+backlog **B43** (simplify `is_donated` model — deferred during 030), and defect **D1** (`/payments` has no nav
+link — rehomed to Phase 6, see below).
+
+**Phase 6 (UNDERWAY — collecting requirements, no specs yet):** requirements gathered in
+**`zak1_Phase6_Requirements.md`** (started 2026-08-04). **R1–R12 + defects D1/D3**, across four threads:
+
+- **Navigation** — **R1** public-pages menu (top of every page) · **R2** volunteer-pages menu (second bar when
+  signed in; **subsumes D1**). D1 is a symptom: the volunteer nav (`navItemsFor` in `src/server/auth/nav.ts`,
+  rendered by `src/app/Nav.tsx`) is a **hand-maintained `NAV` array**, so `/payments` was never added. Key
+  spec-time question: **generate the menus from the source tree** (like the dev route index,
+  `src/server/lib/routeInventory.ts`) so the D1 class can't recur.
+- **Public event listings** — **R3** `/whats-on` becomes the public **home page**, window = **two days ago
+  onward**, ascending · **R4** new `/what-was-on` **history** (`< today`, desc) · **R5** **series filter** on
+  both. Decided: both link to `/whats-on/[eventId]`; R3/R4 overlap is deliberate.
+- **Treasurer report rework (→ feature `034`)** — **R6** purge unused `non_dance_income` (3 yrs / 0 entries) ·
+  **R7** purge `account_mapping` GL-code-per-line annotation (**keep `series_qbo_map`** — it's the Contra/English
+  Gate customer + class model) · **R8** **restructure the report to mirror QBO data entry**: Sales Receipts
+  (attendance receipt first) → Bills (rent → landlord, *not paid by FS*) → Performer Payments (one section) →
+  Deposit → Fees; community-dance gate = its own series → own per-event receipt to Contra Gate (no special code);
+  rent Bill fully derived (event rent + venue landlord) · **R9** show comp-admission + gift-card-redemption
+  counts (data already in `door_records`).
+- **Door & reporting tweaks** — **R10** gift-card option when checking in a **new** contact (comp already there;
+  gift missing on that path) · **R11** organizer report shows **band name** + member detail pop-up (today shows
+  joined member names) · **R12** move performer **substitution** from `/gate` to `/payments` (re-gate
+  `/api/bookings/[id]/substitute` to `performer_payment.write`, the 030 precedent; also fixes the FS's current
+  403 on gate).
+
+**Defect D3 (found in real use, → `034`):** a **multi-booking check** on `/payments` can be saved with **no
+check number** (the multi-apply popup skips the per-row FR-014 checkless-comment guard) and its check number is
+then **un-editable** (inline Edit gated to `lines.length === 1`), so the treasurer report showed a **dash** for a
+real check. Fix: (a) allow editing check# on multi-line payments; (b) apply the FR-014 checkless-comment guard to
+the multi popup (**checkless-comment option stays — do NOT force a check#**, user-confirmed). **Data already
+corrected** in `zak1_dev`: payment `65fdeb94…` (event `7e9a83e7…`, 7/9/2026) `check_number` set to **`1792`**
+(was NULL) — Clara's one check covers Clara $50 + Micah $50.
 
 ## 7. Load-bearing decisions (do not undo without reading why)
 
@@ -319,6 +353,15 @@ passthrough) in `src/server/domain/contacts/phone.ts` — delivered + unit-teste
 surface displays a phone today). Backfill `0030` (values-only, idempotent) pinned to `normalizePhone` by a
 parity test. Matching unchanged (Q14 deferred). ⚠️ Three existing tests updated to the canonical value.
 
+**033 dedup review shows phone+email (P5-R7, SHIPPED `ea89f64`, no migration):** the `/dedup` review queue now
+shows each candidate's **phone + active email(s)** so a reviewer can tell a real duplicate from a coincidental
+same-name match. `getMergeSuggestions` gained `phone` (from `contacts.phone`, canonical since 032) and `emails`
+(active addresses via one `ARRAY(SELECT … status='active')` subquery) per candidate; the page renders the phone
+dashed via **`formatPhone`** (032's **first live consumer**) with explicit "no phone"/"no email" fallbacks.
+**Display-only:** the pairs query's JOIN/WHERE/ORDER are untouched (a test asserts the pair set is unchanged);
+**matching on phone/email stays deferred (Q14).** No schema, no migration, no new endpoint. Test-first:
+integration (payload + matching-unchanged) + component (display).
+
 **018 booking/event mgmt:** `patchBooking` validates status transitions + re-point (change performerId →
 reset to `proposed`). Public shows only CONFIRMED bookings. Recurrence = every-N-weeks, independent rows,
 capped 60/run. Advertised price display-only.
@@ -410,12 +453,14 @@ pnpm run db:seed               # ⚠️ WIPES zak1_dev — do NOT run
 
 ## 14. Uncommitted / unpushed at handoff
 
-**`origin/main` is at `954748f` (029 impl); 028 + 029 are pushed.** Local `main` is **4 commits ahead,
-unpushed**: `c2596bd` (030 planning) → `37a88d7` (030 impl) → `5b695fb` (031, planning+impl in one) →
-`cbc94ee` (032, planning+impl in one). Migrations `0029` (031) and `0030` (032) are applied to `zak1_dev`
-(snapshots `~/zak1_pre_0030.dump`). Working tree otherwise clean (this context-doc update is uncommitted).
-**To resume: R7** (dedup page shows phone + email — display-only, consumes 032's `formatPhone` and returns the
-contact's emails per candidate; matching stays deferred) or the quick **D1** fix (add a `/payments` nav link
-in `src/server/auth/nav.ts`). **Then push** the unpushed chain (030 planning + 030 + 031 + 032 + this doc).
-Recent features ship **planning + implementation in one atomic commit** (031, 032). Commits are SSH-signed via
-1Password (unlock if a commit fails with "1Password: failed to fill whole buffer").
+**`origin/main` is at `033` (`ea89f64`); the 030→033 chain (`954748f..ea89f64`) was pushed 2026-08-04.** After
+that, a **docs-only commit** landed the **Phase 6 requirements collection** — `zak1_Phase6_Requirements.md` (new,
+R1–R12 + defects D1/D3) **and** this context-doc update — pushed to `origin/main`. **No code changes** in that
+commit; **no specs written yet** (Phase 6 is still requirements-collection). ⚠️ **markdownlint was deliberately
+skipped** on these two markdown files (user deferred it) — run it before the next markdown-touching commit.
+Migrations `0029` (031) and `0030` (032) are applied to `zak1_dev` (snapshots `~/zak1_pre_0030.dump`).
+**Operational note:** a one-off `zak1_dev` data fix set payment `65fdeb94…`.`check_number` = `1792` (D3; was
+NULL) — data only, not in git. **To resume: Phase 6 collection continues, or start specs** — the treasurer
+report rework (R6+R7+R8+R9) and defect D3 are earmarked as feature **`034`**. Recent features ship **planning +
+implementation in one atomic commit** (031, 032, 033). Commits are SSH-signed via 1Password (unlock if a commit
+fails with "1Password: failed to fill whole buffer").
