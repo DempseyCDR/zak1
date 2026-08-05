@@ -2,19 +2,19 @@
 
 > Single living doc — no versioned copies. Update in place each session.
 
-**Snapshot:** 2026-08-04 · **Repo:** `/Users/rcd/Repositories/zak1` · **Remote:**
-`github.com/DempseyCDR/zak1` · **Head:** `origin/main` at `ea89f64` (033 impl). **Local `main` and
-`origin/main` are in sync — nothing unpushed** (the 030→033 chain was pushed `954748f..ea89f64`).
-**Phases 3, 4, and 5 all COMPLETE; Phase 6 UNDERWAY (requirements collection only — no specs yet).** Shipped
-through **033**: Phase 4 (021–025); **026/027** (structured name capture + backfill, R5); then Phase 5 — **028**
-shared event selector (P5-R1) · **029** bookings report descending default (P5-R2) · **030** payments
-per-performer workflow (P5-R3) · **031** gate cash counting (P5-R4, migration `0029`) · **032** phone
-normalization (P5-R6, migration `0030`) · **033** dedup review shows phone+email (P5-R7, display-only, no
-migration), plus a **gate data-loss fix** (`aea57c6`). **Phase 5's R-items R1–R7 are all delivered.** Defect
-**D1** (`/payments` has no nav link) is **deferred into Phase 6** — it is the motivating symptom for the new
-navigation work (see §6). Suite **661 tests / 203 files green**; clean build. The **Node-18 Bash gotcha is
-RESOLVED** (Bash runs Node 24; the stale Node 16 was purged). Purpose: seed a fresh session to continue work on
-zak1 (CDR).
+**Snapshot:** 2026-08-05 · **Repo:** `/Users/rcd/Repositories/zak1` · **Remote:**
+`github.com/DempseyCDR/zak1` · **Head:** local `main` at the **039-planning** commit. ⚠️ **`origin/main` is at
+`31a2e9b` (036) — local is 5 commits AHEAD, UNPUSHED**: 037 planning `e89c7fb` → 037 impl `6ef28dc` → 038
+planning `eadc939` → 038 impl `50a69e1` → **039 planning** (this doc's commit). **039 is spec+plan+tasks only —
+NOT implemented.**
+**Phases 3, 4, 5 COMPLETE; Phase 6 UNDERWAY (now BUILDING via SpecKit, not just collecting).** Phase 5 shipped
+through **033**. **Phase 6 shipped so far (034–038):** **034** public nav menu (P6-R1) · **035** volunteer nav
+menu (P6-R2, subsumes D1) · **036** `/whats-on` two-days-ago window (P6-R3) · **037** `/what-was-on` history +
+series filter (P6-R4+R5) · **038** drop `non_dance_income` (P6-R6, migration `0031`, first destructive removal).
+**In flight: 039** drop `account_mapping` (P6-R7) — spec+plan+tasks done, NOT implemented. **Remaining Phase 6:**
+R8 (treasurer report restructure) · R9 (comp/gift counts) · defect **D3** (payments multi-booking check-number
+capture/edit). Suite **689 tests / 210 files green**; clean build. The **Node-18 Bash gotcha is RESOLVED** (Bash
+runs Node 24; the stale Node 16 was purged). Purpose: seed a fresh session to continue work on zak1 (CDR).
 
 ---
 
@@ -25,7 +25,8 @@ contra/English dance club): contacts & membership, door attendance & gate money,
 treasurer & organizer reports, mailing-list exports, a public website, staff auth, authorization, check-in,
 booking & event management, membership acquisition (door + online), the Booker's booking-report/modal UX, and
 the Financial-Secretary payment substrate.
-**33 features shipped (001–033).** Money is always **integer cents**. Single tenant (multi-tenant deferred).
+**38 features shipped (001–038); 039 in flight (planned, not implemented).** Money is always **integer cents**.
+Single tenant (multi-tenant deferred).
 
 > **Naming:** `zak1` is the internal codename; the club-facing name is **cdrochester** (what Google's
 > consent screen shows). No rename wanted.
@@ -61,13 +62,14 @@ set +a`.
 - **`zak1_test`** (`TEST_DATABASE_URL`) — auto-migrated; `resetDb()` TRUNCATEs (list includes the 019/020
   tables).
 - **Migrations:** additive SQL in `src/server/db/migrations/`, `pnpm run db:migrate`. **Latest =
-  `0030_normalize_contact_phones.sql`** (032, P5-R6) — a values-only idempotent `UPDATE` normalizing
-  `contacts.phone` to canonical E.164 (unparseable left raw); pinned to the TS `normalizePhone` by a parity
-  test; snapshot `~/zak1_pre_0030.dump`. `0029_gate_sales_note.sql` (031, P5-R4) added nullable
-  `gate_sales.note` (the anonymous-sales comment) — additive, no backfill. `0028_backfill_contact_names.sql`
-  (027, R5-P2) re-split mis-split contact names at the last space (guarded by `last_name IS NULL`; snapshot
-  `~/zak1_pre_0028.dump`). **Features 024, 025, 026, 028, 029, 030, 033 add NO migration** (UI/operations over
-  the existing schema; 033 is display-only over the existing `contacts.phone` + `contact_emails`). `0027_payment_allocation_and_voids.sql` (023) =
+  `0031_drop_non_dance_income.sql`** (038, P6-R6) — a **destructive** `DROP TABLE IF EXISTS non_dance_income`
+  (idempotent; the first destructive migration; snapshot `~/zak1_pre_0031.dump`). **039 (P6-R7, planned) will add
+  `0032_drop_account_mapping.sql`** (`DROP TABLE IF EXISTS account_mapping`, snapshot `~/zak1_pre_0032.dump`).
+  `0030_normalize_contact_phones.sql` (032, P5-R6) normalized `contacts.phone` to E.164 (snapshot
+  `~/zak1_pre_0030.dump`). `0029_gate_sales_note.sql` (031) added nullable `gate_sales.note`.
+  `0028_backfill_contact_names.sql` (027) re-split mis-split contact names (snapshot `~/zak1_pre_0028.dump`).
+  **Phase 6 features 034/035/036/037 add NO migration** (UI/domain over the existing schema); 038 is the first
+  destructive one (0031). `0027_payment_allocation_and_voids.sql` (023) =
   `payment_bookings.amount_cents` (per-line allocation,
   **backfilled** proportionally so lines sum to the check total) + `performer_payments` void columns
   (`voided_at`, `void_reason`, `replaces_payment_id`). `0026_drop_bookings_check_number.sql` (021) **removed**
@@ -76,18 +78,21 @@ set +a`.
   `0024_payments_membership.sql` (019) added `performer_payments`, `payment_bookings`, `membership_captures`,
   `paypal_notifications`, `club_settings.membership_year_end`, `memberships.source_*` indexes.
 - **`pnpm run db:seed` TRUNCATEs `zak1_dev`** — never run it; it is not a migration rollback.
-- **Snapshots on disk:** `~/zak1_pre_0024.dump` … `~/zak1_pre_0028.dump`, `~/zak1_pre_0030.dump` (pre-migration
-  safety copies for the data migrations).
+- **Snapshots on disk:** `~/zak1_pre_0024.dump` … `~/zak1_pre_0028.dump`, `~/zak1_pre_0030.dump`,
+  `~/zak1_pre_0031.dump` (pre-migration safety copies; 0032 snapshot taken at 039 implement time).
 
 ## 4. Tests & governance
 
 Pipeline `/speckit-specify → clarify → plan → tasks → analyze → implement`. Active pointer
-`.specify/feature.json` → **`specs/033-dedup-phone-email`** (shipped). **Constitution v1.3.0** (non-negotiable):
+`.specify/feature.json` → **`specs/039-drop-account-mapping`** (planned, not implemented). **Constitution v1.3.0**
+(non-negotiable):
 I Test-First (Red-Green-Refactor), II YAGNI, III Type Safety (Zod at boundaries), IV Observability.
 Testing standard: integration against **real** local infra; DBs never mocked; third-party services (Google,
-PayPal) exercised at their **boundary**, never production endpoints. **Suite: 661 tests / 203 files green
-through 033**. tsc, eslint, markdownlint, prettier, production build all clean on Next 16. Recent features
-ship **planning + implementation in one atomic commit** (031, 032, 033); earlier ones split planning/impl.
+PayPal) exercised at their **boundary**, never production endpoints. **Suite: 689 tests / 210 files green
+through 038**. tsc, eslint, markdownlint, prettier, production build all clean on Next 16. ⚠️ **Phase 6 process
+change:** features 034–039 ship as **TWO commits each** — a `NNN planning` commit (spec+plan+tasks after
+`/speckit-analyze`) then a `NNN impl` commit — run through the full SpecKit pipeline (specify→clarify→plan→
+tasks→analyze→implement) per feature. (031/032/033 used one atomic commit; the split resumed with 034.)
 
 **⚠️ Two test types (feature 020, closes analyze finding C1):**
 
@@ -152,7 +157,7 @@ tests/{unit,integration,component}/
 **Phase 4** notes: `zak1-phase4-requirements.md` (umbrella), `zak1-phase4-fs-payments-draft.md`,
 `zak1-phase4-meg-checkin-notes.md`.
 
-## 6. Implementation status (001–033)
+## 6. Implementation status (001–038; 039 planned)
 
 Phase 1 (001–009) · Phase 2 (010–014) · **Phase 3 COMPLETE: 015 auth · 016 authz · 017 check-in · 018
 booking/event mgmt · 019 payments & membership** · **Phase 4 COMPLETE: 020 Booker experience (P4-1) · 021 drop
@@ -172,37 +177,40 @@ migration). **All R-items R1–R7 delivered.** Deferred out of Phase 5: dedup ph
 backlog **B43** (simplify `is_donated` model — deferred during 030), and defect **D1** (`/payments` has no nav
 link — rehomed to Phase 6, see below).
 
-**Phase 6 (UNDERWAY — collecting requirements, no specs yet):** requirements gathered in
-**`zak1_Phase6_Requirements.md`** (started 2026-08-04). **R1–R12 + defects D1/D3**, across four threads:
+**Phase 6 (UNDERWAY — BUILDING):** requirements in **`zak1_Phase6_Requirements.md`** (R1–R12 + defects D1/D3).
+Each R-item goes through the full SpecKit pipeline as its own feature. **Requirement → feature map:**
 
-- **Navigation** — **R1** public-pages menu (top of every page) · **R2** volunteer-pages menu (second bar when
-  signed in; **subsumes D1**). D1 is a symptom: the volunteer nav (`navItemsFor` in `src/server/auth/nav.ts`,
-  rendered by `src/app/Nav.tsx`) is a **hand-maintained `NAV` array**, so `/payments` was never added. Key
-  spec-time question: **generate the menus from the source tree** (like the dev route index,
-  `src/server/lib/routeInventory.ts`) so the D1 class can't recur.
-- **Public event listings** — **R3** `/whats-on` becomes the public **home page**, window = **two days ago
-  onward**, ascending · **R4** new `/what-was-on` **history** (`< today`, desc) · **R5** **series filter** on
-  both. Decided: both link to `/whats-on/[eventId]`; R3/R4 overlap is deliberate.
-- **Treasurer report rework (→ feature `034`)** — **R6** purge unused `non_dance_income` (3 yrs / 0 entries) ·
-  **R7** purge `account_mapping` GL-code-per-line annotation (**keep `series_qbo_map`** — it's the Contra/English
-  Gate customer + class model) · **R8** **restructure the report to mirror QBO data entry**: Sales Receipts
-  (attendance receipt first) → Bills (rent → landlord, *not paid by FS*) → Performer Payments (one section) →
-  Deposit → Fees; community-dance gate = its own series → own per-event receipt to Contra Gate (no special code);
-  rent Bill fully derived (event rent + venue landlord) · **R9** show comp-admission + gift-card-redemption
-  counts (data already in `door_records`).
-- **Door & reporting tweaks** — **R10** gift-card option when checking in a **new** contact (comp already there;
-  gift missing on that path) · **R11** organizer report shows **band name** + member detail pop-up (today shows
-  joined member names) · **R12** move performer **substitution** from `/gate` to `/payments` (re-gate
-  `/api/bookings/[id]/substitute` to `performer_payment.write`, the 030 precedent; also fixes the FS's current
-  403 on gate).
+- **Navigation** — **R1 → 034** (public-pages menu, rendered once from the ROOT layout on every page; hand-
+  maintained `PUBLIC_NAV`; generation deferred to backlog **B44**). **R2 → 035** (volunteer menu, moved to the
+  root layout too — on every page when signed in; **completeness guard** `auth.navCompleteness.test` walks the
+  `(admin)`/`(door)` page tree so no page can be orphaned; **subsumes D1** — `/payments` + 4 other orphans added
+  to `NAV`; `/dev/routes` allowlisted). **Both SHIPPED.**
+- **Public event listings** — **R3 → 036** (`/whats-on` window = two-days-ago-onward, ascending;
+  `homeWindowStart` helper). **R4+R5 → 037** (new `/what-was-on` history `< today` desc + server-rendered
+  `?series=` filter on both listings; shared `ScheduleList`/`SeriesFilter`; internal `listPublicEvents`;
+  `/what-was-on` added to `PUBLIC_NAV`). **Both SHIPPED.**
+- **Treasurer report rework** — **R6 → 038 SHIPPED** (purge `non_dance_income`, migration `0031` DROP TABLE;
+  `account_mapping` table kept, only its seed row removed). **R7 → 039 PLANNED (spec+plan+tasks, NOT
+  implemented):** purge the `account_mapping` GL-code-per-line annotation (migration `0032` DROP TABLE) —
+  **keep `series_qbo_map`** (customer + class) and `mapping_audit`; the report keeps its shape minus the account
+  column. **R8 NOT STARTED** — restructure the report to mirror QBO data entry (Sales Receipts [attendance
+  receipt first] → Bills [rent → landlord, *not paid by FS*] → Performer Payments [one section] → Deposit → Fees;
+  community-dance gate = own series → own receipt to Contra Gate; rent Bill derived from event rent + venue
+  landlord). **R9 NOT STARTED** — show comp-admission + gift-card-redemption counts (data already in
+  `door_records`).
+- **Door & reporting tweaks (NOT STARTED)** — **R10** gift-card option when checking in a **new** contact ·
+  **R11** organizer report shows **band name** + member detail pop-up · **R12** move performer **substitution**
+  from `/gate` to `/payments` (re-gate `/api/bookings/[id]/substitute` to `performer_payment.write`, the 030
+  precedent; also fixes the FS's current 403 on gate).
 
-**Defect D3 (found in real use, → `034`):** a **multi-booking check** on `/payments` can be saved with **no
-check number** (the multi-apply popup skips the per-row FR-014 checkless-comment guard) and its check number is
-then **un-editable** (inline Edit gated to `lines.length === 1`), so the treasurer report showed a **dash** for a
-real check. Fix: (a) allow editing check# on multi-line payments; (b) apply the FR-014 checkless-comment guard to
-the multi popup (**checkless-comment option stays — do NOT force a check#**, user-confirmed). **Data already
-corrected** in `zak1_dev`: payment `65fdeb94…` (event `7e9a83e7…`, 7/9/2026) `check_number` set to **`1792`**
-(was NULL) — Clara's one check covers Clara $50 + Micah $50.
+**Defect D3 (found in real use, NOT YET FIXED — a future feature in the treasurer/payments thread):** a
+**multi-booking check** on `/payments` can be saved with **no check number** (the multi-apply popup skips the
+per-row FR-014 checkless-comment guard) and its check number is then **un-editable** (inline Edit gated to
+`lines.length === 1`), so the treasurer report showed a **dash** for a real check. Fix: (a) allow editing check#
+on multi-line payments; (b) apply the FR-014 checkless-comment guard to the multi popup (**checkless-comment
+option stays — do NOT force a check#**, user-confirmed). **Data already corrected** in `zak1_dev` (not in git):
+payment `65fdeb94…` (event `7e9a83e7…`, 7/9/2026) `check_number` set to **`1792`** (was NULL) — Clara's one check
+covers Clara $50 + Micah $50.
 
 ## 7. Load-bearing decisions (do not undo without reading why)
 
@@ -362,6 +370,55 @@ dashed via **`formatPhone`** (032's **first live consumer**) with explicit "no p
 **matching on phone/email stays deferred (Q14).** No schema, no migration, no new endpoint. Test-first:
 integration (payload + matching-unchanged) + component (display).
 
+**034 public nav menu (P6-R1, SHIPPED):** `PublicNav` (`"use client"`, `aria-label="Site"`) rendered once from
+the **root layout** (`src/app/layout.tsx`) so it's the topmost bar on **every** page (public + admin + door) —
+structural, not per-group. Entries are a hand-maintained typed array `src/app/publicNavItems.ts` (`PUBLIC_NAV`;
+generation deferred to backlog **B44**); active-section via `usePathname`; **presentation only, never authz**.
+⚠️ `PublicNav.tsx` vs `publicNav.ts` collided on the case-insensitive macOS FS → the data module is
+**`publicNavItems.ts`** (not `publicNav.ts`). The `(public)` layout's wordmark header was removed (PublicNav
+supplies it). No DB/API.
+
+**035 volunteer nav menu (P6-R2, SHIPPED; subsumes D1):** the role-aware volunteer nav moved from the
+`(admin)`/`(door)` layouts to the **root layout** (every page when signed in, second bar `aria-label="Main"`;
+also **retired 025's home-page staff-nav** — `page.tsx` no longer renders `<Nav/>`). `Nav.tsx` = server loader
+(nullable **`getActor()`** → null when anonymous → `navItemsFor`) → client `VolunteerNav.tsx` (active-state).
+**Completeness guard** `tests/integration/auth.navCompleteness.test.ts` + `staffPageRoutes()` in `routeInventory`
+walk the `(admin)`/`(door)` page tree and **fail on any orphan** — so D1 can't recur (hand-maintained `NAV` kept,
+per clarify A). The audit found **5 orphans**, all added to `NAV`: `/payments` (`performer_payment.write`),
+`/bookings-report` (`booking.write` — flip to `base` if it should be a universal oversight report),
+`/venue-rents`, `/door-parameters`. Dynamic `/organizer/[seriesKey]` + outside-group `/dev/routes` are documented
+exclusions/allowlist.
+
+**036 What's On window (P6-R3, SHIPPED, no migration):** `/whats-on` lower bound moved from `today()` to
+**two calendar days ago** via a pure `homeWindowStart(day, lookbackDays=2)` (UTC, rollover-safe) in
+`publicSchedule.ts`; `getPublicSchedule`'s default `from` = `homeWindowStart(today())`. Recent + upcoming,
+ascending. The last-two-days overlap with `/what-was-on` (037) is **deliberate**.
+
+**037 history + series filter (P6-R4+R5, SHIPPED, no migration):** new public `/what-was-on` (dances `< today`,
+desc) + a **server-rendered `?series=<key>` filter** on **both** listings (no client bundle). A shared internal
+`listPublicEvents({from?,before?,seriesKey?,order})` backs `getPublicSchedule` (asc) + new `getPublicHistory`
+(desc), both with optional `seriesKey`; `listSeries` feeds the filter (all series). Shared server components
+`(public)/_components/ScheduleList.tsx` + `SeriesFilter.tsx`; `searchParams.series` threaded through both pages;
+`/what-was-on` added to `PUBLIC_NAV`. Both link rows to the shared `/whats-on/[eventId]` detail.
+
+**038 drop non_dance_income (P6-R6, SHIPPED, migration `0031` DROP TABLE — FIRST destructive):** removed the
+unused "treasurer enters non-dance income" capability (3 yrs, 0 entries; YAGNI). Deleted the table/schema/
+service/route/Zod + the treasurer-report `nonDanceIncome` section + the treasurer-page add-form; **kept the
+`account_mapping` table** (only its `non_dance_income` seed row + `account("non_dance_income")` lookup removed).
+Type-driven: `tsc` enumerates dangling refs. ⚠️ **Removal-migration pattern (reused by 039):** the destructive
+`DROP TABLE IF EXISTS` migration + the `resetDb` TRUNCATE-list edit land in the **same** step (else the suite
+errors truncating a dropped table); test-first via a migration idempotency test + `not.toHaveProperty` /
+section-absent assertions; snapshot `~/zak1_pre_NNNN.dump` first. ⚠️ deleting an API route under a running dev
+server leaves a **stale `.next/types/validator.ts`** that fails `tsc` — clear `.next/types` + recompile.
+
+**039 drop account_mapping (P6-R7, PLANNED — spec+plan+tasks done, NOT implemented, migration `0032`):** purge
+the GL-code-per-line annotation (dead: no calc, no export; the treasurer books sales-receipts/bills, QBO derives
+the account). Drop the `account_mapping` table + the `account()`/`loadAccountMap` machinery + the `account` field
+on **every** `TreasurerReport` line + the `/qbo-mapping` "Accounts" editor + its route/schema/`mappingKeyNotFound`.
+⚠️ **KEEP `series_qbo_map`** (customer + class) and `mapping_audit` — the report keeps `class`/`customer`, only
+the GL-account column goes; **no computed figure changes** (R7 is the annotation removal; the report **reshape**
+is R8, a separate feature).
+
 **018 booking/event mgmt:** `patchBooking` validates status transitions + re-point (change performerId →
 reset to `proposed`). Public shows only CONFIRMED bookings. Recurrence = every-N-weeks, independent rows,
 capped 60/run. Advertised price display-only.
@@ -417,7 +474,10 @@ first generalised picker; the 020 inline typeaheads remain bespoke but the patte
 ~~**B41** client 401 → `/login`~~ (✅ **shipped as 022**) · **B42** organizer expense reimbursement (pay a
 non-performer with no booking; **still deferred — it's the Treasurer's, confirmed out of 023**) · **B43**
 simplify the `is_donated` model (derive donation from `pay_cents=0` for payable types / nullable expected pay;
-**deferred during 030** — freeze-vs-dynamic + ~6-reader blast radius) · **B38**
+**deferred during 030** — freeze-vs-dynamic + ~6-reader blast radius) · **B44** static content pages / lightweight
+CMS (mission/values/history/FAQs; tabled 2026-08-04; recommended Tier-2 = a `content_pages` table + small admin
+on the existing auth; the 034 public menu would gain hand-maintained entries — the "generate the menu from
+published content" idea is deferred here too) · **B38**
 self-service login-email change. Deferred pre-Phase-3: **B1**
 group tickets · **B2** non-volunteer login · **007 US2** full online sales (019 B30 was deliberately narrower:
 membership only, one hosted button). **Also open:** `/bookings` page modal parity (kept its form flow in 020);
@@ -427,8 +487,8 @@ enforcing "every performer has a contact" as NOT NULL (a few nulls today).
 
 ```bash
 # Bash already runs Node 24 (nvm default) — no prefix needed. For psql/pg_dump: set -a; . ./.env; set +a
-pnpm run db:migrate            # apply migrations (0030 latest; already applied to zak1_dev)
-pnpm test                      # 659 green / 201 files (node + jsdom)
+pnpm run db:migrate            # apply migrations (0031 latest; already applied to zak1_dev)
+pnpm test                      # 689 green / 210 files (node + jsdom)
 pnpm exec vitest run tests/component/…   # run a component test (jsdom via docblock)
 pnpm exec tsc --noEmit         # typecheck
 pnpm run lint                  # eslint + markdownlint
@@ -453,14 +513,16 @@ pnpm run db:seed               # ⚠️ WIPES zak1_dev — do NOT run
 
 ## 14. Uncommitted / unpushed at handoff
 
-**`origin/main` is at `033` (`ea89f64`); the 030→033 chain (`954748f..ea89f64`) was pushed 2026-08-04.** After
-that, a **docs-only commit** landed the **Phase 6 requirements collection** — `zak1_Phase6_Requirements.md` (new,
-R1–R12 + defects D1/D3) **and** this context-doc update — pushed to `origin/main`. **No code changes** in that
-commit; **no specs written yet** (Phase 6 is still requirements-collection). ⚠️ **markdownlint was deliberately
-skipped** on these two markdown files (user deferred it) — run it before the next markdown-touching commit.
-Migrations `0029` (031) and `0030` (032) are applied to `zak1_dev` (snapshots `~/zak1_pre_0030.dump`).
+⚠️ **`origin/main` is at `31a2e9b` (036); local `main` is 5 commits AHEAD, UNPUSHED:** 037 planning `e89c7fb`
+→ 037 impl `6ef28dc` → 038 planning `eadc939` → 038 impl `50a69e1` → **039 planning** (spec+plan+tasks +
+`.specify/feature.json`/CLAUDE.md pointers + this context-doc update). **Push these** (034/035/036 already
+pushed). **039 is spec+plan+tasks only — NOT implemented** (analyze ran clean; G1/L1 remedied in `tasks.md`).
+Working tree clean after the 039-planning commit.
+Migrations through `0031` (038) are applied to `zak1_dev` (snapshots incl. `~/zak1_pre_0031.dump`).
 **Operational note:** a one-off `zak1_dev` data fix set payment `65fdeb94…`.`check_number` = `1792` (D3; was
-NULL) — data only, not in git. **To resume: Phase 6 collection continues, or start specs** — the treasurer
-report rework (R6+R7+R8+R9) and defect D3 are earmarked as feature **`034`**. Recent features ship **planning +
-implementation in one atomic commit** (031, 032, 033). Commits are SSH-signed via 1Password (unlock if a commit
-fails with "1Password: failed to fill whole buffer").
+NULL) — data only, not in git.
+**To resume:** `/speckit-implement` **039** (drop `account_mapping`; snapshot `~/zak1_pre_0032.dump` first), then
+**push the 5-commit chain**. **Phase 6 remaining after 039:** R8 (report restructure),
+R9 (comp/gift counts), R10/R11/R12 (door & reporting tweaks), defect D3 (payments check-number capture/edit).
+⚠️ **Phase 6 process:** two commits per feature (`NNN planning` then `NNN impl`), full SpecKit pipeline each.
+Commits are SSH-signed via 1Password (unlock if a commit fails with "1Password: failed to fill whole buffer").
