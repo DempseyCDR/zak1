@@ -240,11 +240,6 @@ async function main() {
       { lineKey: "rent", accountCode: "5420", accountName: "Facilities:Rent" },
       { lineKey: "fees", accountCode: "5810", accountName: "Bank Charges & Fees:PayPal Fees" },
       { lineKey: "deposit", accountCode: "1021", accountName: "ESL Checking" },
-      {
-        lineKey: "non_dance_income",
-        accountCode: "4910",
-        accountName: "Other Miscellaneous Revenue",
-      },
     ])
     .onConflictDoNothing({ target: accountMapping.lineKey });
 

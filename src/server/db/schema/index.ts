@@ -12,7 +12,6 @@ export * from "./performers";
 export * from "./bands";
 export * from "./bookings";
 export * from "./qboMapping";
-export * from "./nonDanceIncome";
 export * from "./treasurerAudit";
 export * from "./seriesParameters";
 export * from "./venueRents";

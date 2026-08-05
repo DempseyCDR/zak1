@@ -153,12 +153,10 @@ Each entry: plain-English definition, then **Files** (the code locations that ow
 ### Treasurer & organizer reports
 
 - **Treasurer report** — The per-event financial statement handed to bookkeeping.
-  **Files:** [`domain/treasurer/reportService.ts`](src/server/domain/treasurer/reportService.ts) · [`domain/treasurer/fees.ts`](src/server/domain/treasurer/fees.ts) · [`domain/treasurer/nonDanceIncomeService.ts`](src/server/domain/treasurer/nonDanceIncomeService.ts) · [`validation/treasurer.ts`](src/server/validation/treasurer.ts) · API `src/app/api/events/[id]/treasurer-report`, `…/non-dance-income` · UI `/treasurer/<eventId>`.
+  **Files:** [`domain/treasurer/reportService.ts`](src/server/domain/treasurer/reportService.ts) · [`domain/treasurer/fees.ts`](src/server/domain/treasurer/fees.ts) · [`validation/treasurer.ts`](src/server/validation/treasurer.ts) · API `src/app/api/events/[id]/treasurer-report` · UI `/treasurer`.
 - **QBO mapping** — Mapping of report lines/series to QuickBooks accounts & classes for manual
   copy/paste hand-off (online API is backlog B8).
   **Files:** [`schema/qboMapping.ts`](src/server/db/schema/qboMapping.ts) · [`domain/treasurer/mappingService.ts`](src/server/domain/treasurer/mappingService.ts) · API `src/app/api/qbo-mapping/…` · UI `/qbo-mapping`.
-- **Non-dance income** — Income for an event that isn't gate/admission.
-  **Files:** [`schema/nonDanceIncome.ts`](src/server/db/schema/nonDanceIncome.ts) · [`domain/treasurer/nonDanceIncomeService.ts`](src/server/domain/treasurer/nonDanceIncomeService.ts) · API `src/app/api/events/[id]/non-dance-income`.
 - **Online / processing fee (dormant)** — Fee calculator that stays dormant because online sales
   (007 US2) are deferred. **Files:** [`domain/treasurer/fees.ts`](src/server/domain/treasurer/fees.ts).
 - **Organizer report** — Per-event and trend analytics for a series organizer.

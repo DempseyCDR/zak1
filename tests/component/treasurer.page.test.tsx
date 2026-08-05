@@ -35,7 +35,6 @@ function report(eventId: string) {
     performerPayments: [],
     deposit: { account: "1000", amount: 0 },
     fees: { account: "6000", doorFee: 0, onlineFee: 0, total: 0 },
-    nonDanceIncome: { account: "4000", lines: [], total: 0 },
   };
 }
 
@@ -66,6 +65,9 @@ describe("TreasurerReportPage — /treasurer single page + selector (028)", () =
 
     // Defaults to the most recent event ≤ today and loads its report.
     expect(await screen.findByText(/Gate Sales Summary — Cust e_recent/)).toBeInTheDocument();
+
+    // Feature 038 (P6-R6): no non-dance-income section or entry form is rendered.
+    expect(screen.queryByText(/Non-Dance Income/i)).toBeNull();
 
     // Switching the selected event reloads the report.
     await user.selectOptions(screen.getByRole("combobox", { name: /^event$/i }), "e_old");

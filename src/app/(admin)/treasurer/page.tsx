@@ -36,11 +36,6 @@ type Report = {
   }[];
   deposit: { account: string; amount: number };
   fees: { account: string; doorFee: number; onlineFee: number; total: number };
-  nonDanceIncome: {
-    account: string;
-    lines: { description: string; amount: number; date: string }[];
-    total: number;
-  };
 };
 
 const money = (n: number) => `$${n.toFixed(2)}`;
@@ -53,9 +48,6 @@ export default function TreasurerReportPage() {
   const [eventId, setEventId] = useState("");
   const [report, setReport] = useState<Report | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [ndiDesc, setNdiDesc] = useState("");
-  const [ndiAmount, setNdiAmount] = useState("");
-  const [ndiDate, setNdiDate] = useState("");
 
   const load = useCallback(async () => {
     if (!eventId) {
@@ -76,21 +68,6 @@ export default function TreasurerReportPage() {
   useEffect(() => {
     void load();
   }, [load]);
-
-  async function addNonDanceIncome(e: React.FormEvent) {
-    e.preventDefault();
-    const res = await apiFetch(`/api/events/${eventId}/non-dance-income`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ description: ndiDesc, amount: Number(ndiAmount), entryDate: ndiDate }),
-    });
-    if (res.ok) {
-      setNdiDesc("");
-      setNdiAmount("");
-      setNdiDate("");
-      void load();
-    }
-  }
 
   return (
     <main style={{ padding: 24, maxWidth: 820 }}>
@@ -181,37 +158,6 @@ export default function TreasurerReportPage() {
             Door {money(report.fees.doorFee)} · Online {money(report.fees.onlineFee)} · Total{" "}
             {money(report.fees.total)} → {report.fees.account}
           </p>
-
-          <h2>Non-Dance Income</h2>
-          <ul>
-            {report.nonDanceIncome.lines.map((l, i) => (
-              <li key={i}>
-                {l.date} — {l.description}: {money(l.amount)}
-              </li>
-            ))}
-            {report.nonDanceIncome.lines.length === 0 && <li style={{ color: "#888" }}>None</li>}
-          </ul>
-          <p>
-            Total non-dance income: {money(report.nonDanceIncome.total)} →{" "}
-            {report.nonDanceIncome.account}
-          </p>
-          <form onSubmit={addNonDanceIncome} style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-            <input
-              placeholder="Description"
-              value={ndiDesc}
-              onChange={(e) => setNdiDesc(e.target.value)}
-            />
-            <input
-              placeholder="Amount"
-              value={ndiAmount}
-              onChange={(e) => setNdiAmount(e.target.value)}
-              style={{ width: 90 }}
-            />
-            <input type="date" value={ndiDate} onChange={(e) => setNdiDate(e.target.value)} />
-            <button type="submit" disabled={!ndiDesc || !ndiAmount || !ndiDate}>
-              Add non-dance income
-            </button>
-          </form>
 
           <button onClick={() => window.print()} style={{ marginTop: 16 }}>
             Print

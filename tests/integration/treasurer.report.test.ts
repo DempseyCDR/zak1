@@ -53,6 +53,9 @@ describe("GET /api/events/:id/treasurer-report", () => {
     const { status, body } = await report(evt.id);
     expect(status).toBe(200);
 
+    // Feature 038 (P6-R6): the non-dance-income section is removed from the report entirely.
+    expect(body).not.toHaveProperty("nonDanceIncome");
+
     // Gate summary: anonymous customer, admission mapped to 4210, gift_card to 2201 liability
     expect(body.gateSalesSummary.customer).toBe("Contra Gate");
     const adm = body.gateSalesSummary.lines.find(

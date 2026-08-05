@@ -32,7 +32,7 @@ Single Next.js + Postgres project — `src/server/**`, `src/app/**`, `tests/**`,
 
 **Purpose**: Safety snapshot before the destructive drop.
 
-- [ ] T001 Take the pre-migration snapshot: `set -a; . ./.env; set +a` then
+- [x] T001 Take the pre-migration snapshot: `set -a; . ./.env; set +a` then
   `pg_dump -Fc "$DATABASE_URL" -f ~/zak1_pre_0031.dump` (data-migration safety convention; FR-006).
 
 ---
@@ -54,42 +54,42 @@ green.
 
 ### Tests for User Story 1 (write FIRST — must FAIL before the removals)
 
-- [ ] T002 [P] [US1] Create `tests/integration/migration.dropNonDanceIncome.test.ts`: read + execute
+- [x] T002 [P] [US1] Create `tests/integration/migration.dropNonDanceIncome.test.ts`: read + execute
   `src/server/db/migrations/0031_drop_non_dance_income.sql` against the migrated test DB; assert
   `non_dance_income` is absent from `information_schema.tables`; execute the SQL a **second** time and assert no
   error (idempotent). Confirm it FAILS (migration file missing).
-- [ ] T003 [P] [US1] In `tests/integration/treasurer.report.test.ts`, add an assertion that the assembled
+- [x] T003 [P] [US1] In `tests/integration/treasurer.report.test.ts`, add an assertion that the assembled
   `TreasurerReport` has **no** `nonDanceIncome` property (`expect(report).not.toHaveProperty("nonDanceIncome")` —
   runtime, type-independent). Confirm it FAILS (report still has the section).
-- [ ] T004 [US1] In `tests/component/treasurer.page.test.tsx`, add an assertion that no "Non-Dance Income"
+- [x] T004 [US1] In `tests/component/treasurer.page.test.tsx`, add an assertion that no "Non-Dance Income"
   heading/form is rendered (e.g. `queryByText(/Non-Dance Income/i)` is null). Confirm it FAILS. (The mock-report
   `nonDanceIncome` fixture field is dropped together with the type field in T008 to avoid a tsc excess-property
   error.)
 
 ### Implementation for User Story 1
 
-- [ ] T005 [US1] Create `src/server/db/migrations/0031_drop_non_dance_income.sql` — `DROP TABLE IF EXISTS
+- [x] T005 [US1] Create `src/server/db/migrations/0031_drop_non_dance_income.sql` — `DROP TABLE IF EXISTS
   non_dance_income;` (drops the `non_dance_income_event` index with it; idempotent). Makes T002 pass. **In the
   same step** remove `non_dance_income` from the `resetDb` `TRUNCATE …` list in
   `tests/integration/helpers/db.ts` — once `0031` exists the test DB auto-drops the table on the next test run,
   so `resetDb` must NOT name it (else every subsequent test errors on a missing relation). Then apply:
   `pnpm run db:migrate` (zak1_dev; test DB auto-migrates).
-- [ ] T006 [P] [US1] Delete `src/server/db/schema/nonDanceIncome.ts` and remove its `export *` line from
+- [x] T006 [P] [US1] Delete `src/server/db/schema/nonDanceIncome.ts` and remove its `export *` line from
   `src/server/db/schema/index.ts`.
-- [ ] T007 [P] [US1] Delete `src/server/domain/treasurer/nonDanceIncomeService.ts` and
+- [x] T007 [P] [US1] Delete `src/server/domain/treasurer/nonDanceIncomeService.ts` and
   `src/app/api/events/[id]/non-dance-income/route.ts` (and the now-empty `non-dance-income` folder); remove
   `nonDanceIncomeCreateSchema` + `NonDanceIncomeCreateInput` from `src/server/validation/treasurer.ts`.
-- [ ] T008 [US1] Edit `src/server/domain/treasurer/reportService.ts`: remove the `nonDanceIncome` import, the
+- [x] T008 [US1] Edit `src/server/domain/treasurer/reportService.ts`: remove the `nonDanceIncome` import, the
   `ndiRows`/`ndiTotal` query, the `nonDanceIncome` section in the returned object (and its
   `account("non_dance_income")` lookup), and the `nonDanceIncome` field from the `TreasurerReport` type. Makes
   T003 pass; also drop the now-invalid `nonDanceIncome` fixture line in `tests/component/treasurer.page.test.tsx`.
-- [ ] T009 [US1] Edit `src/app/(admin)/treasurer/page.tsx`: remove the "Non-Dance Income" section render, the
+- [x] T009 [US1] Edit `src/app/(admin)/treasurer/page.tsx`: remove the "Non-Dance Income" section render, the
   add-entry `<form>` + `addNonDanceIncome` handler + its state, and the `nonDanceIncome` field from the page's
   local report type. Makes T004 pass.
-- [ ] T010 [US1] Remove the seeded `('non_dance_income','4910',…)` `account_mapping` row from
+- [x] T010 [US1] Remove the seeded `('non_dance_income','4910',…)` `account_mapping` row from
   `tests/integration/helpers/db.ts` **and** `src/server/db/seed.ts` (the `resetDb` TRUNCATE-list removal is done
   in T005). Delete `tests/integration/treasurer.non-dance-income.test.ts`.
-- [ ] T011 [US1] Remove the two non-dance-income entries from `docs/zak1_Help_Glossary.md`.
+- [x] T011 [US1] Remove the two non-dance-income entries from `docs/zak1_Help_Glossary.md`.
 
 **Checkpoint**: capability fully removed; migration guard + report + page tests green; other figures unchanged.
 
@@ -97,10 +97,10 @@ green.
 
 ## Phase 4: Polish & Cross-Cutting Concerns
 
-- [ ] T012 Run the full local gate: `pnpm exec tsc --noEmit && pnpm run lint && pnpm exec vitest run` — all
+- [x] T012 Run the full local gate: `pnpm exec tsc --noEmit && pnpm run lint && pnpm exec vitest run` — all
   green. `tsc` proves **no dangling references** remain (SC-005); the full suite proves no other treasurer figure
   changed (SC-004).
-- [ ] T013 (Optional) Manual check: sign in as Treasurer, open `/treasurer` for an event — confirm no
+- [x] T013 (Optional) Manual check: sign in as Treasurer, open `/treasurer` for an event — confirm no
   "Non-Dance Income" section/form and every other section present. (Staff-only page; the automated tests are the
   primary proof.)
 

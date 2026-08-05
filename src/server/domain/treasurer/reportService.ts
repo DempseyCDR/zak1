@@ -7,7 +7,6 @@ import {
   doorRecords,
   events,
   gateSales,
-  nonDanceIncome,
   paymentBookings,
   performerPayments,
   performers,
@@ -71,11 +70,6 @@ export type TreasurerReport = {
   performerReconciliation: { expected: number; actual: number; delta: number };
   deposit: { account: string; amount: number };
   fees: { account: string; doorFee: number; onlineFee: number; total: number };
-  nonDanceIncome: {
-    account: string;
-    lines: { description: string; amount: number; date: string }[];
-    total: number;
-  };
 };
 
 export async function assembleTreasurerReport(
@@ -268,9 +262,6 @@ export async function assembleTreasurerReport(
     };
   })();
 
-  const ndiRows = await db.select().from(nonDanceIncome).where(eq(nonDanceIncome.eventId, eventId));
-  const ndiTotal = ndiRows.reduce((a, r) => a + r.amountCents, 0);
-
   await db.insert(treasurerReportAudit).values({ eventId, actor });
   writeAudit({ kind: "treasurer_report.generated", actor, details: { eventId } });
 
@@ -294,15 +285,6 @@ export async function assembleTreasurerReport(
       doorFee: centsToDollars(door.posFeeCents),
       onlineFee: 0, // online orders arrive with feature 007
       total: centsToDollars(door.posFeeCents),
-    },
-    nonDanceIncome: {
-      account: account("non_dance_income"),
-      lines: ndiRows.map((r) => ({
-        description: r.description,
-        amount: centsToDollars(r.amountCents),
-        date: r.entryDate,
-      })),
-      total: centsToDollars(ndiTotal),
     },
   };
 }

@@ -16,7 +16,7 @@ export async function ensureSchema(): Promise<void> {
 
 /** Truncate all feature tables between tests (preserves club_settings seed). */
 export async function resetDb(): Promise<void> {
-  await sql`TRUNCATE role_grants, audit_events, staff_sessions, staff_identities, mailing_list_exports, series_parameters, series_parameter_audit, venue_rents, venue_rent_audit, misc_expenses, account_mapping, series_qbo_map, treasurer_report_audit, mapping_audit, non_dance_income, payment_bookings, performer_payments, paypal_notifications, membership_captures, band_members, bands, bookings, performers, door_record_audit, gate_sales, door_records, attendance, quarterly_attendance_counts, events, event_groups, venues, merge_audit, status_change_audit, memberships, payers, contact_emails, contacts RESTART IDENTITY CASCADE`;
+  await sql`TRUNCATE role_grants, audit_events, staff_sessions, staff_identities, mailing_list_exports, series_parameters, series_parameter_audit, venue_rents, venue_rent_audit, misc_expenses, account_mapping, series_qbo_map, treasurer_report_audit, mapping_audit, payment_bookings, performer_payments, paypal_notifications, membership_captures, band_members, bands, bookings, performers, door_record_audit, gate_sales, door_records, attendance, quarterly_attendance_counts, events, event_groups, venues, merge_audit, status_change_audit, memberships, payers, contact_emails, contacts RESTART IDENTITY CASCADE`;
   // series + QBO mapping are config (seeded once); ensure they exist for tests
   await sql`INSERT INTO series (key, name, has_sound_tech) VALUES
     ('tnc','Thursday Night Contra',true),
@@ -38,8 +38,7 @@ export async function resetDb(): Promise<void> {
     ('sound_tech','5330','Program Staff:Sound Tech'),
     ('rent','5420','Facilities:Rent'),
     ('fees','5810','Bank Charges & Fees:PayPal Fees'),
-    ('deposit','1021','ESL Checking'),
-    ('non_dance_income','4910','Other Miscellaneous Revenue')
+    ('deposit','1021','ESL Checking')
     ON CONFLICT (line_key) DO NOTHING`;
   await sql`INSERT INTO series_qbo_map (series_id, gate_customer, qbo_class)
     SELECT id, CASE WHEN key='ecd' THEN 'English Gate' ELSE 'Contra Gate' END,
