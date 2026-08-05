@@ -50,6 +50,16 @@ describe("getPublicSchedule", () => {
     expect(schedule.map((s) => s.eventId)).not.toContain(older.id);
   });
 
+  // Feature 037 (P6-R5): the schedule filters by series when a seriesKey is given.
+  it("filters the schedule by series when a seriesKey is given", async () => {
+    const tnc = await makeEvent({ seriesKey: "tnc", eventDate: "2026-06-18" });
+    const ecd = await makeEvent({ seriesKey: "ecd", eventDate: "2026-06-20" });
+
+    const filtered = await getPublicSchedule(db, cutoff, "tnc");
+    expect(filtered.map((s) => s.eventId)).toEqual([tnc.id]);
+    expect(filtered.map((s) => s.eventId)).not.toContain(ecd.id);
+  });
+
   it("includes a free event (chargesAdmission = false) in the schedule", async () => {
     const free = await makeEvent({
       seriesKey: "community_dance",

@@ -174,8 +174,13 @@ Each entry: plain-English definition, then **Files** (the code locations that ow
 ### Public website
 
 - **What's On / public schedule** — The browse-only public listing of upcoming events with venue and
-  performer info (feature 007; online sales deferred).
-  **Files:** [`domain/public/publicSchedule.ts`](src/server/domain/public/publicSchedule.ts) · [`domain/public/performerDisplay.ts`](src/server/domain/public/performerDisplay.ts) · [`domain/bands/publicDisplay.ts`](src/server/domain/bands/publicDisplay.ts) · UI `/whats-on`, `/whats-on/<eventId>`.
+  performer info (feature 007; online sales deferred). **`/whats-on`** is the home page, showing dances from
+  **two days ago** onward, ascending (036, P6-R3). **`/what-was-on`** is the dance **history** — dances `<
+  today`, most-recent-first (037, P6-R4); it links to the same `/whats-on/<eventId>` detail. Both listings share
+  `ScheduleList` and a server-rendered **series filter** (`?series=<key>`, all series, `SeriesFilter`; 037,
+  P6-R5); the last-two-days window overlaps both pages by design. Readers `getPublicSchedule` (asc) /
+  `getPublicHistory` (desc) / `listSeries` delegate to one internal `listPublicEvents`.
+  **Files:** [`domain/public/publicSchedule.ts`](src/server/domain/public/publicSchedule.ts) · [`domain/public/performerDisplay.ts`](src/server/domain/public/performerDisplay.ts) · [`domain/bands/publicDisplay.ts`](src/server/domain/bands/publicDisplay.ts) · UI `/whats-on`, `/what-was-on`, `/whats-on/<eventId>` · [`app/(public)/_components/`](src/app/(public)/_components/).
 
 ### Staff authentication (feature 015)
 

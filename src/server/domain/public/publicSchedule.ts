@@ -1,4 +1,4 @@
-import { asc, eq, gte } from "drizzle-orm";
+import { and, asc, desc, eq, gte, lt } from "drizzle-orm";
 import type { Db } from "@/server/db/client";
 import { events, series, venues } from "@/server/db/schema";
 import { groupEventBookingsForDisplay } from "@/server/domain/bands/publicDisplay";
@@ -53,15 +53,20 @@ export function homeWindowStart(day: string, lookbackDays: number = HOME_WINDOW_
 }
 
 /**
- * Public home schedule (FR-001/FR-010; window widened by 036, P6-R3): events on/after `from` — which
- * defaults to **two days ago** (`homeWindowStart(today())`), so `/whats-on` shows the recent past plus
- * everything upcoming — ascending, with activity (series name) + venue name. `from` stays injectable for
- * deterministic tests. Public-safe — no money/attendance/contacts. Free events are included like any other.
+ * Shared public-listing query (feature 037, P6-R4/R5). Both public readers delegate here so the
+ * public-safe projection and the optional series filter live once: a lower bound (`from`, inclusive),
+ * an upper bound (`before`, exclusive), an optional `seriesKey` filter, and the sort direction.
+ * Public-safe — no money/attendance/contacts.
  */
-export async function getPublicSchedule(
+async function listPublicEvents(
   db: Db,
-  from: string = homeWindowStart(today()),
+  opts: { from?: string; before?: string; seriesKey?: string; order: "asc" | "desc" },
 ): Promise<PublicScheduleItem[]> {
+  const conds = [
+    opts.from !== undefined ? gte(events.eventDate, opts.from) : undefined,
+    opts.before !== undefined ? lt(events.eventDate, opts.before) : undefined,
+    opts.seriesKey !== undefined ? eq(series.key, opts.seriesKey) : undefined,
+  ].filter((c) => c !== undefined);
   const rows = await db
     .select({
       eventId: events.id,
@@ -76,14 +81,46 @@ export async function getPublicSchedule(
     .from(events)
     .innerJoin(series, eq(series.id, events.seriesId))
     .leftJoin(venues, eq(venues.id, events.venueId))
-    .where(gte(events.eventDate, from))
-    .orderBy(asc(events.eventDate));
+    .where(conds.length ? and(...conds) : undefined)
+    .orderBy(opts.order === "asc" ? asc(events.eventDate) : desc(events.eventDate));
   return rows.map(({ status, advertisedPriceCents, ...r }) => ({
     ...r,
     startTime: formatWallClock(r.startTime),
     cancelled: status === "cancelled",
     advertisedPrice: advertisedPriceCents === null ? null : centsToDollars(advertisedPriceCents),
   }));
+}
+
+/**
+ * Public home schedule (FR-001/FR-010; window widened by 036, P6-R3; series filter by 037, P6-R5):
+ * events on/after `from` — which defaults to **two days ago** (`homeWindowStart(today())`), so
+ * `/whats-on` shows the recent past plus everything upcoming — ascending, optionally filtered to one
+ * series. `from` stays injectable for deterministic tests.
+ */
+export async function getPublicSchedule(
+  db: Db,
+  from: string = homeWindowStart(today()),
+  seriesKey?: string,
+): Promise<PublicScheduleItem[]> {
+  return listPublicEvents(db, { from, seriesKey, order: "asc" });
+}
+
+/**
+ * Public dance history (feature 037, P6-R4): events dated **before** `before` (defaults to today),
+ * most-recent-first (descending), optionally filtered to one series (P6-R5). `before` is injectable for
+ * deterministic tests. The `[before-2, before)` window overlaps `/whats-on`'s home window by design.
+ */
+export async function getPublicHistory(
+  db: Db,
+  before: string = today(),
+  seriesKey?: string,
+): Promise<PublicScheduleItem[]> {
+  return listPublicEvents(db, { before, seriesKey, order: "desc" });
+}
+
+/** All club series as `{ key, name }`, ordered by name — the series-filter options (feature 037, FR-009). */
+export async function listSeries(db: Db): Promise<{ key: string; name: string }[]> {
+  return db.select({ key: series.key, name: series.name }).from(series).orderBy(asc(series.name));
 }
 
 /** Public event detail (FR-002/FR-003): venue + map + public performer/band display. Null if unknown. */

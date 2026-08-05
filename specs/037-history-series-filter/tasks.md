@@ -31,7 +31,7 @@ Single Next.js App Router project — `src/server/**`, `src/app/**`, `tests/**` 
 
 **Purpose**: Confirm tooling — no install.
 
-- [ ] T001 Confirm the real-Postgres integration env (`tests/integration/publicSchedule.test.ts`) and the jsdom
+- [x] T001 Confirm the real-Postgres integration env (`tests/integration/publicSchedule.test.ts`) and the jsdom
   component harness (`tests/setup.dom.ts`, RTL, mock `next/link` per `tests/component/publicNav.test.tsx`) are
   available. No dependency install.
 
@@ -43,7 +43,7 @@ Single Next.js App Router project — `src/server/**`, `src/app/**`, `tests/**` 
 
 **⚠️ CRITICAL**: `getPublicHistory` (US1) and the `seriesKey` filter (US2) both build on this — do it first.
 
-- [ ] T002 In `src/server/domain/public/publicSchedule.ts`, extract an internal
+- [x] T002 In `src/server/domain/public/publicSchedule.ts`, extract an internal
   `listPublicEvents(db, { from?, before?, seriesKey?, order })` that builds the WHERE (`gte(event_date, from)`,
   `lt(event_date, before)`, `eq(series.key, seriesKey)` as present) + ORDER and does the existing select/join/map
   (the current `PublicScheduleItem` projection). Refactor `getPublicSchedule` to delegate (`from` default
@@ -65,29 +65,29 @@ on".
 
 ### Tests for User Story 1 (write FIRST — must FAIL before T007/T008)
 
-- [ ] T003 [P] [US1] Create `tests/integration/publicHistory.test.ts`: seed events at `ref−1`, `ref−2`, `ref`
+- [x] T003 [P] [US1] Create `tests/integration/publicHistory.test.ts`: seed events at `ref−1`, `ref−2`, `ref`
   (today), and a future date; assert `getPublicHistory(db, ref)` returns only the two before `ref`, **descending**
   (`ref−1` before `ref−2`), and excludes `ref`/future. **Also assert the deliberate overlap (FR-008/SC-002):** an
   event at `ref−1` is returned by **both** `getPublicHistory(db, ref)` **and** `getPublicSchedule(db,
   homeWindowStart(ref))` — the last-two-days home window overlaps the history window (no de-dup). Confirm it FAILS
   (function missing).
-- [ ] T004 [P] [US1] Create `tests/component/scheduleList.test.tsx` (jsdom, mock `next/link`): given a couple of
+- [x] T004 [P] [US1] Create `tests/component/scheduleList.test.tsx` (jsdom, mock `next/link`): given a couple of
   `PublicScheduleItem`s, `ScheduleList` renders one row per item linking to `/whats-on/<eventId>` (with
   date/activity), and shows the empty message when `items` is empty. Confirm it FAILS.
 
 ### Implementation for User Story 1
 
-- [ ] T005 [US1] In `src/server/domain/public/publicSchedule.ts`, add
+- [x] T005 [US1] In `src/server/domain/public/publicSchedule.ts`, add
   `export async function getPublicHistory(db, before: string = today(), seriesKey?): Promise<PublicScheduleItem[]>`
   delegating to `listPublicEvents({ before, seriesKey, order: "desc" })`. Makes T003 pass.
-- [ ] T006 [US1] Create `src/app/(public)/_components/ScheduleList.tsx` (server component) rendering the shared
+- [x] T006 [US1] Create `src/app/(public)/_components/ScheduleList.tsx` (server component) rendering the shared
   `<ul>` of rows (lift the markup from `whats-on/page.tsx`: date · start · activity · label · venue · price ·
   cancelled, each linking to `/whats-on/<eventId>`), props `{ items; emptyMessage? }`. Makes T004 pass.
-- [ ] T007 [US1] Create `src/app/(public)/what-was-on/page.tsx` (server component): `getPublicHistory(db)` →
+- [x] T007 [US1] Create `src/app/(public)/what-was-on/page.tsx` (server component): `getPublicHistory(db)` →
   `<ScheduleList items={…} emptyMessage="No past dances to show." />` under a heading. (Filter wiring is US2.)
-- [ ] T008 [US1] Edit `src/app/(public)/whats-on/page.tsx` to render `<ScheduleList>` instead of its inline
+- [x] T008 [US1] Edit `src/app/(public)/whats-on/page.tsx` to render `<ScheduleList>` instead of its inline
   `<ul>` (adopt the extracted component; behavior unchanged).
-- [ ] T009 [US1] Add `{ href: "/what-was-on", label: "What was on" }` to `PUBLIC_NAV` in
+- [x] T009 [US1] Add `{ href: "/what-was-on", label: "What was on" }` to `PUBLIC_NAV` in
   `src/app/publicNavItems.ts` (feature 034). The data-driven `tests/component/publicNav.test.tsx` stays green
   (it maps over `PUBLIC_NAV`); run it to confirm.
 
@@ -105,26 +105,26 @@ no param shows all; the filter lists all series and marks the selected one; a fi
 
 ### Tests for User Story 2 (write FIRST — must FAIL before T012/T014)
 
-- [ ] T010 [P] [US2] Add `seriesKey`-filter cases: in `tests/integration/publicHistory.test.ts` and
+- [x] T010 [P] [US2] Add `seriesKey`-filter cases: in `tests/integration/publicHistory.test.ts` and
   `tests/integration/publicSchedule.test.ts`, seed events of two series and assert each reader, given a
   `seriesKey`, returns only that series' dances (within its window/order). Confirm they FAIL.
-- [ ] T011 [P] [US2] Create `tests/component/seriesFilter.test.tsx` (jsdom, mock `next/link`): given a series
+- [x] T011 [P] [US2] Create `tests/component/seriesFilter.test.tsx` (jsdom, mock `next/link`): given a series
   list and a `basePath`, `SeriesFilter` renders an "All" link + one `?series=<key>` link per series (href built
   from `basePath`), marks the `selected` one with `aria-current="page"`, and marks "All" active when none is
   selected. Confirm it FAILS.
 
 ### Implementation for User Story 2
 
-- [ ] T012 [US2] In `src/server/domain/public/publicSchedule.ts`, thread the optional `seriesKey` through
+- [x] T012 [US2] In `src/server/domain/public/publicSchedule.ts`, thread the optional `seriesKey` through
   `listPublicEvents` (add `eq(series.key, seriesKey)` when present) and add the optional `seriesKey` param to
   `getPublicSchedule` (3rd positional) and `getPublicHistory`. Makes T010 pass.
-- [ ] T013 [US2] In `src/server/domain/public/publicSchedule.ts`, add
+- [x] T013 [US2] In `src/server/domain/public/publicSchedule.ts`, add
   `export async function listSeries(db): Promise<{ key: string; name: string }[]>` returning all series ordered
   by name (the filter options, FR-009).
-- [ ] T014 [US2] Create `src/app/(public)/_components/SeriesFilter.tsx` (server component), props
+- [x] T014 [US2] Create `src/app/(public)/_components/SeriesFilter.tsx` (server component), props
   `{ series: {key,name}[]; selected?: string; basePath: string }`: render an "All" link (`basePath`) + one link
   per series (`basePath?series=<key>`), marking the selected/`All` with `aria-current="page"`. Makes T011 pass.
-- [ ] T015 [US2] Edit both `src/app/(public)/whats-on/page.tsx` and `src/app/(public)/what-was-on/page.tsx`:
+- [x] T015 [US2] Edit both `src/app/(public)/whats-on/page.tsx` and `src/app/(public)/what-was-on/page.tsx`:
   `await searchParams` → `series`; pass it to the reader (`getPublicSchedule(db, undefined, series)` /
   `getPublicHistory(db, undefined, series)`); render `<SeriesFilter series={await listSeries(db)} selected={series}
   basePath="/whats-on" | "/what-was-on" />` above the list.
@@ -135,11 +135,11 @@ no param shows all; the filter lists all series and marks the selected one; a fi
 
 ## Phase 5: Polish & Cross-Cutting Concerns
 
-- [ ] T016 [P] Update `docs/zak1_Help_Glossary.md` with a short entry for the public listings (`/whats-on`
+- [x] T016 [P] Update `docs/zak1_Help_Glossary.md` with a short entry for the public listings (`/whats-on`
   window + `/what-was-on` history + `?series=` filter → `publicSchedule.ts` readers + the two `_components`).
-- [ ] T017 Run the full local gate: `pnpm exec tsc --noEmit && pnpm run lint && pnpm exec vitest run` — all green
+- [x] T017 Run the full local gate: `pnpm exec tsc --noEmit && pnpm run lint && pnpm exec vitest run` — all green
   (scope prettier/lint to changed files if run separately).
-- [ ] T018 Run the manual quickstart validation (`specs/037-history-series-filter/quickstart.md`) via the dev
+- [x] T018 Run the manual quickstart validation (`specs/037-history-series-filter/quickstart.md`) via the dev
   server / browser: `/what-was-on` (past desc, links to detail), the series filter on both pages (`?series=`
   narrows, "All" restores, reload keeps the filtered view), and "What was on" in the public menu; screenshot.
 
