@@ -3,18 +3,19 @@
 > Single living doc — no versioned copies. Update in place each session.
 
 **Snapshot:** 2026-08-05 · **Repo:** `/Users/rcd/Repositories/zak1` · **Remote:**
-`github.com/DempseyCDR/zak1` · **Head:** local `main` at the **039-planning** commit. ⚠️ **`origin/main` is at
-`31a2e9b` (036) — local is 5 commits AHEAD, UNPUSHED**: 037 planning `e89c7fb` → 037 impl `6ef28dc` → 038
-planning `eadc939` → 038 impl `50a69e1` → **039 planning** (this doc's commit). **039 is spec+plan+tasks only —
-NOT implemented.**
+`github.com/DempseyCDR/zak1` · **Head:** local `main` at the **039-impl** commit. ⚠️ **`origin/main` is at
+`31a2e9b` (036) — local is 6 commits AHEAD, UNPUSHED**: 037 planning `e89c7fb` → 037 impl `6ef28dc` → 038
+planning `eadc939` → 038 impl `50a69e1` → 039 planning `df9f710` → **039 impl** (this doc's commit). **039 is
+IMPLEMENTED (migration `0032` applied to `zak1_dev`).**
 **Phases 3, 4, 5 COMPLETE; Phase 6 UNDERWAY (now BUILDING via SpecKit, not just collecting).** Phase 5 shipped
-through **033**. **Phase 6 shipped so far (034–038):** **034** public nav menu (P6-R1) · **035** volunteer nav
+through **033**. **Phase 6 shipped so far (034–039):** **034** public nav menu (P6-R1) · **035** volunteer nav
 menu (P6-R2, subsumes D1) · **036** `/whats-on` two-days-ago window (P6-R3) · **037** `/what-was-on` history +
-series filter (P6-R4+R5) · **038** drop `non_dance_income` (P6-R6, migration `0031`, first destructive removal).
-**In flight: 039** drop `account_mapping` (P6-R7) — spec+plan+tasks done, NOT implemented. **Remaining Phase 6:**
-R8 (treasurer report restructure) · R9 (comp/gift counts) · defect **D3** (payments multi-booking check-number
-capture/edit). Suite **689 tests / 210 files green**; clean build. The **Node-18 Bash gotcha is RESOLVED** (Bash
-runs Node 24; the stale Node 16 was purged). Purpose: seed a fresh session to continue work on zak1 (CDR).
+series filter (P6-R4+R5) · **038** drop `non_dance_income` (P6-R6, migration `0031`, first destructive removal) ·
+**039** drop `account_mapping` (P6-R7, migration `0032` DROP TABLE — the dead GL-account annotation). **Remaining
+Phase 6:** R8 (treasurer report restructure) · R9 (comp/gift counts) · R10/R11/R12 (door & reporting tweaks) ·
+defect **D3** (payments multi-booking check-number capture/edit). Suite **688 tests / 211 files green**; clean
+build. The **Node-18 Bash gotcha is RESOLVED** (Bash runs Node 24; the stale Node 16 was purged). Purpose: seed a
+fresh session to continue work on zak1 (CDR).
 
 ---
 
@@ -25,7 +26,7 @@ contra/English dance club): contacts & membership, door attendance & gate money,
 treasurer & organizer reports, mailing-list exports, a public website, staff auth, authorization, check-in,
 booking & event management, membership acquisition (door + online), the Booker's booking-report/modal UX, and
 the Financial-Secretary payment substrate.
-**38 features shipped (001–038); 039 in flight (planned, not implemented).** Money is always **integer cents**.
+**39 features shipped (001–039).** Money is always **integer cents**.
 Single tenant (multi-tenant deferred).
 
 > **Naming:** `zak1` is the internal codename; the club-facing name is **cdrochester** (what Google's
@@ -62,14 +63,14 @@ set +a`.
 - **`zak1_test`** (`TEST_DATABASE_URL`) — auto-migrated; `resetDb()` TRUNCATEs (list includes the 019/020
   tables).
 - **Migrations:** additive SQL in `src/server/db/migrations/`, `pnpm run db:migrate`. **Latest =
-  `0031_drop_non_dance_income.sql`** (038, P6-R6) — a **destructive** `DROP TABLE IF EXISTS non_dance_income`
-  (idempotent; the first destructive migration; snapshot `~/zak1_pre_0031.dump`). **039 (P6-R7, planned) will add
-  `0032_drop_account_mapping.sql`** (`DROP TABLE IF EXISTS account_mapping`, snapshot `~/zak1_pre_0032.dump`).
+  `0032_drop_account_mapping.sql`** (039, P6-R7) — a **destructive** `DROP TABLE IF EXISTS account_mapping`
+  (idempotent; the second destructive migration; snapshot `~/zak1_pre_0032.dump`; applied). `0031` (038, P6-R6)
+  was the first destructive `DROP TABLE IF EXISTS non_dance_income` (snapshot `~/zak1_pre_0031.dump`).
   `0030_normalize_contact_phones.sql` (032, P5-R6) normalized `contacts.phone` to E.164 (snapshot
   `~/zak1_pre_0030.dump`). `0029_gate_sales_note.sql` (031) added nullable `gate_sales.note`.
   `0028_backfill_contact_names.sql` (027) re-split mis-split contact names (snapshot `~/zak1_pre_0028.dump`).
-  **Phase 6 features 034/035/036/037 add NO migration** (UI/domain over the existing schema); 038 is the first
-  destructive one (0031). `0027_payment_allocation_and_voids.sql` (023) =
+  **Phase 6 features 034/035/036/037 add NO migration** (UI/domain over the existing schema); 038 (`0031`) +
+  039 (`0032`) are the two destructive `DROP TABLE` removals. `0027_payment_allocation_and_voids.sql` (023) =
   `payment_bookings.amount_cents` (per-line allocation,
   **backfilled** proportionally so lines sum to the check total) + `performer_payments` void columns
   (`voided_at`, `void_reason`, `replaces_payment_id`). `0026_drop_bookings_check_number.sql` (021) **removed**
@@ -79,17 +80,17 @@ set +a`.
   `paypal_notifications`, `club_settings.membership_year_end`, `memberships.source_*` indexes.
 - **`pnpm run db:seed` TRUNCATEs `zak1_dev`** — never run it; it is not a migration rollback.
 - **Snapshots on disk:** `~/zak1_pre_0024.dump` … `~/zak1_pre_0028.dump`, `~/zak1_pre_0030.dump`,
-  `~/zak1_pre_0031.dump` (pre-migration safety copies; 0032 snapshot taken at 039 implement time).
+  `~/zak1_pre_0031.dump`, `~/zak1_pre_0032.dump` (pre-migration safety copies).
 
 ## 4. Tests & governance
 
 Pipeline `/speckit-specify → clarify → plan → tasks → analyze → implement`. Active pointer
-`.specify/feature.json` → **`specs/039-drop-account-mapping`** (planned, not implemented). **Constitution v1.3.0**
+`.specify/feature.json` → **`specs/039-drop-account-mapping`** (implemented). **Constitution v1.3.0**
 (non-negotiable):
 I Test-First (Red-Green-Refactor), II YAGNI, III Type Safety (Zod at boundaries), IV Observability.
 Testing standard: integration against **real** local infra; DBs never mocked; third-party services (Google,
-PayPal) exercised at their **boundary**, never production endpoints. **Suite: 689 tests / 210 files green
-through 038**. tsc, eslint, markdownlint, prettier, production build all clean on Next 16. ⚠️ **Phase 6 process
+PayPal) exercised at their **boundary**, never production endpoints. **Suite: 688 tests / 211 files green
+through 039**. tsc, eslint, markdownlint, prettier, production build all clean on Next 16. ⚠️ **Phase 6 process
 change:** features 034–039 ship as **TWO commits each** — a `NNN planning` commit (spec+plan+tasks after
 `/speckit-analyze`) then a `NNN impl` commit — run through the full SpecKit pipeline (specify→clarify→plan→
 tasks→analyze→implement) per feature. (031/032/033 used one atomic commit; the split resumed with 034.)
@@ -157,7 +158,7 @@ tests/{unit,integration,component}/
 **Phase 4** notes: `zak1-phase4-requirements.md` (umbrella), `zak1-phase4-fs-payments-draft.md`,
 `zak1-phase4-meg-checkin-notes.md`.
 
-## 6. Implementation status (001–038; 039 planned)
+## 6. Implementation status (001–039 shipped)
 
 Phase 1 (001–009) · Phase 2 (010–014) · **Phase 3 COMPLETE: 015 auth · 016 authz · 017 check-in · 018
 booking/event mgmt · 019 payments & membership** · **Phase 4 COMPLETE: 020 Booker experience (P4-1) · 021 drop
@@ -190,10 +191,10 @@ Each R-item goes through the full SpecKit pipeline as its own feature. **Require
   `?series=` filter on both listings; shared `ScheduleList`/`SeriesFilter`; internal `listPublicEvents`;
   `/what-was-on` added to `PUBLIC_NAV`). **Both SHIPPED.**
 - **Treasurer report rework** — **R6 → 038 SHIPPED** (purge `non_dance_income`, migration `0031` DROP TABLE;
-  `account_mapping` table kept, only its seed row removed). **R7 → 039 PLANNED (spec+plan+tasks, NOT
-  implemented):** purge the `account_mapping` GL-code-per-line annotation (migration `0032` DROP TABLE) —
-  **keep `series_qbo_map`** (customer + class) and `mapping_audit`; the report keeps its shape minus the account
-  column. **R8 NOT STARTED** — restructure the report to mirror QBO data entry (Sales Receipts [attendance
+  `account_mapping` table kept, only its seed row removed). **R7 → 039 SHIPPED:** purged the `account_mapping`
+  GL-code-per-line annotation (migration `0032` DROP TABLE) — **kept `series_qbo_map`** (customer + class) and
+  `mapping_audit`; the report keeps its shape minus the account column, no computed figure changed. **R8 NOT
+  STARTED** — restructure the report to mirror QBO data entry (Sales Receipts [attendance
   receipt first] → Bills [rent → landlord, *not paid by FS*] → Performer Payments [one section] → Deposit → Fees;
   community-dance gate = own series → own receipt to Contra Gate; rent Bill derived from event rent + venue
   landlord). **R9 NOT STARTED** — show comp-admission + gift-card-redemption counts (data already in
@@ -411,7 +412,7 @@ errors truncating a dropped table); test-first via a migration idempotency test 
 section-absent assertions; snapshot `~/zak1_pre_NNNN.dump` first. ⚠️ deleting an API route under a running dev
 server leaves a **stale `.next/types/validator.ts`** that fails `tsc` — clear `.next/types` + recompile.
 
-**039 drop account_mapping (P6-R7, PLANNED — spec+plan+tasks done, NOT implemented, migration `0032`):** purge
+**039 drop account_mapping (P6-R7, SHIPPED, migration `0032` DROP TABLE — the second destructive removal):** purge
 the GL-code-per-line annotation (dead: no calc, no export; the treasurer books sales-receipts/bills, QBO derives
 the account). Drop the `account_mapping` table + the `account()`/`loadAccountMap` machinery + the `account` field
 on **every** `TreasurerReport` line + the `/qbo-mapping` "Accounts" editor + its route/schema/`mappingKeyNotFound`.
@@ -513,16 +514,18 @@ pnpm run db:seed               # ⚠️ WIPES zak1_dev — do NOT run
 
 ## 14. Uncommitted / unpushed at handoff
 
-⚠️ **`origin/main` is at `31a2e9b` (036); local `main` is 5 commits AHEAD, UNPUSHED:** 037 planning `e89c7fb`
-→ 037 impl `6ef28dc` → 038 planning `eadc939` → 038 impl `50a69e1` → **039 planning** (spec+plan+tasks +
-`.specify/feature.json`/CLAUDE.md pointers + this context-doc update). **Push these** (034/035/036 already
-pushed). **039 is spec+plan+tasks only — NOT implemented** (analyze ran clean; G1/L1 remedied in `tasks.md`).
-Working tree clean after the 039-planning commit.
-Migrations through `0031` (038) are applied to `zak1_dev` (snapshots incl. `~/zak1_pre_0031.dump`).
+⚠️ **`origin/main` is at `31a2e9b` (036); local `main` is 6 commits AHEAD, UNPUSHED:** 037 planning `e89c7fb`
+→ 037 impl `6ef28dc` → 038 planning `eadc939` → 038 impl `50a69e1` → 039 planning `df9f710` → **039 impl**
+(this context-doc update + the account_mapping removal). **Push these** (034/035/036 already pushed). **039 is
+IMPLEMENTED** — migration `0032` applied to `zak1_dev`; `tsc`/lint/**688 tests**/build all green. One deviation
+from `tasks.md`: `treasurer.paymentsCutover.test.ts` also asserted `account` (not enumerated in the plan) — the
+full suite caught it, same no-`account`/keep-`class` fix applied. Working tree clean after the 039-impl commit.
+Migrations through `0032` (039) are applied to `zak1_dev` (snapshots incl. `~/zak1_pre_0031.dump`,
+`~/zak1_pre_0032.dump`).
 **Operational note:** a one-off `zak1_dev` data fix set payment `65fdeb94…`.`check_number` = `1792` (D3; was
 NULL) — data only, not in git.
-**To resume:** `/speckit-implement` **039** (drop `account_mapping`; snapshot `~/zak1_pre_0032.dump` first), then
-**push the 5-commit chain**. **Phase 6 remaining after 039:** R8 (report restructure),
-R9 (comp/gift counts), R10/R11/R12 (door & reporting tweaks), defect D3 (payments check-number capture/edit).
+**To resume:** **push the 6-commit chain**, then continue Phase 6. **Phase 6 remaining after 039:** R8 (report
+restructure), R9 (comp/gift counts), R10/R11/R12 (door & reporting tweaks), defect D3 (payments check-number
+capture/edit).
 ⚠️ **Phase 6 process:** two commits per feature (`NNN planning` then `NNN impl`), full SpecKit pipeline each.
 Commits are SSH-signed via 1Password (unlock if a commit fails with "1Password: failed to fill whole buffer").

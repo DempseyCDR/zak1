@@ -20,7 +20,6 @@ import { writeAudit } from "@/server/lib/audit";
 import { centsToDollars } from "@/server/lib/money";
 import { computeEventGate } from "@/server/domain/gate/eventMoney";
 import { reconcilePayments } from "@/server/domain/payments/reconcile";
-import { loadAccountMap } from "./mappingService";
 
 // Anonymous non-admission categories shown on the gate receipt (admission is derived).
 const ANON_CATEGORIES: GateCategory[] = ["merchandise", "gift_card", "misc_sales"];
@@ -34,7 +33,6 @@ export type TreasurerReport = {
     posVerification: { gross: number; fee: number };
     lines: {
       category: string;
-      account: string;
       class: string;
       cash: number;
       card: number;
@@ -45,18 +43,16 @@ export type TreasurerReport = {
     kind: string;
     contact: string;
     contactId: string | null;
-    account: string;
     class: string;
     amount: number;
   }[];
   performerPayments: {
     payee: string;
     amount: number;
-    account: string;
     class: string;
     checkNumber: string | null;
     // Feature 023: the per-line allocation — each booking this check settles (incl. cross-event lines).
-    lines: { performer: string; bookingId: string; amount: number; account: string }[];
+    lines: { performer: string; bookingId: string; amount: number }[];
   }[];
   // Feature 023: voided checks, shown distinctly so the treasurer records the void into QBO too.
   voidedPerformerPayments: {
@@ -68,8 +64,8 @@ export type TreasurerReport = {
   // Feature 019 US2 (FR-008) / 023 (M1): expected (sum of booked obligations) vs. actual (LIVE per-line
   // amounts settling the event's bookings). A non-zero delta surfaces a gap — booked but not yet paid.
   performerReconciliation: { expected: number; actual: number; delta: number };
-  deposit: { account: string; amount: number };
-  fees: { account: string; doorFee: number; onlineFee: number; total: number };
+  deposit: { amount: number };
+  fees: { doorFee: number; onlineFee: number; total: number };
 };
 
 export async function assembleTreasurerReport(
@@ -90,8 +86,6 @@ export async function assembleTreasurerReport(
   if (!door) throw errors.doorRecordNotFound();
 
   const sales = await db.select().from(gateSales).where(eq(gateSales.doorRecordId, door.id));
-  const accountMap = await loadAccountMap(db);
-  const account = (key: string) => accountMap.get(key)?.accountCode ?? "UNMAPPED";
 
   // Sum a category's cash/card cents.
   function sumCategory(cat: GateCategory): { cash: number; card: number } {
@@ -113,7 +107,6 @@ export async function assembleTreasurerReport(
   const gateLines = [
     {
       category: "admission",
-      account: account("admission"),
       class: qboClass,
       cash: centsToDollars(admissionCash),
       card: centsToDollars(admissionCard),
@@ -125,7 +118,6 @@ export async function assembleTreasurerReport(
       return [
         {
           category: cat,
-          account: account(cat),
           class: qboClass,
           cash: centsToDollars(cash),
           card: centsToDollars(card),
@@ -168,7 +160,6 @@ export async function assembleTreasurerReport(
     kind: n.kind,
     contact: n.contact,
     contactId: n.contactId,
-    account: account(n.kind),
     class: qboClass,
     amount: centsToDollars(n.amountCents),
   }));
@@ -197,7 +188,7 @@ export async function assembleTreasurerReport(
     .where(eq(performerPayments.eventId, eventId));
 
   // All allocation lines of those checks — INCLUDING cross-event lines (no same-event filter, 023). Each
-  // carries its own amount, the booking's performer (name), and performer type → QBO account.
+  // carries its own amount and the booking's performer (name).
   const paymentIds = paymentRows.map((p) => p.id);
   const lineRows = paymentIds.length
     ? await db
@@ -205,7 +196,6 @@ export async function assembleTreasurerReport(
           paymentId: paymentBookings.paymentId,
           bookingId: paymentBookings.bookingId,
           amountCents: paymentBookings.amountCents,
-          performerType: bookings.performerType,
           performer: performers.displayName,
         })
         .from(paymentBookings)
@@ -225,14 +215,12 @@ export async function assembleTreasurerReport(
     return {
       payee: p.payee,
       amount: centsToDollars(p.amountCents),
-      account: lns[0] ? account(lns[0].performerType) : "UNMAPPED",
       class: qboClass,
       checkNumber: p.checkNumber,
       lines: lns.map((l) => ({
         performer: l.performer,
         bookingId: l.bookingId,
         amount: centsToDollars(l.amountCents),
-        account: account(l.performerType),
       })),
     };
   };
@@ -279,9 +267,8 @@ export async function assembleTreasurerReport(
     performerPayments: performerPaymentLines,
     voidedPerformerPayments,
     performerReconciliation,
-    deposit: { account: account("deposit"), amount: centsToDollars(door.depositCents) },
+    deposit: { amount: centsToDollars(door.depositCents) },
     fees: {
-      account: account("fees"),
       doorFee: centsToDollars(door.posFeeCents),
       onlineFee: 0, // online orders arrive with feature 007
       total: centsToDollars(door.posFeeCents),

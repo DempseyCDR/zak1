@@ -154,8 +154,9 @@ Each entry: plain-English definition, then **Files** (the code locations that ow
 
 - **Treasurer report** — The per-event financial statement handed to bookkeeping.
   **Files:** [`domain/treasurer/reportService.ts`](src/server/domain/treasurer/reportService.ts) · [`domain/treasurer/fees.ts`](src/server/domain/treasurer/fees.ts) · [`validation/treasurer.ts`](src/server/validation/treasurer.ts) · API `src/app/api/events/[id]/treasurer-report` · UI `/treasurer`.
-- **QBO mapping** — Mapping of report lines/series to QuickBooks accounts & classes for manual
-  copy/paste hand-off (online API is backlog B8).
+- **QBO mapping** — Mapping of each series to its QuickBooks gate **customer** + **class** for manual
+  copy/paste hand-off (online API is backlog B8). (Feature 039 dropped the per-line GL-account catalog —
+  QBO derives the account from the Sales-Receipt/Bill the Treasurer books.)
   **Files:** [`schema/qboMapping.ts`](src/server/db/schema/qboMapping.ts) · [`domain/treasurer/mappingService.ts`](src/server/domain/treasurer/mappingService.ts) · API `src/app/api/qbo-mapping/…` · UI `/qbo-mapping`.
 - **Online / processing fee (dormant)** — Fee calculator that stays dormant because online sales
   (007 US2) are deferred. **Files:** [`domain/treasurer/fees.ts`](src/server/domain/treasurer/fees.ts).

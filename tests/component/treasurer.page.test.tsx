@@ -33,8 +33,8 @@ function report(eventId: string) {
     },
     namedCustomerReceipts: [],
     performerPayments: [],
-    deposit: { account: "1000", amount: 0 },
-    fees: { account: "6000", doorFee: 0, onlineFee: 0, total: 0 },
+    deposit: { amount: 0 },
+    fees: { doorFee: 0, onlineFee: 0, total: 0 },
   };
 }
 

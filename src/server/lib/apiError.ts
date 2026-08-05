@@ -20,7 +20,6 @@ export type ApiErrorCode =
   | "PERFORMER_NOT_FOUND"
   | "BOOKING_NOT_FOUND"
   | "SOUND_TECH_NOT_ALLOWED"
-  | "MAPPING_KEY_NOT_FOUND"
   | "MAILING_LIST_NOT_FOUND"
   | "BAND_NOT_FOUND"
   | "VENUE_NOT_FOUND"
@@ -186,8 +185,6 @@ export const errors = {
       422,
       "Sound Tech is not allowed for this event's series.",
     ),
-  mappingKeyNotFound: () =>
-    new ApiError("MAPPING_KEY_NOT_FOUND", 404, "Unknown account-mapping line key."),
   mailingListNotFound: () => new ApiError("MAILING_LIST_NOT_FOUND", 404, "Unknown mailing list."),
   bandNotFound: () => new ApiError("BAND_NOT_FOUND", 404, "Band not found."),
   venueNotFound: () => new ApiError("VENUE_NOT_FOUND", 404, "Venue not found."),

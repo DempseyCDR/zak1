@@ -33,7 +33,7 @@ Single Next.js + Postgres project — `src/server/**`, `src/app/**`, `tests/**`,
 
 **Purpose**: Safety snapshot before the destructive drop.
 
-- [ ] T001 Take the pre-migration snapshot: `set -a; . ./.env; set +a` then
+- [X] T001 Take the pre-migration snapshot: `set -a; . ./.env; set +a` then
   `pg_dump -Fc "$DATABASE_URL" -f ~/zak1_pre_0032.dump` (data-migration safety convention; FR-006).
 
 ---
@@ -56,53 +56,53 @@ saves; `tsc` + full suite green.
 
 ### Tests for User Story 1 (write FIRST)
 
-- [ ] T002 [P] [US1] Create `tests/integration/migration.dropAccountMapping.test.ts`: execute
+- [X] T002 [P] [US1] Create `tests/integration/migration.dropAccountMapping.test.ts`: execute
   `src/server/db/migrations/0032_drop_account_mapping.sql`; assert `account_mapping` is absent from
   `information_schema.tables`; execute a **second** time and assert no error (idempotent). Confirm it FAILS
   (migration file missing). (Mirror `migration.dropNonDanceIncome.test.ts`.)
-- [ ] T003 [P] [US1] In `tests/integration/treasurer.report.test.ts`, **replace** the `.account` value assertions
+- [X] T003 [P] [US1] In `tests/integration/treasurer.report.test.ts`, **replace** the `.account` value assertions
   (`adm.account`, `gc.account`, `mem.account`, `performerPayments[0].account`, `deposit.account`) with assertions
   that those lines have **no** `account` property. **Positively assert the retained boundary (FR-002):** add a
   `class` assertion on a report line (e.g. the admission gate line still has its `class`) alongside the existing
   `gateSalesSummary.customer` assertion — the report keeps class + customer, only the account column goes. Confirm
   the no-`account` assertions FAIL against current code.
-- [ ] T004 [US1] In `tests/integration/treasurer.mapping-audit.test.ts`, remove the account cases and the
+- [X] T004 [US1] In `tests/integration/treasurer.mapping-audit.test.ts`, remove the account cases and the
   `PUT_ACCOUNT` + `accountMapping` imports (they will not compile once the route/schema are deleted): the
   `"updates an account mapping…"` case **and** the `"404s for an unknown line key"` case (it exercises the deleted
   account route + `mappingKeyNotFound`). Change `"returns the seeded mapping"` to assert `GET /api/qbo-mapping`
   returns `{ series }` (no `accounts`). **Keep** the series-QBO case (edit + audit, line ~42). (Coordinated
   cleanup — passes once the deletions land.)
-- [ ] T005 [US1] In `tests/component/treasurer.page.test.tsx`, remove the `account` fields from the mock-report
+- [X] T005 [US1] In `tests/component/treasurer.page.test.tsx`, remove the `account` fields from the mock-report
   fixture (`deposit`/`fees`, etc.) — coordinated with the `TreasurerReport` type-field removal in T010.
 
 ### Implementation for User Story 1
 
-- [ ] T006 [US1] Create `src/server/db/migrations/0032_drop_account_mapping.sql` — `DROP TABLE IF EXISTS
+- [X] T006 [US1] Create `src/server/db/migrations/0032_drop_account_mapping.sql` — `DROP TABLE IF EXISTS
   account_mapping;` (idempotent). Makes T002 pass. **In the same step** remove `account_mapping` from the
   `resetDb` `TRUNCATE …` list in `tests/integration/helpers/db.ts` (else the suite errors truncating a dropped
   table — the 038/I1 lesson). Then apply: `pnpm run db:migrate`.
-- [ ] T007 [P] [US1] Delete `src/app/api/qbo-mapping/accounts/[lineKey]/route.ts` (and the empty `accounts`
+- [X] T007 [P] [US1] Delete `src/app/api/qbo-mapping/accounts/[lineKey]/route.ts` (and the empty `accounts`
   folder); remove `accountMappingPutSchema` + `AccountMappingPutInput` from `src/server/validation/treasurer.ts`;
   remove `errors.mappingKeyNotFound()` from `src/server/lib/apiError.ts` (only that route used it).
-- [ ] T008 [P] [US1] In `src/server/db/schema/qboMapping.ts`, remove the `accountMapping` table def + the
+- [X] T008 [P] [US1] In `src/server/db/schema/qboMapping.ts`, remove the `accountMapping` table def + the
   `AccountMappingRow` type. **KEEP** `seriesQboMap` + `SeriesQboMapRow` in the same file.
-- [ ] T009 [US1] In `src/server/domain/treasurer/mappingService.ts`, drop `loadAccountMap`, `updateAccountMapping`,
+- [X] T009 [US1] In `src/server/domain/treasurer/mappingService.ts`, drop `loadAccountMap`, `updateAccountMapping`,
   and the `accounts` half of `getMappingConfig` (so it returns `{ series }`); drop the `accountMapping` schema
   import. Keep `loadSeriesQbo`, `updateSeriesQbo`, and the `series` half.
-- [ ] T010 [US1] In `src/server/domain/treasurer/reportService.ts`, drop the `loadAccountMap` import, the
+- [X] T010 [US1] In `src/server/domain/treasurer/reportService.ts`, drop the `loadAccountMap` import, the
   `account()` helper (+ `accountMap`), every `account:` field on report lines (admission, anon categories, named
   receipts, performer payments + per-line, deposit, fees), and the `account` fields on the `TreasurerReport`
   type. **KEEP** `class` (qboClass) and `customer` (gateCustomer). Makes T003 pass.
-- [ ] T011 [US1] In `src/app/(admin)/treasurer/page.tsx`, remove the per-line GL-account `<th>`/`<td>`s and the
+- [X] T011 [US1] In `src/app/(admin)/treasurer/page.tsx`, remove the per-line GL-account `<th>`/`<td>`s and the
   `account` fields from the page's local report type. Keep the class (and gate customer) columns.
-- [ ] T012 [US1] In `src/app/(admin)/qbo-mapping/page.tsx`, remove the **"Accounts"** section (the `Account`
+- [X] T012 [US1] In `src/app/(admin)/qbo-mapping/page.tsx`, remove the **"Accounts"** section (the `Account`
   type, `accounts` state, `saveAccount`, the accounts table, and reading `data.accounts`); keep **"Series → gate
   customer / class"**; retitle the page to reflect series/customer/class only. Verify `src/app/api/qbo-mapping/
   route.ts` returns the new `{ series }` config shape (no change needed if it returns `getMappingConfig` as-is).
-- [ ] T013 [US1] Remove the `account_mapping` seed block from `src/server/db/seed.ts` **and** the
+- [X] T013 [US1] Remove the `account_mapping` seed block from `src/server/db/seed.ts` **and** the
   `INSERT INTO account_mapping …` block from `tests/integration/helpers/db.ts` (the TRUNCATE-list edit was done in
   T006). Keep the `series_qbo_map` seed.
-- [ ] T014 [US1] Update `docs/zak1_Help_Glossary.md`: drop the GL-account-code half of the QBO-mapping entry
+- [X] T014 [US1] Update `docs/zak1_Help_Glossary.md`: drop the GL-account-code half of the QBO-mapping entry
   (keep the series → gate customer / class description).
 
 **Checkpoint**: annotation fully removed; migration/report/mapping/page tests green; series/class/customer +
@@ -112,11 +112,11 @@ every computed figure unchanged.
 
 ## Phase 4: Polish & Cross-Cutting Concerns
 
-- [ ] T015 Run the full local gate: `pnpm exec tsc --noEmit && pnpm run lint && pnpm exec vitest run` — all
+- [X] T015 Run the full local gate: `pnpm exec tsc --noEmit && pnpm run lint && pnpm exec vitest run` — all
   green. `tsc` proves **no dangling references** (SC-005); the full suite proves no other figure changed (SC-002).
   ⚠️ If `tsc` reports a stale `.next/types/validator.ts` referencing the deleted accounts route (the 038 gotcha —
   route deleted under a running dev server), clear `.next/types` and recompile, then re-run `tsc`.
-- [ ] T016 (Optional) Manual check: sign in as Treasurer — `/treasurer` (an event) shows class (+ gate customer)
+- [X] T016 (Optional) Manual check: sign in as Treasurer — `/treasurer` (an event) shows class (+ gate customer)
   and amounts with **no** GL account code; `/qbo-mapping` has **no** Accounts editor and the Series editor still
   saves. (Staff-only pages; the automated tests are the primary proof.)
 

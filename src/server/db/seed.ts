@@ -1,7 +1,6 @@
 import { eq } from "drizzle-orm";
 import { db, sql } from "@/server/db/client";
 import {
-  accountMapping,
   bandMembers,
   bands,
   contactEmails,
@@ -214,35 +213,7 @@ async function main() {
     });
   }
 
-  // QBO account/class mapping (chart of accounts) + gate customers per series.
-  await db
-    .insert(accountMapping)
-    .values([
-      {
-        lineKey: "admission",
-        accountCode: "4210",
-        accountName: "Program Service Revenue:Dance Gate",
-      },
-      { lineKey: "merchandise", accountCode: "4700", accountName: "Sales of Inventory" },
-      { lineKey: "donation", accountCode: "4100", accountName: "Voluntary Contributions" },
-      { lineKey: "future_event", accountCode: "4200", accountName: "Program Service Revenue" },
-      { lineKey: "membership", accountCode: "4300", accountName: "Membership Dues" },
-      {
-        lineKey: "gift_card",
-        accountCode: "2201",
-        accountName: "Prepaid Services:Pre-paid Gift Card",
-      },
-      { lineKey: "misc_sales", accountCode: "4900", accountName: "Uncategorized Income" },
-      { lineKey: "caller", accountCode: "5320", accountName: "Program Staff:Callers" },
-      { lineKey: "lead_musician", accountCode: "5310", accountName: "Program Staff:Bands" },
-      { lineKey: "musician", accountCode: "5310", accountName: "Program Staff:Bands" },
-      { lineKey: "sound_tech", accountCode: "5330", accountName: "Program Staff:Sound Tech" },
-      { lineKey: "rent", accountCode: "5420", accountName: "Facilities:Rent" },
-      { lineKey: "fees", accountCode: "5810", accountName: "Bank Charges & Fees:PayPal Fees" },
-      { lineKey: "deposit", accountCode: "1021", accountName: "ESL Checking" },
-    ])
-    .onConflictDoNothing({ target: accountMapping.lineKey });
-
+  // QBO gate customers + class per series.
   const allSeries = await db.select().from(series);
   for (const srow of allSeries) {
     await db

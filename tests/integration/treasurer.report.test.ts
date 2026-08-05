@@ -56,30 +56,32 @@ describe("GET /api/events/:id/treasurer-report", () => {
     // Feature 038 (P6-R6): the non-dance-income section is removed from the report entirely.
     expect(body).not.toHaveProperty("nonDanceIncome");
 
-    // Gate summary: anonymous customer, admission mapped to 4210, gift_card to 2201 liability
+    // Gate summary: anonymous customer, admission + gift_card lines present. Feature 039 (P6-R7): the GL
+    // `account` annotation is gone from every line; `customer` + `class` are retained (FR-002).
     expect(body.gateSalesSummary.customer).toBe("Contra Gate");
     const adm = body.gateSalesSummary.lines.find(
       (l: { category: string }) => l.category === "admission",
     );
-    expect(adm.account).toBe("4210");
+    expect(adm).not.toHaveProperty("account");
+    expect(adm.class).toBe("TNC"); // retained boundary: the class column stays (FR-002)
     expect(adm.total).toBe(200);
     const gc = body.gateSalesSummary.lines.find(
       (l: { category: string }) => l.category === "gift_card",
     );
-    expect(gc.account).toBe("2201");
+    expect(gc).not.toHaveProperty("account");
     // membership is NOT on the gate receipt
     expect(
       body.gateSalesSummary.lines.find((l: { category: string }) => l.category === "membership"),
     ).toBeUndefined();
 
-    // Named-customer receipt for membership → 4300
+    // Named-customer receipt for membership: no GL account, class retained (039).
     const mem = body.namedCustomerReceipts.find((r: { kind: string }) => r.kind === "membership");
-    expect(mem.account).toBe("4300");
+    expect(mem).not.toHaveProperty("account");
     expect(mem.amount).toBe(40);
     expect(mem.contact).toBe("Member Buyer");
 
-    // Performer payment mapped to caller account 5320
-    expect(body.performerPayments[0].account).toBe("5320");
+    // Performer payment: no GL account annotation (039); amount unchanged.
+    expect(body.performerPayments[0]).not.toHaveProperty("account");
     expect(body.performerPayments[0].amount).toBe(150);
 
     // a report-generation audit row was written (FR-014)
@@ -95,7 +97,7 @@ describe("GET /api/events/:id/treasurer-report", () => {
     const drId = await makeDoorRecord(evt.id);
     await updateDoorRecord(db, drId, { grossCash: 200, pcGross: 100, seedFloat: 15 });
     const { body } = await report(evt.id);
-    expect(body.deposit.account).toBe("1021");
+    expect(body.deposit).not.toHaveProperty("account"); // GL account annotation removed (039)
     expect(body.deposit.amount).toBe(185); // gross cash 200 − seed 15
     expect(body.gateSalesSummary.posVerification.gross).toBe(100); // PC gross (entered)
   });

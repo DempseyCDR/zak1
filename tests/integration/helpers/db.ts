@@ -16,7 +16,7 @@ export async function ensureSchema(): Promise<void> {
 
 /** Truncate all feature tables between tests (preserves club_settings seed). */
 export async function resetDb(): Promise<void> {
-  await sql`TRUNCATE role_grants, audit_events, staff_sessions, staff_identities, mailing_list_exports, series_parameters, series_parameter_audit, venue_rents, venue_rent_audit, misc_expenses, account_mapping, series_qbo_map, treasurer_report_audit, mapping_audit, payment_bookings, performer_payments, paypal_notifications, membership_captures, band_members, bands, bookings, performers, door_record_audit, gate_sales, door_records, attendance, quarterly_attendance_counts, events, event_groups, venues, merge_audit, status_change_audit, memberships, payers, contact_emails, contacts RESTART IDENTITY CASCADE`;
+  await sql`TRUNCATE role_grants, audit_events, staff_sessions, staff_identities, mailing_list_exports, series_parameters, series_parameter_audit, venue_rents, venue_rent_audit, misc_expenses, series_qbo_map, treasurer_report_audit, mapping_audit, payment_bookings, performer_payments, paypal_notifications, membership_captures, band_members, bands, bookings, performers, door_record_audit, gate_sales, door_records, attendance, quarterly_attendance_counts, events, event_groups, venues, merge_audit, status_change_audit, memberships, payers, contact_emails, contacts RESTART IDENTITY CASCADE`;
   // series + QBO mapping are config (seeded once); ensure they exist for tests
   await sql`INSERT INTO series (key, name, has_sound_tech) VALUES
     ('tnc','Thursday Night Contra',true),
@@ -24,22 +24,6 @@ export async function resetDb(): Promise<void> {
     ('community_dance','Community Dance',false),
     ('general','General / Joint Events',true)
     ON CONFLICT (key) DO NOTHING`;
-  await sql`INSERT INTO account_mapping (line_key, account_code, account_name) VALUES
-    ('admission','4210','Program Service Revenue:Dance Gate'),
-    ('merchandise','4700','Sales of Inventory'),
-    ('donation','4100','Voluntary Contributions'),
-    ('future_event','4200','Program Service Revenue'),
-    ('membership','4300','Membership Dues'),
-    ('gift_card','2201','Prepaid Services:Pre-paid Gift Card'),
-    ('misc_sales','4900','Uncategorized Income'),
-    ('caller','5320','Program Staff:Callers'),
-    ('lead_musician','5310','Program Staff:Bands'),
-    ('musician','5310','Program Staff:Bands'),
-    ('sound_tech','5330','Program Staff:Sound Tech'),
-    ('rent','5420','Facilities:Rent'),
-    ('fees','5810','Bank Charges & Fees:PayPal Fees'),
-    ('deposit','1021','ESL Checking')
-    ON CONFLICT (line_key) DO NOTHING`;
   await sql`INSERT INTO series_qbo_map (series_id, gate_customer, qbo_class)
     SELECT id, CASE WHEN key='ecd' THEN 'English Gate' ELSE 'Contra Gate' END,
            CASE key WHEN 'tnc' THEN 'TNC' WHEN 'ecd' THEN 'ECD' ELSE 'Community Dance' END

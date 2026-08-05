@@ -6,7 +6,6 @@ import { useCallback, useEffect, useState } from "react";
 
 type Line = {
   category: string;
-  account: string;
   class: string;
   cash: number;
   card: number;
@@ -23,19 +22,17 @@ type Report = {
     kind: string;
     contact: string;
     contactId: string | null;
-    account: string;
     class: string;
     amount: number;
   }[];
   performerPayments: {
     payee: string;
     amount: number;
-    account: string;
     class: string;
     checkNumber: string | null;
   }[];
-  deposit: { account: string; amount: number };
-  fees: { account: string; doorFee: number; onlineFee: number; total: number };
+  deposit: { amount: number };
+  fees: { doorFee: number; onlineFee: number; total: number };
 };
 
 const money = (n: number) => `$${n.toFixed(2)}`;
@@ -92,7 +89,6 @@ export default function TreasurerReportPage() {
             <thead>
               <tr>
                 <th>Category</th>
-                <th>Account</th>
                 <th>Class</th>
                 <th>Cash</th>
                 <th>Card</th>
@@ -103,7 +99,6 @@ export default function TreasurerReportPage() {
               {report.gateSalesSummary.lines.map((l) => (
                 <tr key={l.category}>
                   <td>{l.category}</td>
-                  <td>{l.account}</td>
                   <td>{l.class}</td>
                   <td>{money(l.cash)}</td>
                   <td>{money(l.card)}</td>
@@ -117,8 +112,7 @@ export default function TreasurerReportPage() {
           <ul>
             {report.namedCustomerReceipts.map((r, i) => (
               <li key={`${r.kind}:${r.contactId ?? i}`}>
-                {r.kind} — <strong>{r.contact}</strong> — {money(r.amount)} → {r.account} ({r.class}
-                )
+                {r.kind} — <strong>{r.contact}</strong> — {money(r.amount)} ({r.class})
               </li>
             ))}
             {report.namedCustomerReceipts.length === 0 && <li style={{ color: "#888" }}>None</li>}
@@ -130,7 +124,6 @@ export default function TreasurerReportPage() {
               <tr>
                 <th>Payee</th>
                 <th>Amount</th>
-                <th>Account</th>
                 <th>Class</th>
                 <th>Check #</th>
               </tr>
@@ -140,7 +133,6 @@ export default function TreasurerReportPage() {
                 <tr key={i}>
                   <td>{p.payee}</td>
                   <td>{money(p.amount)}</td>
-                  <td>{p.account}</td>
                   <td>{p.class}</td>
                   <td>{p.checkNumber ?? "—"}</td>
                 </tr>
@@ -149,14 +141,12 @@ export default function TreasurerReportPage() {
           </table>
 
           <h2>Deposit</h2>
-          <p>
-            {money(report.deposit.amount)} → {report.deposit.account} (ESL Checking)
-          </p>
+          <p>{money(report.deposit.amount)} → ESL Checking</p>
 
           <h2>Fees (informational)</h2>
           <p>
             Door {money(report.fees.doorFee)} · Online {money(report.fees.onlineFee)} · Total{" "}
-            {money(report.fees.total)} → {report.fees.account}
+            {money(report.fees.total)}
           </p>
 
           <button onClick={() => window.print()} style={{ marginTop: 16 }}>

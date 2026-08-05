@@ -40,13 +40,13 @@ describe("treasurer report — performer payments cutover parity", () => {
     expect(body.performerPayments[0]).toMatchObject({
       payee: "Backfill Caller",
       amount: 150,
-      account: "5320", // caller account, from the settled booking's performer type
-      class: expect.any(String),
+      class: expect.any(String), // Feature 039: GL account annotation removed; class retained
       checkNumber: "1042",
     });
-    // Feature 023: the check now carries its per-line allocation.
+    expect(body.performerPayments[0]).not.toHaveProperty("account");
+    // Feature 023: the check now carries its per-line allocation (per-line GL account removed by 039).
     expect(body.performerPayments[0].lines).toEqual([
-      { performer: "Backfill Caller", bookingId: expect.any(String), amount: 150, account: "5320" },
+      { performer: "Backfill Caller", bookingId: expect.any(String), amount: 150 },
     ]);
     // Reconciliation: booked 150 = paid 150 → no gap.
     expect(body.performerReconciliation).toEqual({ expected: 150, actual: 150, delta: 0 });

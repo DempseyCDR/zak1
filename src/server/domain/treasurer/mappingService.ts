@@ -1,16 +1,10 @@
 import { eq } from "drizzle-orm";
 import type { Db } from "@/server/db/client";
-import { accountMapping, mappingAudit, series, seriesQboMap } from "@/server/db/schema";
-import type { AccountMappingRow, SeriesQboMapRow } from "@/server/db/schema";
+import { mappingAudit, series, seriesQboMap } from "@/server/db/schema";
+import type { SeriesQboMapRow } from "@/server/db/schema";
 import { errors } from "@/server/lib/apiError";
 import { writeAudit } from "@/server/lib/audit";
-import type { AccountMappingPutInput, SeriesQboPutInput } from "@/server/validation/treasurer";
-
-/** All account mappings as a line_key → {code,name} lookup. */
-export async function loadAccountMap(db: Db): Promise<Map<string, AccountMappingRow>> {
-  const rows = await db.select().from(accountMapping);
-  return new Map(rows.map((r) => [r.lineKey, r]));
-}
+import type { SeriesQboPutInput } from "@/server/validation/treasurer";
 
 export async function loadSeriesQbo(db: Db, seriesId: string): Promise<SeriesQboMapRow | null> {
   const row = await db.query.seriesQboMap.findFirst({ where: eq(seriesQboMap.seriesId, seriesId) });
@@ -18,10 +12,8 @@ export async function loadSeriesQbo(db: Db, seriesId: string): Promise<SeriesQbo
 }
 
 export async function getMappingConfig(db: Db): Promise<{
-  accounts: AccountMappingRow[];
   series: (SeriesQboMapRow & { seriesKey: string })[];
 }> {
-  const accounts = await db.select().from(accountMapping);
   const rows = await db
     .select({
       seriesId: seriesQboMap.seriesId,
@@ -32,26 +24,7 @@ export async function getMappingConfig(db: Db): Promise<{
     })
     .from(seriesQboMap)
     .innerJoin(series, eq(series.id, seriesQboMap.seriesId));
-  return { accounts, series: rows };
-}
-
-export async function updateAccountMapping(
-  db: Db,
-  lineKey: string,
-  input: AccountMappingPutInput,
-  actor: string | null = null,
-): Promise<AccountMappingRow> {
-  const [row] = await db
-    .update(accountMapping)
-    .set({ accountCode: input.accountCode, accountName: input.accountName, updatedAt: new Date() })
-    .where(eq(accountMapping.lineKey, lineKey))
-    .returning();
-  if (!row) throw errors.mappingKeyNotFound();
-  await db
-    .insert(mappingAudit)
-    .values({ mappingKind: "account", key: lineKey, details: input, actor });
-  writeAudit({ kind: "qbo_mapping.updated", actor, details: { kind: "account", lineKey } });
-  return row;
+  return { series: rows };
 }
 
 export async function updateSeriesQbo(
