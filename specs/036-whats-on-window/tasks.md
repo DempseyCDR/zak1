@@ -31,7 +31,7 @@ Single Next.js App Router project — `src/server/**`, `src/app/**`, `tests/**` 
 
 **Purpose**: Confirm tooling — no install.
 
-- [ ] T001 Confirm the node unit-test env and the real-Postgres integration env are available (see
+- [x] T001 Confirm the node unit-test env and the real-Postgres integration env are available (see
   `tests/integration/publicSchedule.test.ts`, which seeds events and passes an explicit `from`). No dependency
   install required.
 
@@ -54,21 +54,21 @@ homeWindowStart(ref))` includes ref−2 and ref−1 and future events, excludes 
 
 ### Tests for User Story 1 (write FIRST — must FAIL before T004/T005)
 
-- [ ] T002 [P] [US1] Create `tests/unit/publicScheduleWindow.test.ts` (node) for the pure helper `homeWindowStart`:
+- [x] T002 [P] [US1] Create `tests/unit/publicScheduleWindow.test.ts` (node) for the pure helper `homeWindowStart`:
   `"2026-08-04" → "2026-08-02"`, month rollover `"2026-03-01" → "2026-02-27"`, year rollover
   `"2026-01-01" → "2025-12-30"`; and that the default lookback is 2. Confirm it FAILS (helper missing).
-- [ ] T003 [P] [US1] Add a window-boundary case to `tests/integration/publicSchedule.test.ts`: seed events at
+- [x] T003 [P] [US1] Add a window-boundary case to `tests/integration/publicSchedule.test.ts`: seed events at
   `ref−1`, `ref−2`, `ref−3`, and a future date; call `getPublicSchedule(db, homeWindowStart(ref))`; assert
   `ref−2` and `ref−1` and the future event are returned, `ref−3` is not, ordered ascending by date. Confirm it
   FAILS (helper missing).
 
 ### Implementation for User Story 1
 
-- [ ] T004 [US1] In `src/server/domain/public/publicSchedule.ts`, add `export const HOME_WINDOW_LOOKBACK_DAYS =
+- [x] T004 [US1] In `src/server/domain/public/publicSchedule.ts`, add `export const HOME_WINDOW_LOOKBACK_DAYS =
   2` and `export function homeWindowStart(today: string, lookbackDays = HOME_WINDOW_LOOKBACK_DAYS): string` —
   UTC calendar math (`new Date(`${today}T00:00:00Z`)`, `setUTCDate(-lookbackDays)`, `toISOString().slice(0,10)`).
   Makes T002 pass.
-- [ ] T005 [US1] In `src/server/domain/public/publicSchedule.ts`, change `getPublicSchedule`'s default from
+- [x] T005 [US1] In `src/server/domain/public/publicSchedule.ts`, change `getPublicSchedule`'s default from
   `from: string = today()` to `from: string = homeWindowStart(today())`, and update the doc comment (it now
   defaults to two days ago, not today; FR-001/FR-004). Makes T003 pass. The `/whats-on` page inherits the new
   default — no page change needed.
@@ -79,11 +79,11 @@ homeWindowStart(ref))` includes ref−2 and ref−1 and future events, excludes 
 
 ## Phase 4: Polish & Cross-Cutting Concerns
 
-- [ ] T006 [P] (Optional) Reword the empty-state message in `src/app/(public)/whats-on/page.tsx` from
+- [x] T006 [P] (Optional) Reword the empty-state message in `src/app/(public)/whats-on/page.tsx` from
   "No upcoming dances scheduled" to fit recent + upcoming (e.g. "No dances to show"). Cosmetic only.
-- [ ] T007 Run the full local gate: `pnpm exec tsc --noEmit && pnpm run lint && pnpm exec vitest run` — all
+- [x] T007 Run the full local gate: `pnpm exec tsc --noEmit && pnpm run lint && pnpm exec vitest run` — all
   green (scope prettier/lint to changed files if run separately).
-- [ ] T008 Manual quickstart validation (`specs/036-whats-on-window/quickstart.md`) via the dev server / browser:
+- [x] T008 Manual quickstart validation (`specs/036-whats-on-window/quickstart.md`) via the dev server / browser:
   `/whats-on` starts with the most recent past dance (within two days), then upcoming ascending; nothing older
   than two days; screenshot the result.
 

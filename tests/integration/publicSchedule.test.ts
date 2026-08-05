@@ -3,7 +3,7 @@ import { eq } from "drizzle-orm";
 import { ensureSchema, resetDb, closeDb, db } from "./helpers/db";
 import { makeEvent } from "./helpers/factories";
 import { events, venues } from "@/server/db/schema";
-import { getPublicSchedule } from "@/server/domain/public/publicSchedule";
+import { getPublicSchedule, homeWindowStart } from "@/server/domain/public/publicSchedule";
 
 // FR-001, FR-010
 describe("getPublicSchedule", () => {
@@ -34,6 +34,20 @@ describe("getPublicSchedule", () => {
 
     const laterItem = schedule.find((s) => s.eventId === later.id)!;
     expect(laterItem.venueName).toBeNull(); // no venue assigned
+  });
+
+  // Feature 036 (P6-R3): the /whats-on home window starts two calendar days before today (inclusive),
+  // ascending, so recent-past dances show alongside upcoming ones; anything older is excluded.
+  it("includes events from two days ago onward, ascending; older than two days excluded", async () => {
+    const ref = "2026-06-10";
+    const older = await makeEvent({ seriesKey: "tnc", eventDate: "2026-06-07" }); // ref-3 → excluded
+    const twoAgo = await makeEvent({ seriesKey: "tnc", eventDate: "2026-06-08" }); // ref-2 → included (boundary)
+    const yesterday = await makeEvent({ seriesKey: "tnc", eventDate: "2026-06-09" }); // ref-1 → included
+    const future = await makeEvent({ seriesKey: "ecd", eventDate: "2026-07-01" }); // included
+
+    const schedule = await getPublicSchedule(db, homeWindowStart(ref));
+    expect(schedule.map((s) => s.eventId)).toEqual([twoAgo.id, yesterday.id, future.id]); // ascending
+    expect(schedule.map((s) => s.eventId)).not.toContain(older.id);
   });
 
   it("includes a free event (chargesAdmission = false) in the schedule", async () => {

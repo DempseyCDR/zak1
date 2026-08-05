@@ -38,14 +38,29 @@ function today(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
+/** The /whats-on home page's fixed lookback: it lists dances from this many calendar days ago onward (036, P6-R3). */
+export const HOME_WINDOW_LOOKBACK_DAYS = 2;
+
 /**
- * Upcoming public schedule (FR-001/FR-010): events on/after `from` (defaults to today; injectable
- * for deterministic tests), ascending, with activity (series name) + venue name. Public-safe — no
- * money/attendance/contacts. Free (chargesAdmission = false) events are included like any other.
+ * The home window's inclusive lower bound: `lookbackDays` calendar days before `day` (both `YYYY-MM-DD`).
+ * Pure, and UTC-based to match `today()`, so month/year rollover is correct (e.g. 2026-03-01 → 2026-02-27).
+ * Feature 036 (P6-R3) — the single, testable expression of the two-day lookback.
+ */
+export function homeWindowStart(day: string, lookbackDays: number = HOME_WINDOW_LOOKBACK_DAYS): string {
+  const d = new Date(`${day}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() - lookbackDays);
+  return d.toISOString().slice(0, 10);
+}
+
+/**
+ * Public home schedule (FR-001/FR-010; window widened by 036, P6-R3): events on/after `from` — which
+ * defaults to **two days ago** (`homeWindowStart(today())`), so `/whats-on` shows the recent past plus
+ * everything upcoming — ascending, with activity (series name) + venue name. `from` stays injectable for
+ * deterministic tests. Public-safe — no money/attendance/contacts. Free events are included like any other.
  */
 export async function getPublicSchedule(
   db: Db,
-  from: string = today(),
+  from: string = homeWindowStart(today()),
 ): Promise<PublicScheduleItem[]> {
   const rows = await db
     .select({

@@ -9,7 +9,7 @@ export default async function WhatsOnPage() {
   return (
     <main style={{ padding: 24, maxWidth: 720 }}>
       <h1>What&apos;s on</h1>
-      {schedule.length === 0 && <p style={{ color: "#666" }}>No upcoming dances scheduled.</p>}
+      {schedule.length === 0 && <p style={{ color: "#666" }}>No dances to show.</p>}
       <ul style={{ listStyle: "none", padding: 0 }}>
         {schedule.map((s) => (
           <li key={s.eventId} style={{ padding: "8px 0", borderBottom: "1px solid #eee" }}>
