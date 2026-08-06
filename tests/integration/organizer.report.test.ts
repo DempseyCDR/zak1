@@ -1,7 +1,7 @@
 import { beforeAll, beforeEach, afterAll, describe, expect, it } from "vitest";
 import { eq, sql } from "drizzle-orm";
 import { ensureSchema, resetDb, closeDb, db } from "./helpers/db";
-import { makeEvent, makeDoorRecord, makePerformer } from "./helpers/factories";
+import { makeEvent, makeDoorRecord, makePerformer, makeBand } from "./helpers/factories";
 import { attendance, events } from "@/server/db/schema";
 import { updateDoorRecord } from "@/server/domain/door/doorRecordService";
 import { createBooking } from "@/server/domain/bookings/bookingService";
@@ -43,6 +43,107 @@ describe("organizer report", () => {
     expect(row.dancers).toBe(18);
     expect(row.caller).toBe("Cal Caller");
     expect((row.performers as unknown[]).length).toBe(1);
+  });
+
+  // Feature 041 (P6-R11): the band field shows the booked BAND's name (not the joined member names) when a
+  // named band plays; ad-hoc / open-band / no-musicians fall back exactly as before; no computed figure moves.
+  it("shows the band's name for a named band, with figures unchanged (FR-001/FR-005)", async () => {
+    const evt = await makeEvent({ seriesKey: "tnc", eventDate: "2026-06-18" });
+    const drId = await makeDoorRecord(evt.id);
+    await updateDoorRecord(db, drId, { grossCash: 350, seedFloat: 0 });
+    const band = await makeBand("The Fiddleheads");
+    const lead = await makePerformer("Alice Fiddle");
+    const musician = await makePerformer("Bob Piano");
+    await createBooking(
+      db,
+      evt.id,
+      { performerId: lead.id, performerType: "lead_musician", pay: 100 },
+      null,
+      band.id,
+    );
+    await createBooking(
+      db,
+      evt.id,
+      { performerId: musician.id, performerType: "musician", pay: 100 },
+      null,
+      band.id,
+    );
+    const caller = await makePerformer("Cal Caller");
+    await createBooking(db, evt.id, { performerId: caller.id, performerType: "caller", pay: 150 });
+    for (let i = 0; i < 20; i++) await recordAttendance(db, evt.id, { unmatched: true });
+
+    const report = await assembleOrganizerReport(db, "tnc", year);
+    const row = report.perDanceRows[0] as Record<string, unknown>;
+    expect(row.band).toBe("The Fiddleheads"); // the band NAME, not "Alice Fiddle, Bob Piano"
+    // FR-005 parity: the band-name change touches no computed figure.
+    expect(row.grossGate).toBe(350);
+    expect(row.performerTotal).toBe(350); // 100 + 100 + 150
+    expect(row.dancers).toBe(16); // 20 attendance − 3 performers − 1 door
+    expect(row.danceNet).toBe(0); // 350 admission − 350 performers
+    // the member roster is still available for the drill-in detail
+    expect((row.performers as unknown[]).length).toBe(3);
+  });
+
+  it("falls back to joined member names for ad-hoc musicians (FR-002)", async () => {
+    const evt = await makeEvent({ seriesKey: "tnc", eventDate: "2026-06-18" });
+    const m1 = await makePerformer("Ada Adhoc");
+    const m2 = await makePerformer("Ben Busker");
+    await createBooking(db, evt.id, {
+      performerId: m1.id,
+      performerType: "lead_musician",
+      pay: 100,
+    });
+    await createBooking(db, evt.id, { performerId: m2.id, performerType: "musician", pay: 100 });
+    const report = await assembleOrganizerReport(db, "tnc", year);
+    const row = report.perDanceRows[0] as { band: string };
+    expect(row.band).toContain("Ada Adhoc");
+    expect(row.band).toContain("Ben Busker");
+  });
+
+  it("shows 'Open Band' for open-band-only and blank when no musicians play (FR-003)", async () => {
+    const evt1 = await makeEvent({ seriesKey: "community_dance", eventDate: "2026-06-10" });
+    const ob = await makePerformer("Ollie Openband");
+    await createBooking(db, evt1.id, {
+      performerId: ob.id,
+      performerType: "open_band_musician",
+    });
+    const evt2 = await makeEvent({ seriesKey: "tnc", eventDate: "2026-06-18" });
+    const caller = await makePerformer("Solo Caller");
+    await createBooking(db, evt2.id, { performerId: caller.id, performerType: "caller", pay: 150 });
+
+    const report = await assembleOrganizerReport(db, "tnc", year);
+    const bandFor = (id: string) =>
+      (report.perDanceRows.find((r) => (r as { eventId: string }).eventId === id) as {
+        band: string;
+      })!.band;
+    expect(bandFor(evt1.id)).toBe("Open Band");
+    expect(bandFor(evt2.id)).toBe("");
+  });
+
+  it("joins the names of multiple bands on one dance (FR-004)", async () => {
+    const evt = await makeEvent({ seriesKey: "tnc", eventDate: "2026-06-18" });
+    const bandA = await makeBand("Band Alpha");
+    const bandB = await makeBand("Band Beta");
+    const mA = await makePerformer("Amy A");
+    const mB = await makePerformer("Baz B");
+    await createBooking(
+      db,
+      evt.id,
+      { performerId: mA.id, performerType: "lead_musician", pay: 100 },
+      null,
+      bandA.id,
+    );
+    await createBooking(
+      db,
+      evt.id,
+      { performerId: mB.id, performerType: "lead_musician", pay: 100 },
+      null,
+      bandB.id,
+    );
+    const report = await assembleOrganizerReport(db, "tnc", year);
+    const row = report.perDanceRows[0] as { band: string };
+    expect(row.band).toContain("Band Alpha");
+    expect(row.band).toContain("Band Beta");
   });
 
   it("counts a family's children as paying dancers (B35)", async () => {

@@ -4,8 +4,15 @@ import { createEvent } from "@/server/domain/events/eventService";
 import { createPerformer } from "@/server/domain/performers/performerService";
 import { createDoorRecord, putGateSales } from "@/server/domain/door/doorRecordService";
 import { deriveContactNames } from "@/server/domain/contacts/normalize";
-import { contactEmails, contacts, events, roleGrants, staffIdentities } from "@/server/db/schema";
-import type { EventRow, PerformerRow, Role } from "@/server/db/schema";
+import {
+  bands,
+  contactEmails,
+  contacts,
+  events,
+  roleGrants,
+  staffIdentities,
+} from "@/server/db/schema";
+import type { BandRow, EventRow, PerformerRow, Role } from "@/server/db/schema";
 import { createSession } from "@/server/auth/session";
 import type { GateCategory, PaymentMethod } from "@/server/db/schema";
 import type { EmailConsentTopic, EmailStatus, MembershipStatus } from "@/server/db/schema";
@@ -36,6 +43,13 @@ export async function makeEvent(opts?: {
     .where(eq(events.id, row.id))
     .returning();
   return updated ?? row;
+}
+
+/** Feature 041: insert a named band so a test can book musicians under it (via createBooking's bandId arg). */
+export async function makeBand(name = "Test Band"): Promise<BandRow> {
+  const [row] = await db.insert(bands).values({ name }).returning();
+  if (!row) throw new Error("band insert failed");
+  return row;
 }
 
 export async function makePerformer(displayName = "Test Performer"): Promise<PerformerRow> {

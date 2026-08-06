@@ -206,6 +206,12 @@ export default function OrganizerReportPage({
               {openRow === r.eventId && (
                 <tr>
                   <td colSpan={14} style={{ background: "#f7f7f7", padding: "8px 12px" }}>
+                    {r.band && (
+                      <>
+                        <strong>Band:</strong> {r.band}
+                        <br />
+                      </>
+                    )}
                     <strong>Performers:</strong>{" "}
                     {r.performers.length === 0
                       ? "none"

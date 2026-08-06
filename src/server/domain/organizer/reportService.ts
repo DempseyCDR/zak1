@@ -1,6 +1,6 @@
 import { eq, inArray } from "drizzle-orm";
 import type { Db } from "@/server/db/client";
-import { events, miscExpenses, series } from "@/server/db/schema";
+import { bands, events, miscExpenses, series } from "@/server/db/schema";
 import { errors } from "@/server/lib/apiError";
 import { centsToDollars } from "@/server/lib/money";
 import { computeEventGate } from "@/server/domain/gate/eventMoney";
@@ -43,6 +43,11 @@ export async function assembleOrganizerReport(
     await db.select().from(events).where(inArray(events.seriesId, seriesIds))
   ).sort((a, b) => a.eventDate.localeCompare(b.eventDate));
 
+  // Feature 041 (P6-R11): resolve a booked band's NAME for the band column. Load a bandId→name map once
+  // (bands is a small table) rather than per event, avoiding an N+1 across a full-year report.
+  const bandRows = await db.select({ id: bands.id, name: bands.name }).from(bands);
+  const bandNameById = new Map(bandRows.map((b) => [b.id, b.name]));
+
   const rows = [];
   const quarterlyRows: QuarterlyRow[] = [];
   const trendPoints: TrendPoint[] = [];
@@ -78,15 +83,22 @@ export async function assembleOrganizerReport(
     const avgTicket = avgTicketCents(gate.admissionCents, dancers);
 
     const caller = bookings.find((b) => b.performerType === "caller")?.performerName ?? "";
-    const bandMembers = bookings
-      .filter((b) => b.performerType === "lead_musician" || b.performerType === "musician")
-      .map((b) => b.performerName);
+    const musicianBookings = bookings.filter(
+      (b) => b.performerType === "lead_musician" || b.performerType === "musician",
+    );
+    // Feature 041 (P6-R11): show the booked BAND's name when the musicians belong to a named band; else the
+    // joined member names (ad-hoc); else "Open Band"; else "". Distinct non-null bandIds → their names joined.
+    const bandIds = [
+      ...new Set(musicianBookings.filter((b) => b.bandId !== null).map((b) => b.bandId as string)),
+    ];
     const band =
-      bandMembers.length > 0
-        ? bandMembers.join(", ")
-        : bookings.some((b) => b.performerType === "open_band_musician")
-          ? "Open Band"
-          : "";
+      bandIds.length > 0
+        ? bandIds.map((id) => bandNameById.get(id) ?? "").join(", ")
+        : musicianBookings.length > 0
+          ? musicianBookings.map((b) => b.performerName).join(", ")
+          : bookings.some((b) => b.performerType === "open_band_musician")
+            ? "Open Band"
+            : "";
 
     const srow = seriesById.get(ev.seriesId);
     rows.push({
