@@ -1,7 +1,7 @@
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan
-at specs/039-drop-account-mapping/plan.md
+at specs/040-treasurer-report-restructure/plan.md
 <!-- SPECKIT END -->
 
 ## Development conventions

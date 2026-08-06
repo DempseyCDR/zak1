@@ -3,18 +3,20 @@
 > Single living doc — no versioned copies. Update in place each session.
 
 **Snapshot:** 2026-08-05 · **Repo:** `/Users/rcd/Repositories/zak1` · **Remote:**
-`github.com/DempseyCDR/zak1` · **Head:** local `main` at the **039-impl** commit. ⚠️ **`origin/main` is at
-`31a2e9b` (036) — local is 6 commits AHEAD, UNPUSHED**: 037 planning `e89c7fb` → 037 impl `6ef28dc` → 038
-planning `eadc939` → 038 impl `50a69e1` → 039 planning `df9f710` → **039 impl** (this doc's commit). **039 is
-IMPLEMENTED (migration `0032` applied to `zak1_dev`).**
+`github.com/DempseyCDR/zak1` · **Head:** local `main` at the **040-planning** commit. ⚠️ **`origin/main` is at
+`31a2e9b` (036) — local is 7 commits AHEAD, UNPUSHED**: 037 planning `e89c7fb` → 037 impl `6ef28dc` → 038
+planning `eadc939` → 038 impl `50a69e1` → 039 planning `df9f710` → 039 impl `5f3169f` → **040 planning** (this
+doc's commit). **039 IMPLEMENTED** (migration `0032` applied to `zak1_dev`). **040 is spec+plan+tasks only — NOT
+implemented** (analyze ran clean; C1/C2/C3 coverage gaps remedied in `tasks.md`).
 **Phases 3, 4, 5 COMPLETE; Phase 6 UNDERWAY (now BUILDING via SpecKit, not just collecting).** Phase 5 shipped
 through **033**. **Phase 6 shipped so far (034–039):** **034** public nav menu (P6-R1) · **035** volunteer nav
 menu (P6-R2, subsumes D1) · **036** `/whats-on` two-days-ago window (P6-R3) · **037** `/what-was-on` history +
 series filter (P6-R4+R5) · **038** drop `non_dance_income` (P6-R6, migration `0031`, first destructive removal) ·
-**039** drop `account_mapping` (P6-R7, migration `0032` DROP TABLE — the dead GL-account annotation). **Remaining
-Phase 6:** R8 (treasurer report restructure) · R9 (comp/gift counts) · R10/R11/R12 (door & reporting tweaks) ·
-defect **D3** (payments multi-booking check-number capture/edit). Suite **688 tests / 211 files green**; clean
-build. The **Node-18 Bash gotcha is RESOLVED** (Bash runs Node 24; the stale Node 16 was purged). Purpose: seed a
+**039** drop `account_mapping` (P6-R7, migration `0032` DROP TABLE — the dead GL-account annotation). **In flight:
+040** treasurer report QBO restructure (P6-R8) + comp/gift-card counts (P6-R9) — spec+plan+tasks done, NOT
+implemented (no migration; report reshape + 3 additive fields). **Remaining Phase 6 after 040:** R10/R11/R12 (door
+& reporting tweaks) · defect **D3** (payments multi-booking check-number capture/edit). Suite **688 tests / 211
+files green**; clean build. The **Node-18 Bash gotcha is RESOLVED** (Bash runs Node 24; the stale Node 16 was purged). Purpose: seed a
 fresh session to continue work on zak1 (CDR).
 
 ---
@@ -85,7 +87,8 @@ set +a`.
 ## 4. Tests & governance
 
 Pipeline `/speckit-specify → clarify → plan → tasks → analyze → implement`. Active pointer
-`.specify/feature.json` → **`specs/039-drop-account-mapping`** (implemented). **Constitution v1.3.0**
+`.specify/feature.json` → **`specs/040-treasurer-report-restructure`** (spec+plan+tasks; NOT implemented).
+**Constitution v1.3.0**
 (non-negotiable):
 I Test-First (Red-Green-Refactor), II YAGNI, III Type Safety (Zod at boundaries), IV Observability.
 Testing standard: integration against **real** local infra; DBs never mocked; third-party services (Google,
@@ -193,12 +196,15 @@ Each R-item goes through the full SpecKit pipeline as its own feature. **Require
 - **Treasurer report rework** — **R6 → 038 SHIPPED** (purge `non_dance_income`, migration `0031` DROP TABLE;
   `account_mapping` table kept, only its seed row removed). **R7 → 039 SHIPPED:** purged the `account_mapping`
   GL-code-per-line annotation (migration `0032` DROP TABLE) — **kept `series_qbo_map`** (customer + class) and
-  `mapping_audit`; the report keeps its shape minus the account column, no computed figure changed. **R8 NOT
-  STARTED** — restructure the report to mirror QBO data entry (Sales Receipts [attendance
-  receipt first] → Bills [rent → landlord, *not paid by FS*] → Performer Payments [one section] → Deposit → Fees;
-  community-dance gate = own series → own receipt to Contra Gate; rent Bill derived from event rent + venue
-  landlord). **R9 NOT STARTED** — show comp-admission + gift-card-redemption counts (data already in
-  `door_records`).
+  `mapping_audit`; the report keeps its shape minus the account column, no computed figure changed. **R8 + R9 →
+  040 PLANNED (spec+plan+tasks, NOT implemented):** restructure the report to mirror QBO data entry (Sales
+  Receipts [gate/attendance receipt first → named receipts] → Bills [rent → landlord, *not paid by FS*, no check
+  line] → Performer Payments [one section] → Deposit → Fees; community-dance gate = own series → own receipt to
+  Contra Gate, no special-case; rent Bill **derived** from `resolveEventRentCents` + venue landlord) **plus** show
+  comp-admission + gift-card-redemption counts (raw `door_records.comp_count` / `gift_card_redemption_count`).
+  **No migration** — a report reshape + 3 additive `TreasurerReport` fields (`bills`, `compCount`,
+  `giftCardRedemptionCount`); load-bearing invariant = **no computed figure changes** (FR-010). D3 + B42 out of
+  scope.
 - **Door & reporting tweaks (NOT STARTED)** — **R10** gift-card option when checking in a **new** contact ·
   **R11** organizer report shows **band name** + member detail pop-up · **R12** move performer **substitution**
   from `/gate` to `/payments` (re-gate `/api/bookings/[id]/substitute` to `performer_payment.write`, the 030
@@ -514,18 +520,18 @@ pnpm run db:seed               # ⚠️ WIPES zak1_dev — do NOT run
 
 ## 14. Uncommitted / unpushed at handoff
 
-⚠️ **`origin/main` is at `31a2e9b` (036); local `main` is 6 commits AHEAD, UNPUSHED:** 037 planning `e89c7fb`
-→ 037 impl `6ef28dc` → 038 planning `eadc939` → 038 impl `50a69e1` → 039 planning `df9f710` → **039 impl**
-(this context-doc update + the account_mapping removal). **Push these** (034/035/036 already pushed). **039 is
-IMPLEMENTED** — migration `0032` applied to `zak1_dev`; `tsc`/lint/**688 tests**/build all green. One deviation
-from `tasks.md`: `treasurer.paymentsCutover.test.ts` also asserted `account` (not enumerated in the plan) — the
-full suite caught it, same no-`account`/keep-`class` fix applied. Working tree clean after the 039-impl commit.
+⚠️ **`origin/main` is at `31a2e9b` (036); local `main` is 7 commits AHEAD, UNPUSHED:** 037 planning `e89c7fb`
+→ 037 impl `6ef28dc` → 038 planning `eadc939` → 038 impl `50a69e1` → 039 planning `df9f710` → 039 impl `5f3169f`
+→ 040 planning (spec+plan+tasks + `.specify/feature.json`/CLAUDE.md pointers + this context-doc update). **Push
+these** (034/035/036 already pushed). **039 IMPLEMENTED** — migration `0032` applied to `zak1_dev`;
+`tsc`/lint/**688 tests**/build all green. **040 is spec+plan+tasks only — NOT implemented** (analyze ran clean;
+C1/C2/C3 coverage gaps remedied in `tasks.md`). Working tree clean after the 040-planning commit.
 Migrations through `0032` (039) are applied to `zak1_dev` (snapshots incl. `~/zak1_pre_0031.dump`,
 `~/zak1_pre_0032.dump`).
 **Operational note:** a one-off `zak1_dev` data fix set payment `65fdeb94…`.`check_number` = `1792` (D3; was
 NULL) — data only, not in git.
-**To resume:** **push the 6-commit chain**, then continue Phase 6. **Phase 6 remaining after 039:** R8 (report
-restructure), R9 (comp/gift counts), R10/R11/R12 (door & reporting tweaks), defect D3 (payments check-number
-capture/edit).
+**To resume:** `/speckit-implement` **040** (treasurer report QBO restructure + comp/gift counts; **no migration**
+— report reshape + 3 additive fields, no computed figure changes), then **push the chain**. **Phase 6 remaining
+after 040:** R10/R11/R12 (door & reporting tweaks), defect D3 (payments check-number capture/edit).
 ⚠️ **Phase 6 process:** two commits per feature (`NNN planning` then `NNN impl`), full SpecKit pipeline each.
 Commits are SSH-signed via 1Password (unlock if a commit fails with "1Password: failed to fill whole buffer").
