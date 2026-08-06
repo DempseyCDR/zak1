@@ -25,6 +25,7 @@ type Report = {
     class: string;
     amount: number;
   }[];
+  bills: { vendor: string; class: string; amount: number }[];
   performerPayments: {
     payee: string;
     amount: number;
@@ -33,6 +34,8 @@ type Report = {
   }[];
   deposit: { amount: number };
   fees: { doorFee: number; onlineFee: number; total: number };
+  compCount: number;
+  giftCardRedemptionCount: number;
 };
 
 const money = (n: number) => `$${n.toFixed(2)}`;
@@ -80,7 +83,17 @@ export default function TreasurerReportPage() {
             {report.event.date} ({report.event.seriesKey})
           </h2>
 
-          <h2>Gate Sales Summary — {report.gateSalesSummary.customer}</h2>
+          {/* Feature 040 (P6-R9): reconciliation counts (free admissions + gift cards redeemed). */}
+          <p>
+            Comp admissions: {report.compCount} · Gift-card redemptions:{" "}
+            {report.giftCardRedemptionCount}
+          </p>
+
+          {/* Feature 040 (P6-R8): sections read in QBO data-entry order — Sales Receipts → Bills →
+              Performer Payments → Deposit → Fees. */}
+          <h2>Sales Receipts</h2>
+
+          <h3>Gate Sales Summary — {report.gateSalesSummary.customer}</h3>
           <p>
             Card verification: gross {money(report.gateSalesSummary.posVerification.gross)} · fee{" "}
             {money(report.gateSalesSummary.posVerification.fee)}
@@ -108,7 +121,7 @@ export default function TreasurerReportPage() {
             </tbody>
           </table>
 
-          <h2>Named-Customer Receipts</h2>
+          <h3>Named-Customer Receipts</h3>
           <ul>
             {report.namedCustomerReceipts.map((r, i) => (
               <li key={`${r.kind}:${r.contactId ?? i}`}>
@@ -117,6 +130,29 @@ export default function TreasurerReportPage() {
             ))}
             {report.namedCustomerReceipts.length === 0 && <li style={{ color: "#888" }}>None</li>}
           </ul>
+
+          <h2>Bills</h2>
+          <p style={{ color: "#888", marginTop: 0 }}>
+            To record in QBO — not paid through the Financial Secretary.
+          </p>
+          <table>
+            <thead>
+              <tr>
+                <th>Vendor</th>
+                <th>Class</th>
+                <th>Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              {report.bills.map((b, i) => (
+                <tr key={i}>
+                  <td>{b.vendor}</td>
+                  <td>{b.class}</td>
+                  <td>{money(b.amount)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
 
           <h2>Performer Payments</h2>
           <table>

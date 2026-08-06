@@ -3,7 +3,7 @@ import { eq } from "drizzle-orm";
 import { ensureSchema, resetDb, closeDb, db } from "./helpers/db";
 import { jsonReq, ctx } from "./helpers/http";
 import { makeEvent, makeDoorRecord, makePerformer, contactRow } from "./helpers/factories";
-import { contacts, treasurerReportAudit } from "@/server/db/schema";
+import { contacts, doorRecords, treasurerReportAudit, venues } from "@/server/db/schema";
 import { updateDoorRecord } from "@/server/domain/door/doorRecordService";
 import { createBooking } from "@/server/domain/bookings/bookingService";
 import { createPerformerPayment } from "@/server/domain/payments/performerPaymentService";
@@ -90,6 +90,66 @@ describe("GET /api/events/:id/treasurer-report", () => {
       .from(treasurerReportAudit)
       .where(eq(treasurerReportAudit.eventId, evt.id));
     expect(audits.length).toBe(1);
+  });
+
+  // Feature 040 (P6-R8): the report carries a Bills section — the venue rent as a bill owed to the venue's
+  // landlord, amount derived from resolveEventRentCents; NO check/payment line (rent is paid outside the FS
+  // check workflow).
+  it("shows the venue rent as a bill to the landlord, with no check line", async () => {
+    const [landlord] = await db
+      .insert(contacts)
+      .values(contactRow("Faith Lutheran Church"))
+      .returning();
+    const [venue] = await db
+      .insert(venues)
+      .values({ name: "Faith Lutheran", address: "123 Main St", landlordContactId: landlord!.id })
+      .returning();
+    const evt = await makeEvent({ seriesKey: "tnc", venueId: venue!.id, rentCents: 25000 });
+    await makeDoorRecord(evt.id);
+    const { body } = await report(evt.id);
+    expect(body.bills).toHaveLength(1);
+    expect(body.bills[0]).toEqual({
+      vendor: "Faith Lutheran Church",
+      class: "TNC",
+      amount: 250, // rentCents 25000 (frozen override) → resolveEventRentCents → $250
+    });
+    // no check/payment line on a bill (FR-004)
+    expect(body.bills[0]).not.toHaveProperty("checkNumber");
+  });
+
+  // Feature 040 (P6-R8/R9): a community-dance event is its own series, so its gate receipt is addressed to the
+  // series' gate customer ("Contra Gate") with NO special-case code (FR-009). With no venue, rent resolves to
+  // 0 and the bill still shows a $0 line to "(no landlord set)".
+  it("community-dance event with no venue: gate to Contra Gate, $0 rent line, no landlord", async () => {
+    const evt = await makeEvent({ seriesKey: "community_dance" });
+    await makeDoorRecord(evt.id);
+    const { body } = await report(evt.id);
+    expect(body.gateSalesSummary.customer).toBe("Contra Gate");
+    expect(body.bills).toHaveLength(1);
+    expect(body.bills[0].amount).toBe(0);
+    expect(body.bills[0].vendor).toBe("(no landlord set)");
+  });
+
+  // Feature 040 (P6-R9): the report surfaces the raw comp-admission count and gift-card-redemption count for
+  // reconciliation (both from the door record; display-only, no money figure changes).
+  it("surfaces comp-admission and gift-card-redemption counts", async () => {
+    const evt = await makeEvent();
+    const drId = await makeDoorRecord(evt.id);
+    await db
+      .update(doorRecords)
+      .set({ compCount: 3, giftCardRedemptionCount: 2 })
+      .where(eq(doorRecords.id, drId));
+    const { body } = await report(evt.id);
+    expect(body.compCount).toBe(3);
+    expect(body.giftCardRedemptionCount).toBe(2);
+  });
+
+  it("shows zero comp / gift-card-redemption counts (not hidden)", async () => {
+    const evt = await makeEvent();
+    await makeDoorRecord(evt.id);
+    const { body } = await report(evt.id);
+    expect(body.compCount).toBe(0);
+    expect(body.giftCardRedemptionCount).toBe(0);
   });
 
   it("computes deposit and shows POS verification", async () => {

@@ -33,8 +33,13 @@ function report(eventId: string) {
     },
     namedCustomerReceipts: [],
     performerPayments: [],
+    // Feature 040 (P6-R8): the rent bill (vendor = landlord, class, amount; no check line).
+    bills: [{ vendor: "Faith Lutheran Church", class: "TNC", amount: 250 }],
     deposit: { amount: 0 },
     fees: { doorFee: 0, onlineFee: 0, total: 0 },
+    // Feature 040 (P6-R9): reconciliation counts.
+    compCount: 3,
+    giftCardRedemptionCount: 2,
   };
 }
 
@@ -72,5 +77,45 @@ describe("TreasurerReportPage — /treasurer single page + selector (028)", () =
     // Switching the selected event reloads the report.
     await user.selectOptions(screen.getByRole("combobox", { name: /^event$/i }), "e_old");
     expect(await screen.findByText(/Gate Sales Summary — Cust e_old/)).toBeInTheDocument();
+  });
+
+  // Feature 040 (P6-R8): the report reads in QBO data-entry order.
+  it("renders sections in QBO order with the rent bill and keeps Print", async () => {
+    stub();
+    render(<TreasurerReportPage />);
+    await screen.findByText(/Gate Sales Summary — Cust e_recent/);
+
+    // The five QBO sections appear in order (SC-001).
+    const headings = screen.getAllByRole("heading").map((h) => h.textContent ?? "");
+    const idx = (re: RegExp) => headings.findIndex((t) => re.test(t));
+    const sales = idx(/Sales Receipts/i);
+    const bills = idx(/^Bills$/i);
+    const performer = idx(/Performer Payments/i);
+    const deposit = idx(/^Deposit$/i);
+    const fees = idx(/Fees/i);
+    expect(sales).toBeGreaterThanOrEqual(0);
+    expect(sales).toBeLessThan(bills);
+    expect(bills).toBeLessThan(performer);
+    expect(performer).toBeLessThan(deposit);
+    expect(deposit).toBeLessThan(fees);
+
+    // Within Sales Receipts, the gate/attendance receipt precedes the named receipts (SC-003).
+    expect(idx(/Gate Sales Summary/i)).toBeLessThan(idx(/Named-Customer Receipts/i));
+
+    // The rent bill shows vendor + amount, with NO check-number control in the Bills section.
+    expect(screen.getByText(/Faith Lutheran Church/)).toBeInTheDocument();
+
+    // Print is retained after the regroup (FR-011).
+    expect(screen.getByRole("button", { name: /print/i })).toBeInTheDocument();
+  });
+
+  // Feature 040 (P6-R9): the two reconciliation counts render (always shown, including 0).
+  it("shows comp-admission and gift-card-redemption counts", async () => {
+    stub();
+    render(<TreasurerReportPage />);
+    await screen.findByText(/Gate Sales Summary — Cust e_recent/);
+
+    expect(screen.getByText(/comp admissions/i)).toHaveTextContent(/3/);
+    expect(screen.getByText(/gift.?card redemptions/i)).toHaveTextContent(/2/);
   });
 });

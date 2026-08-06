@@ -13,6 +13,7 @@ import {
   series,
   seriesQboMap,
   treasurerReportAudit,
+  venues,
 } from "@/server/db/schema";
 import type { GateCategory } from "@/server/db/schema";
 import { errors } from "@/server/lib/apiError";
@@ -20,6 +21,7 @@ import { writeAudit } from "@/server/lib/audit";
 import { centsToDollars } from "@/server/lib/money";
 import { computeEventGate } from "@/server/domain/gate/eventMoney";
 import { reconcilePayments } from "@/server/domain/payments/reconcile";
+import { resolveEventRentCents } from "@/server/domain/parameters/rentService";
 
 // Anonymous non-admission categories shown on the gate receipt (admission is derived).
 const ANON_CATEGORIES: GateCategory[] = ["merchandise", "gift_card", "misc_sales"];
@@ -46,6 +48,13 @@ export type TreasurerReport = {
     class: string;
     amount: number;
   }[];
+  // Feature 040 (P6-R8): Bills owed to a vendor — the venue rent → landlord, amount derived from the event's
+  // resolved rent. NO check/payment line (rent is paid outside the FS check workflow). Rent only for now.
+  bills: {
+    vendor: string;
+    class: string;
+    amount: number;
+  }[];
   performerPayments: {
     payee: string;
     amount: number;
@@ -66,6 +75,10 @@ export type TreasurerReport = {
   performerReconciliation: { expected: number; actual: number; delta: number };
   deposit: { amount: number };
   fees: { doorFee: number; onlineFee: number; total: number };
+  // Feature 040 (P6-R9): reconciliation counts — raw free admissions and gift cards redeemed for admission
+  // (from the door record). Display-only; they alter no money figure.
+  compCount: number;
+  giftCardRedemptionCount: number;
 };
 
 export async function assembleTreasurerReport(
@@ -250,6 +263,22 @@ export async function assembleTreasurerReport(
     };
   })();
 
+  // Feature 040 (P6-R8): the venue rent as a Bill owed to the venue's landlord. Amount from the SAME resolver
+  // the organizer report uses (so both agree); vendor = the venue's landlord contact, with a "(no landlord
+  // set)" fallback (no venue or no landlord). No check/payment line — rent is paid outside the FS workflow.
+  const rentCents = await resolveEventRentCents(db, event);
+  const landlord = event.venueId
+    ? await db
+        .select({ landlordName: contacts.displayName })
+        .from(venues)
+        .leftJoin(contacts, eq(contacts.id, venues.landlordContactId))
+        .where(eq(venues.id, event.venueId))
+        .then((rows) => rows[0]?.landlordName ?? null)
+    : null;
+  const bills = [
+    { vendor: landlord ?? "(no landlord set)", class: qboClass, amount: centsToDollars(rentCents) },
+  ];
+
   await db.insert(treasurerReportAudit).values({ eventId, actor });
   writeAudit({ kind: "treasurer_report.generated", actor, details: { eventId } });
 
@@ -264,6 +293,7 @@ export async function assembleTreasurerReport(
       lines: gateLines,
     },
     namedCustomerReceipts,
+    bills,
     performerPayments: performerPaymentLines,
     voidedPerformerPayments,
     performerReconciliation,
@@ -273,5 +303,7 @@ export async function assembleTreasurerReport(
       onlineFee: 0, // online orders arrive with feature 007
       total: centsToDollars(door.posFeeCents),
     },
+    compCount: door.compCount, // raw free-admission count (NOT effective comps — research D4)
+    giftCardRedemptionCount: door.giftCardRedemptionCount,
   };
 }

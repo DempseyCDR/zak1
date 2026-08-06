@@ -33,7 +33,7 @@ Single Next.js + Postgres project — `src/server/**`, `src/app/**`, `tests/**` 
 
 **Purpose**: One shared test-helper extension so a test can seed a deterministic rent + landlord.
 
-- [ ] T001 In `tests/integration/helpers/factories.ts`, extend `makeEvent` to accept optional
+- [X] T001 In `tests/integration/helpers/factories.ts`, extend `makeEvent` to accept optional
   `{ venueId?: string; rentCents?: number }` and pass them through to `createEvent` (so a US1 test can seed an
   event whose `rentCents` is frozen and whose venue carries a landlord). Keep all existing call sites working
   (both new fields optional; behavior unchanged when omitted).
@@ -63,7 +63,7 @@ vendor `"(no landlord set)"`, and the Print control survives the regroup (FR-011
 
 ### Tests for User Story 1 (write FIRST)
 
-- [ ] T002 [P] [US1] In `tests/integration/treasurer.report.test.ts`, add assertions to the comprehensive
+- [X] T002 [P] [US1] In `tests/integration/treasurer.report.test.ts`, add assertions to the comprehensive
   assembly test (and/or a new `it`): `body.bills` contains the rent bill with `amount ===` the event's
   `resolveEventRentCents` (dollars), `vendor ===` the venue landlord's `displayName`, `class ===` the series
   `qboClass`, and **no** check/payment field. Then add a **second `it`** for a **community-dance event with no
@@ -73,7 +73,7 @@ vendor `"(no landlord set)"`, and the Print control survives the regroup (FR-011
   `bills[0].vendor === "(no landlord set)"` (the missing-landlord vendor). **Leave every existing figure assertion
   unchanged** — their staying green is the FR-010/SC-002 figure-parity proof. Confirm the new assertions FAIL
   against current code. (Covers FR-004, FR-008, FR-009, and the no-venue/$0 edge.)
-- [ ] T003 [P] [US1] In `tests/component/treasurer.page.test.tsx`, extend the mock-report fixture with a `bills`
+- [X] T003 [P] [US1] In `tests/component/treasurer.page.test.tsx`, extend the mock-report fixture with a `bills`
   array (rent → vendor, class, amount) and assert: the page renders sections in order **Sales Receipts → Bills →
   Performer Payments → Deposit → Fees**, the **gate/attendance receipt appears before** the named receipts
   (SC-003), the rent bill row shows vendor + amount with **no** check-number control, and the **Print** control is
@@ -81,14 +81,14 @@ vendor `"(no landlord set)"`, and the Print control survives the regroup (FR-011
 
 ### Implementation for User Story 1
 
-- [ ] T004 [US1] In `src/server/domain/treasurer/reportService.ts`, add `bills: { vendor: string; class: string;
+- [X] T004 [US1] In `src/server/domain/treasurer/reportService.ts`, add `bills: { vendor: string; class: string;
   amount: number }[]` to the `TreasurerReport` type and populate it in `assembleTreasurerReport`: resolve rent via
   `resolveEventRentCents(db, event)` (the `event` row already carries `rentCents/venueId/seriesId/eventDate`),
   resolve the venue's landlord `displayName` (via `events.venueId → venues.landlordContactId → contacts`) with a
   `"(no landlord set)"` fallback, and set `class = qboClass`; **no check/payment line**. Order the returned object
   to QBO shape (Sales Receipts fields, then `bills`, then performer payments, deposit, fees) — cosmetic on the
   JSON; the page controls display. **Touch no existing figure.** Makes T002 pass.
-- [ ] T005 [US1] In `src/app/(admin)/treasurer/page.tsx`, add `bills` to the page-local report type and regroup
+- [X] T005 [US1] In `src/app/(admin)/treasurer/page.tsx`, add `bills` to the page-local report type and regroup
   the render into QBO order: a **"Sales Receipts"** heading over the existing gate table (FIRST) + named receipts,
   then a new **"Bills"** section listing the rent bill (vendor + class + amount, **no** check control), then
   **"Performer Payments"**, **"Deposit"**, **"Fees"**. Keep the **Print** button. Makes T003 pass.
@@ -108,22 +108,22 @@ counts; confirm both appear; an event with zero of each shows 0.
 
 ### Tests for User Story 2 (write FIRST)
 
-- [ ] T006 [P] [US2] In `tests/integration/treasurer.report.test.ts`, add an `it` that seeds a door record with a
+- [X] T006 [P] [US2] In `tests/integration/treasurer.report.test.ts`, add an `it` that seeds a door record with a
   non-zero `comp_count` and `gift_card_redemption_count` (set directly via a `door_records` update or
   `adjustDoorCount`) and asserts `body.compCount ===` the raw `comp_count` and `body.giftCardRedemptionCount ===`
   the `gift_card_redemption_count`; add a 0/0 case asserting both are `0`. Confirm it FAILS. (Same file as T002 —
   add after it.)
-- [ ] T007 [P] [US2] In `tests/component/treasurer.page.test.tsx`, extend the mock-report fixture with the
+- [X] T007 [P] [US2] In `tests/component/treasurer.page.test.tsx`, extend the mock-report fixture with the
   `compCount` and `giftCardRedemptionCount` fields and assert both counts render (including a 0 shown, not
   hidden). Confirm it FAILS. (Same file as T003 — add after it.)
 
 ### Implementation for User Story 2
 
-- [ ] T008 [US2] In `src/server/domain/treasurer/reportService.ts`, add `compCount: number` and
+- [X] T008 [US2] In `src/server/domain/treasurer/reportService.ts`, add `compCount: number` and
   `giftCardRedemptionCount: number` to the `TreasurerReport` type and populate them from the already-loaded
   `door` record (`door.compCount` raw — NOT effective comps; `door.giftCardRedemptionCount`). Makes T006 pass.
   (Same file as T004 — sequences after it.)
-- [ ] T009 [US2] In `src/app/(admin)/treasurer/page.tsx`, add the two counts to the page-local type and render
+- [X] T009 [US2] In `src/app/(admin)/treasurer/page.tsx`, add the two counts to the page-local type and render
   them (a small reconciliation line, e.g. near the gate receipt), both always shown. Makes T007 pass. (Same file
   as T005 — sequences after it.)
 
@@ -133,7 +133,7 @@ counts; confirm both appear; an event with zero of each shows 0.
 
 ## Phase 5: Polish & Cross-Cutting Concerns
 
-- [ ] T010 Run the full local gate: `pnpm exec tsc --noEmit && pnpm run lint && pnpm exec vitest run` — all green.
+- [X] T010 Run the full local gate: `pnpm exec tsc --noEmit && pnpm run lint && pnpm exec vitest run` — all green.
   The unchanged existing figure assertions prove **figure parity** (SC-002); `tsc` proves the page/report types
   line up. (Optional manual: sign in as Treasurer, open `/treasurer`, confirm the QBO section order, the rent bill
   to the landlord, the two counts, and that the rent matches the same event's **organizer** report (SC-004); Print

@@ -4,7 +4,7 @@ import { createEvent } from "@/server/domain/events/eventService";
 import { createPerformer } from "@/server/domain/performers/performerService";
 import { createDoorRecord, putGateSales } from "@/server/domain/door/doorRecordService";
 import { deriveContactNames } from "@/server/domain/contacts/normalize";
-import { contactEmails, contacts, roleGrants, staffIdentities } from "@/server/db/schema";
+import { contactEmails, contacts, events, roleGrants, staffIdentities } from "@/server/db/schema";
 import type { EventRow, PerformerRow, Role } from "@/server/db/schema";
 import { createSession } from "@/server/auth/session";
 import type { GateCategory, PaymentMethod } from "@/server/db/schema";
@@ -15,13 +15,27 @@ export async function makeEvent(opts?: {
   eventDate?: string;
   chargesAdmission?: boolean;
   groupId?: string;
+  // Feature 040: createEvent never sets venue/rent, so apply them directly after create when a test needs a
+  // deterministic rent + landlord for the treasurer report's rent bill.
+  venueId?: string;
+  rentCents?: number;
 }): Promise<EventRow> {
-  return createEvent(db, {
+  const row = await createEvent(db, {
     seriesKey: opts?.seriesKey ?? "tnc",
     eventDate: opts?.eventDate ?? "2026-06-18",
     chargesAdmission: opts?.chargesAdmission ?? true,
     ...(opts?.groupId ? { groupId: opts.groupId } : {}),
   });
+  if (opts?.venueId === undefined && opts?.rentCents === undefined) return row;
+  const [updated] = await db
+    .update(events)
+    .set({
+      ...(opts.venueId !== undefined ? { venueId: opts.venueId } : {}),
+      ...(opts.rentCents !== undefined ? { rentCents: opts.rentCents } : {}),
+    })
+    .where(eq(events.id, row.id))
+    .returning();
+  return updated ?? row;
 }
 
 export async function makePerformer(displayName = "Test Performer"): Promise<PerformerRow> {
