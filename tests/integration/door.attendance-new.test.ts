@@ -3,7 +3,7 @@ import { eq } from "drizzle-orm";
 import { ensureSchema, resetDb, closeDb, db } from "./helpers/db";
 import { jsonReq, ctx } from "./helpers/http";
 import { makeEvent } from "./helpers/factories";
-import { contacts } from "@/server/db/schema";
+import { contacts, doorRecords } from "@/server/db/schema";
 import { POST as ATTEND } from "@/app/api/events/[id]/attendance/route";
 
 // FR-003
@@ -71,6 +71,39 @@ describe("POST /api/events/:id/attendance (new contact)", () => {
     expect(contact?.lastName).toBe("Smith");
     expect(contact?.displayNameOverride).toBeNull();
     expect(contact?.displayName).toBe("Jane Smith");
+  });
+
+  // Feature 042 (P6-R10): the new-contact path can record a gift-card redemption (counts-only), independent of
+  // comp. The backend already accepts redeemedGiftCard on the newContact variant — these lock SC-002/SC-003.
+  it("records a gift-card redemption for a new contact (count +1)", async () => {
+    const evt = await makeEvent();
+    const res = await ATTEND(
+      jsonReq("POST", `/api/events/${evt.id}/attendance`, {
+        newContact: { firstName: "Gift", lastName: "Newcomer" },
+        redeemedGiftCard: true,
+      }),
+      ctx({ id: evt.id }),
+    );
+    expect(res.status).toBe(201);
+    const dr = await db.query.doorRecords.findFirst({ where: eq(doorRecords.eventId, evt.id) });
+    expect(dr?.giftCardRedemptionCount).toBe(1);
+    expect(dr?.compCount).toBe(0);
+  });
+
+  it("records comp and gift-card together for a new contact (both counts +1)", async () => {
+    const evt = await makeEvent();
+    const res = await ATTEND(
+      jsonReq("POST", `/api/events/${evt.id}/attendance`, {
+        newContact: { firstName: "Both", lastName: "Newcomer" },
+        isComp: true,
+        redeemedGiftCard: true,
+      }),
+      ctx({ id: evt.id }),
+    );
+    expect(res.status).toBe(201);
+    const dr = await db.query.doorRecords.findFirst({ where: eq(doorRecords.eventId, evt.id) });
+    expect(dr?.compCount).toBe(1);
+    expect(dr?.giftCardRedemptionCount).toBe(1);
   });
 
   it("persists an edited display name as the override, keeping first/last separate", async () => {

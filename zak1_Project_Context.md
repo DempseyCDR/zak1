@@ -3,20 +3,21 @@
 > Single living doc — no versioned copies. Update in place each session.
 
 **Snapshot:** 2026-08-05 · **Repo:** `/Users/rcd/Repositories/zak1` · **Remote:**
-`github.com/DempseyCDR/zak1` · **Head:** local `main` at the **041-impl** commit (⚠️ **UNPUSHED** — origin/main
-is at `90d49d1`, the 040 context-doc correction on top of 040-impl; the 041 planning + impl commits are
-local-only, 2 ahead). **039 + 040 + 041 IMPLEMENTED** (039 migration
-`0032` applied to `zak1_dev`; 040 + 041 have no migration).
+`github.com/DempseyCDR/zak1` · **Head:** local `main` at the **042-impl** commit (⚠️ **UNPUSHED** — origin/main
+is at `90d49d1`, the 040 context-doc correction on top of 040-impl; the 041 planning/impl + 042 planning/impl
+commits are local-only, **4 ahead**). **039 + 040 + 041 + 042 IMPLEMENTED** (039 migration `0032` applied to
+`zak1_dev`; 040 + 041 + 042 have no migration).
 **Phases 3, 4, 5 COMPLETE; Phase 6 UNDERWAY (now BUILDING via SpecKit, not just collecting).** Phase 5 shipped
-through **033**. **Phase 6 shipped so far (034–041):** **034** public nav menu (P6-R1) · **035** volunteer nav
+through **033**. **Phase 6 shipped so far (034–042):** **034** public nav menu (P6-R1) · **035** volunteer nav
 menu (P6-R2, subsumes D1) · **036** `/whats-on` two-days-ago window (P6-R3) · **037** `/what-was-on` history +
 series filter (P6-R4+R5) · **038** drop `non_dance_income` (P6-R6, migration `0031`, first destructive removal) ·
 **039** drop `account_mapping` (P6-R7, migration `0032` DROP TABLE — the dead GL-account annotation) · **040**
 treasurer report QBO restructure (P6-R8) + comp/gift-card counts (P6-R9) — report reshape + 3 additive fields, no
 migration · **041** organizer report shows the **band name** + member detail on drill-in (P6-R11) — display-only,
-no migration. **Remaining Phase 6:** R10 (gift-card option for a new contact at check-in) · R12 (move performer
-substitution `/gate`→`/payments`) · defect **D3** (payments multi-booking check-number capture/edit). Suite
-**699 tests / 212 files green**; clean build. The **Node-18 Bash gotcha is RESOLVED** (Bash runs Node 24; the stale Node 16 was purged). Purpose: seed a
+no migration · **042** gift-card option on **both** named-person check-in paths (new-contact + returning/matched)
+(P6-R10) — client-only, no migration. **Remaining Phase 6:** R12 (move performer substitution `/gate`→`/payments`)
+· defect **D3** (payments multi-booking check-number capture/edit). Suite
+**703 tests / 213 files green**; clean build. The **Node-18 Bash gotcha is RESOLVED** (Bash runs Node 24; the stale Node 16 was purged). Purpose: seed a
 fresh session to continue work on zak1 (CDR).
 
 ---
@@ -28,7 +29,7 @@ contra/English dance club): contacts & membership, door attendance & gate money,
 treasurer & organizer reports, mailing-list exports, a public website, staff auth, authorization, check-in,
 booking & event management, membership acquisition (door + online), the Booker's booking-report/modal UX, and
 the Financial-Secretary payment substrate.
-**41 features shipped (001–041).** Money is always **integer cents**.
+**42 features shipped (001–042).** Money is always **integer cents**.
 Single tenant (multi-tenant deferred).
 
 > **Naming:** `zak1` is the internal codename; the club-facing name is **cdrochester** (what Google's
@@ -87,12 +88,12 @@ set +a`.
 ## 4. Tests & governance
 
 Pipeline `/speckit-specify → clarify → plan → tasks → analyze → implement`. Active pointer
-`.specify/feature.json` → **`specs/041-organizer-band-name`** (implemented). **Constitution v1.3.0**
+`.specify/feature.json` → **`specs/042-checkin-new-contact-gift`** (implemented). **Constitution v1.3.0**
 (non-negotiable):
 I Test-First (Red-Green-Refactor), II YAGNI, III Type Safety (Zod at boundaries), IV Observability.
 Testing standard: integration against **real** local infra; DBs never mocked; third-party services (Google,
-PayPal) exercised at their **boundary**, never production endpoints. **Suite: 699 tests / 212 files green
-through 041**. tsc, eslint, markdownlint, prettier, production build all clean on Next 16. ⚠️ **Phase 6 process
+PayPal) exercised at their **boundary**, never production endpoints. **Suite: 703 tests / 213 files green
+through 042**. tsc, eslint, markdownlint, prettier, production build all clean on Next 16. ⚠️ **Phase 6 process
 change:** features 034–039 ship as **TWO commits each** — a `NNN planning` commit (spec+plan+tasks after
 `/speckit-analyze`) then a `NNN impl` commit — run through the full SpecKit pipeline (specify→clarify→plan→
 tasks→analyze→implement) per feature. (031/032/033 used one atomic commit; the split resumed with 034.)
@@ -205,7 +206,11 @@ Each R-item goes through the full SpecKit pipeline as its own feature. **Require
   with `"(no landlord set)"` fallback; QBO section **order is realized on the page** (existing fields kept their
   names → zero churn to existing figure assertions). Load-bearing invariant held: **no computed figure changed**
   (FR-010). `makeEvent` factory gained optional `{ venueId, rentCents }`. D3 + B42 out of scope.
-- **Door & reporting tweaks** — **R10 NOT STARTED** gift-card option when checking in a **new** contact ·
+- **Door & reporting tweaks** — **R10 → 042 SHIPPED** gift-card checkbox added to **both** named-person check-in
+  paths (new-contact section + returning/matched `CandidateRow`), wiring the already-supported `redeemedGiftCard`
+  flag; **client-only** — `attendanceSchema` already spread `countExtras` (`isComp`+`redeemedGiftCard`) into all 3
+  variants and `recordAttendance` already increments the count (the anonymous path already had it). Clarified to
+  cover the returning path too, not just new-contact. No schema/service/route/migration. ·
   **R11 → 041 SHIPPED** organizer report `band` field shows the booked **band's name** (via a `bandId→bands.name`
   map loaded once; ad-hoc→joined names / "Open Band" / "" fallbacks unchanged; multiple bands→names joined) + the
   per-dance detail expansion gained a **`Band:` label** (members already listed by name+role). Display-only, no
@@ -525,16 +530,17 @@ pnpm run db:seed               # ⚠️ WIPES zak1_dev — do NOT run
 
 ## 14. Uncommitted / unpushed at handoff
 
-⚠️ **`origin/main` is at `90d49d1` (the 040 context-doc correction, on top of 040-impl); local `main` is 2
-commits AHEAD, UNPUSHED:** 041 planning → **041 impl** (this context-doc update + the organizer band-name
-change). **Push these.** **039 + 040 + 041
-IMPLEMENTED** — `tsc`/lint/**699 tests**/build all green; working tree clean after the 041-impl commit.
+⚠️ **`origin/main` is at `90d49d1` (the 040 context-doc correction, on top of 040-impl); local `main` is 4
+commits AHEAD, UNPUSHED:** 041 planning → 041 impl → 042 planning → **042 impl** (this context-doc update + the
+check-in gift-card change). **Push these.** **039 + 040 + 041 + 042 IMPLEMENTED** — `tsc`/lint/**703 tests**/build
+all green; working tree clean after the 042-impl commit (except a pre-existing, unrelated `.gitignore` `*.zip`
+line left unstaged).
 Migrations through `0032` (039) are applied to `zak1_dev` (snapshots incl. `~/zak1_pre_0031.dump`,
-`~/zak1_pre_0032.dump`); **040 + 041 added no migration.**
+`~/zak1_pre_0032.dump`); **040 + 041 + 042 added no migration.**
 **Operational note:** a one-off `zak1_dev` data fix set payment `65fdeb94…`.`check_number` = `1792` (D3; was
 NULL) — data only, not in git.
-**To resume:** **push the 2-commit chain**, then continue Phase 6 — remaining features are **R10** (gift-card
-option when checking in a new contact), **R12** (move performer substitution from `/gate` to `/payments`), and
-defect **D3** (payments multi-booking check-number capture/edit). (**R11 shipped as 041.**)
+**To resume:** **push the 4-commit chain**, then continue Phase 6 — remaining features are **R12** (move performer
+substitution from `/gate` to `/payments`) and defect **D3** (payments multi-booking check-number capture/edit).
+(**R10 shipped as 042; R11 as 041.**)
 ⚠️ **Phase 6 process:** two commits per feature (`NNN planning` then `NNN impl`), full SpecKit pipeline each.
 Commits are SSH-signed via 1Password (unlock if a commit fails with "1Password: failed to fill whole buffer").

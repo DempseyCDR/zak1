@@ -54,13 +54,13 @@ event's gift-card-redemption count is 1; comp+gift together bumps both counts.
 
 ### Tests for User Story 1 (write FIRST)
 
-- [ ] T001 [P] [US1] In `tests/integration/door.attendance-new.test.ts`, add an `it`: POST
+- [X] T001 [P] [US1] In `tests/integration/door.attendance-new.test.ts`, add an `it`: POST
   `{ newContact: { firstName: … }, redeemedGiftCard: true }` to `/api/events/[id]/attendance`, then read the
   event's door record and assert `giftCardRedemptionCount === 1`. Add a second `it`: `{ newContact, isComp: true,
   redeemedGiftCard: true }` → `compCount === 1` **and** `giftCardRedemptionCount === 1`. (These characterize the
   already-supported contract — they may PASS immediately since the backend accepts the flag; that is expected and
   still locks SC-002/SC-003.)
-- [ ] T002 [P] [US1] Create `tests/component/checkin.giftCard.test.tsx` (jsdom via `// @vitest-environment jsdom`
+- [X] T002 [P] [US1] Create `tests/component/checkin.giftCard.test.tsx` (jsdom via `// @vitest-environment jsdom`
   docblock; mirror `tests/component/checkin.inlineRow.test.tsx` — stub `fetch`, capture POST `{url, init}` calls,
   render `CheckinPage`). For the **new-contact** section: assert a **"Gift card"** checkbox is present; fill the
   new-contact name, tick Gift card, confirm the check-in, and assert the captured `/api/events/…/attendance` POST
@@ -69,7 +69,7 @@ event's gift-card-redemption count is 1; comp+gift together bumps both counts.
 
 ### Implementation for User Story 1
 
-- [ ] T003 [US1] In `src/app/(door)/checkin/page.tsx`, add a `newGift` state (`useState(false)`) and a **"Gift
+- [X] T003 [US1] In `src/app/(door)/checkin/page.tsx`, add a `newGift` state (`useState(false)`) and a **"Gift
   card"** checkbox in the new-contact section next to the existing "Comp" checkbox (mirror `newComp`); wire
   `...(newGift ? { redeemedGiftCard: true } : {})` into the new-contact submit body (the `recordNewContact()`
   handler, alongside `...(newComp ? { isComp: true } : {})`). Reset `newGift` on the same path the section resets
@@ -89,18 +89,19 @@ gift-card-redemption count is 1.
 
 ### Tests for User Story 2 (write FIRST)
 
-- [ ] T004 [P] [US2] In `tests/integration/door.attendance-match.test.ts`, add an `it`: create a contact (via the
-  contacts route, as the file already does), POST `{ contactId, redeemedGiftCard: true }` to the attendance route,
-  then assert the event's door record `giftCardRedemptionCount === 1`. (Characterizes the supported contract; may
-  PASS immediately — expected.)
-- [ ] T005 [US2] In `tests/component/checkin.giftCard.test.tsx` (from T002), add a case for a **matched candidate
+- [X] T004 [P] [US2] Matched-path gift-card contract — **already covered** by
+  `tests/integration/checkin.comps.test.ts`, which tests `{ contactId, redeemedGiftCard: true }` →
+  `giftCardRedemptionCount === 1` **and** `{ contactId, isComp: true, redeemedGiftCard: true }` → both counts.
+  No duplicate added (YAGNI); this satisfies SC-002/SC-003 for the matched path (and closes the analysis's C2
+  gap). The genuinely new US2 coverage is the component test (T005).
+- [X] T005 [US2] In `tests/component/checkin.giftCard.test.tsx` (from T002), add a case for a **matched candidate
   row** (`CandidateRow`): assert its row renders a **"Gift card"** checkbox; tick it, confirm the row's check-in,
   and assert the captured attendance POST body includes `redeemedGiftCard: true`. Confirm it FAILS against current
   code. (Same file as T002 — add after it.)
 
 ### Implementation for User Story 2
 
-- [ ] T006 [US2] In `src/app/(door)/checkin/page.tsx`, add `redeemedGiftCard?: boolean` to the local
+- [X] T006 [US2] In `src/app/(door)/checkin/page.tsx`, add `redeemedGiftCard?: boolean` to the local
   `PersonExtras` type; in `CandidateRow` add a `gift` state (`useState(false)`) and a **"Gift card"** checkbox next
   to its "Comp" checkbox (mirror the `comp` control, with `aria-label="Gift card"`); wire
   `...(gift ? { redeemedGiftCard: true } : {})` into its `checkIn()` body. Makes T005 pass. (Same file as T003 —
@@ -112,7 +113,7 @@ gift-card-redemption count is 1.
 
 ## Phase 5: Polish & Cross-Cutting Concerns
 
-- [ ] T007 Run the full local gate: `pnpm exec tsc --noEmit && pnpm run lint && pnpm exec vitest run` — all green.
+- [X] T007 Run the full local gate: `pnpm exec tsc --noEmit && pnpm run lint && pnpm exec vitest run` — all green.
   `tsc` proves the `PersonExtras` field lines up; the full suite proves no other check-in behavior changed
   (SC-004). (Optional manual: sign in as a Door Attendant, open `/checkin`, confirm both a new contact and a
   returning contact show a Gift-card checkbox and that ticking it records a redemption; the anonymous path is

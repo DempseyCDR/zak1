@@ -51,6 +51,7 @@ export default function CheckinPage() {
   const [newPhone, setNewPhone] = useState("");
   const [newChildren, setNewChildren] = useState("");
   const [newComp, setNewComp] = useState(false);
+  const [newGift, setNewGift] = useState(false); // feature 042 (P6-R10): gift-card redemption on the new-contact path
   const [newOpenBand, setNewOpenBand] = useState(false);
 
   // Anonymous / unmatched inline extras (feature 025 US3, FR-015 children on the unmatched path).
@@ -116,6 +117,7 @@ export default function CheckinPage() {
     setNewPhone("");
     setNewChildren("");
     setNewComp(false);
+    setNewGift(false);
     setNewOpenBand(false);
     setUnmatchedChildren("");
     setUnmatchedComp(false);
@@ -139,6 +141,7 @@ export default function CheckinPage() {
         },
         ...(children > 0 ? { childrenCount: children } : {}),
         ...(newComp ? { isComp: true } : {}),
+        ...(newGift ? { redeemedGiftCard: true } : {}),
         ...(isCommunityDance && newOpenBand ? { isOpenBand: true } : {}),
       },
       label,
@@ -240,6 +243,15 @@ export default function CheckinPage() {
             />{" "}
             Comp
           </label>
+          <label>
+            <input
+              aria-label="Gift card for new contact"
+              type="checkbox"
+              checked={newGift}
+              onChange={(e) => setNewGift(e.target.checked)}
+            />{" "}
+            Gift card
+          </label>
           {isCommunityDance && (
             <label>
               <input
@@ -333,7 +345,12 @@ export default function CheckinPage() {
   );
 }
 
-type PersonExtras = { childrenCount?: number; isComp?: boolean; isOpenBand?: boolean };
+type PersonExtras = {
+  childrenCount?: number;
+  isComp?: boolean;
+  redeemedGiftCard?: boolean; // feature 042 (P6-R10): gift-card redemption on the matched path
+  isOpenBand?: boolean;
+};
 
 function CandidateRow({
   candidate,
@@ -346,6 +363,7 @@ function CandidateRow({
 }) {
   const [children, setChildren] = useState("");
   const [comp, setComp] = useState(false);
+  const [gift, setGift] = useState(false); // feature 042 (P6-R10)
   const [openBand, setOpenBand] = useState(false);
 
   function checkIn() {
@@ -353,6 +371,7 @@ function CandidateRow({
     onCheckIn({
       ...(n > 0 ? { childrenCount: n } : {}),
       ...(comp ? { isComp: true } : {}),
+      ...(gift ? { redeemedGiftCard: true } : {}),
       ...(isCommunityDance && openBand ? { isOpenBand: true } : {}),
     });
   }
@@ -382,6 +401,15 @@ function CandidateRow({
           onChange={(e) => setComp(e.target.checked)}
         />{" "}
         Comp
+      </label>
+      <label>
+        <input
+          aria-label="Gift card"
+          type="checkbox"
+          checked={gift}
+          onChange={(e) => setGift(e.target.checked)}
+        />{" "}
+        Gift card
       </label>
       {isCommunityDance && (
         <label>
