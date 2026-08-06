@@ -3,9 +3,10 @@
 > Single living doc — no versioned copies. Update in place each session.
 
 **Snapshot:** 2026-08-05 · **Repo:** `/Users/rcd/Repositories/zak1` · **Remote:**
-`github.com/DempseyCDR/zak1` · **Head:** local `main` at the **040-impl** commit, **pushed to `origin/main`**
-(the 037→040 chain — 8 commits — was pushed this session; `origin/main` now at 040 impl, nothing unpushed).
-**039 + 040 IMPLEMENTED** (039 migration `0032` applied to `zak1_dev`; 040 has no migration).
+`github.com/DempseyCDR/zak1` · **Head:** local `main` == `origin/main` at the **040-impl** commit `75321a9`
+(fully in sync, nothing unpushed; 037→040-planning were already on origin from prior sessions, and the 040-impl
+commit was pushed here). **039 + 040 IMPLEMENTED** (039 migration `0032` applied to `zak1_dev`; 040 has no
+migration).
 **Phases 3, 4, 5 COMPLETE; Phase 6 UNDERWAY (now BUILDING via SpecKit, not just collecting).** Phase 5 shipped
 through **033**. **Phase 6 shipped so far (034–040):** **034** public nav menu (P6-R1) · **035** volunteer nav
 menu (P6-R2, subsumes D1) · **036** `/whats-on` two-days-ago window (P6-R3) · **037** `/what-was-on` history +
@@ -517,10 +518,10 @@ pnpm run db:seed               # ⚠️ WIPES zak1_dev — do NOT run
 
 ## 14. Committed & pushed at handoff
 
-✅ **`origin/main` is synced at the 040-impl commit** — the 037→040 chain (037 planning/impl, 038 planning/impl,
-039 planning/impl, 040 planning/impl = 8 commits; 034/035/036 were already pushed) was pushed this session.
-Nothing unpushed. **039 + 040 IMPLEMENTED** — `tsc`/lint/**694 tests**/build all green; working tree clean after
-the 040-impl commit.
+✅ **`origin/main` == local `main` at the 040-impl commit `75321a9`** — fully in sync, nothing unpushed.
+(037 through 040-planning were already on origin from prior sessions; this session pushed only the 040-impl
+commit.) **039 + 040 IMPLEMENTED** — `tsc`/lint/**694 tests**/build all green; working tree clean after the
+040-impl commit.
 Migrations through `0032` (039) are applied to `zak1_dev` (snapshots incl. `~/zak1_pre_0031.dump`,
 `~/zak1_pre_0032.dump`); **040 added no migration.**
 **Operational note:** a one-off `zak1_dev` data fix set payment `65fdeb94…`.`check_number` = `1792` (D3; was
