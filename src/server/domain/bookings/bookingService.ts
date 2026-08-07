@@ -3,7 +3,7 @@ import type { Db, DbOrTx } from "@/server/db/client";
 import { bookings, events, performers, series } from "@/server/db/schema";
 import type { BookingRow, PerformerType } from "@/server/db/schema";
 import { errors } from "@/server/lib/apiError";
-import { assertEventScope } from "@/server/auth/can";
+import { assertEventScope, assertEventScopeAny } from "@/server/auth/can";
 import type { Actor } from "@/server/auth/actor";
 import { writeAudit } from "@/server/lib/audit";
 import { centsToDollars, dollarsToCents } from "@/server/lib/money";
@@ -303,7 +303,14 @@ export async function substitutePerformer(
 ): Promise<SubstituteResult> {
   const current = await db.query.bookings.findFirst({ where: eq(bookings.id, bookingId) });
   if (!current) throw errors.bookingNotFound();
-  await assertBookingScope(db, authz, bookingId);
+  // Feature 043 (P6-R12): substitution is a settlement OR a booking concern, so it is authorized by EITHER
+  // performer_payment.write (the FS, on /payments) or booking.write (the Booker, on the bookings report).
+  const subEvent = await db.query.events.findFirst({ where: eq(events.id, current.eventId) });
+  if (!subEvent) throw errors.eventNotFound();
+  assertEventScopeAny(authz, ["booking.write", "performer_payment.write"], {
+    seriesId: subEvent.seriesId,
+    groupId: subEvent.groupId,
+  });
   const newPerformer = await db.query.performers.findFirst({
     where: eq(performers.id, newPerformerId),
   });
@@ -317,7 +324,7 @@ export async function substitutePerformer(
       bookingId,
       { performerId: newPerformerId },
       actor,
-      authz,
+      undefined, // 043: event scope already asserted above (either capability); bypass patchBooking's booking.write
     );
     return { booking, noShow: null };
   }
@@ -336,7 +343,7 @@ export async function substitutePerformer(
       { performerId: newPerformerId, performerType: current.performerType },
       actor,
       current.bandId,
-      authz,
+      undefined, // 043: event scope already asserted above (either capability); bypass createBooking's booking.write
     );
     return { booking, noShow };
   });

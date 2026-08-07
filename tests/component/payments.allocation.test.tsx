@@ -102,6 +102,8 @@ describe("PaymentsPage — multi-apply popup + void (030 US4)", () => {
       .getByText(/Pat \(musician\)/)
       .closest("label") as HTMLElement;
     await user.click(within(patLabel).getByRole("checkbox"));
+    // Feature 043 (D3): a positive multi-booking check now requires a check number (or a note); supply one.
+    await user.type(within(dialog).getByLabelText(/check #/i), "500");
     await user.click(within(dialog).getByRole("button", { name: "Record check" }));
 
     await waitFor(() => {

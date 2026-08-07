@@ -3,21 +3,21 @@
 > Single living doc — no versioned copies. Update in place each session.
 
 **Snapshot:** 2026-08-05 · **Repo:** `/Users/rcd/Repositories/zak1` · **Remote:**
-`github.com/DempseyCDR/zak1` · **Head:** local `main` at the **042-impl** commit (⚠️ **UNPUSHED** — origin/main
-is at `90d49d1`, the 040 context-doc correction on top of 040-impl; the 041 planning/impl + 042 planning/impl
-commits are local-only, **4 ahead**). **039 + 040 + 041 + 042 IMPLEMENTED** (039 migration `0032` applied to
-`zak1_dev`; 040 + 041 + 042 have no migration).
-**Phases 3, 4, 5 COMPLETE; Phase 6 UNDERWAY (now BUILDING via SpecKit, not just collecting).** Phase 5 shipped
-through **033**. **Phase 6 shipped so far (034–042):** **034** public nav menu (P6-R1) · **035** volunteer nav
+`github.com/DempseyCDR/zak1` · **Head:** local `main` == `origin/main` at the **043-impl** commit (pushed this
+session; the 041/042/043 planning+impl chain was pushed on top of `90d49d1`). **039–043 IMPLEMENTED** (039
+migration `0032` applied to `zak1_dev`; 040–043 have no migration).
+**Phases 3, 4, 5 COMPLETE; ⭐ PHASE 6 COMPLETE (all R1–R12 + defects D1/D3 shipped as 034–043).** Phase 5 shipped
+through **033**. **Phase 6 (034–043):** **034** public nav menu (P6-R1) · **035** volunteer nav
 menu (P6-R2, subsumes D1) · **036** `/whats-on` two-days-ago window (P6-R3) · **037** `/what-was-on` history +
 series filter (P6-R4+R5) · **038** drop `non_dance_income` (P6-R6, migration `0031`, first destructive removal) ·
 **039** drop `account_mapping` (P6-R7, migration `0032` DROP TABLE — the dead GL-account annotation) · **040**
 treasurer report QBO restructure (P6-R8) + comp/gift-card counts (P6-R9) — report reshape + 3 additive fields, no
 migration · **041** organizer report shows the **band name** + member detail on drill-in (P6-R11) — display-only,
 no migration · **042** gift-card option on **both** named-person check-in paths (new-contact + returning/matched)
-(P6-R10) — client-only, no migration. **Remaining Phase 6:** R12 (move performer substitution `/gate`→`/payments`)
-· defect **D3** (payments multi-booking check-number capture/edit). Suite
-**703 tests / 213 files green**; clean build. The **Node-18 Bash gotcha is RESOLVED** (Bash runs Node 24; the stale Node 16 was purged). Purpose: seed a
+(P6-R10) — client-only, no migration · **043** move performer **substitution** `/gate`→`/payments` (P6-R12,
+either-capability re-gate) + fix **D3** (multi-booking check capture guard + in-place check-number edit) —
+client-only + one route/service authz change, no migration. **Phase 6 has no remaining items.** Suite
+**712 tests / 218 files green**; clean build. The **Node-18 Bash gotcha is RESOLVED** (Bash runs Node 24; the stale Node 16 was purged). Purpose: seed a
 fresh session to continue work on zak1 (CDR).
 
 ---
@@ -29,7 +29,7 @@ contra/English dance club): contacts & membership, door attendance & gate money,
 treasurer & organizer reports, mailing-list exports, a public website, staff auth, authorization, check-in,
 booking & event management, membership acquisition (door + online), the Booker's booking-report/modal UX, and
 the Financial-Secretary payment substrate.
-**42 features shipped (001–042).** Money is always **integer cents**.
+**43 features shipped (001–043); Phase 6 COMPLETE.** Money is always **integer cents**.
 Single tenant (multi-tenant deferred).
 
 > **Naming:** `zak1` is the internal codename; the club-facing name is **cdrochester** (what Google's
@@ -88,12 +88,12 @@ set +a`.
 ## 4. Tests & governance
 
 Pipeline `/speckit-specify → clarify → plan → tasks → analyze → implement`. Active pointer
-`.specify/feature.json` → **`specs/042-checkin-new-contact-gift`** (implemented). **Constitution v1.3.0**
+`.specify/feature.json` → **`specs/043-payments-substitute-checkfix`** (implemented). **Constitution v1.3.0**
 (non-negotiable):
 I Test-First (Red-Green-Refactor), II YAGNI, III Type Safety (Zod at boundaries), IV Observability.
 Testing standard: integration against **real** local infra; DBs never mocked; third-party services (Google,
-PayPal) exercised at their **boundary**, never production endpoints. **Suite: 703 tests / 213 files green
-through 042**. tsc, eslint, markdownlint, prettier, production build all clean on Next 16. ⚠️ **Phase 6 process
+PayPal) exercised at their **boundary**, never production endpoints. **Suite: 712 tests / 218 files green
+through 043**. tsc, eslint, markdownlint, prettier, production build all clean on Next 16. ⚠️ **Phase 6 process
 change:** features 034–039 ship as **TWO commits each** — a `NNN planning` commit (spec+plan+tasks after
 `/speckit-analyze`) then a `NNN impl` commit — run through the full SpecKit pipeline (specify→clarify→plan→
 tasks→analyze→implement) per feature. (031/032/033 used one atomic commit; the split resumed with 034.)
@@ -216,18 +216,22 @@ Each R-item goes through the full SpecKit pipeline as its own feature. **Require
   per-dance detail expansion gained a **`Band:` label** (members already listed by name+role). Display-only, no
   migration, no computed figure changed; `makeBand` test factory added. ⚠️ **jsdom lesson:** the organizer page
   reads `params` via React `use()` (suspends) → its component test needs a `Suspense` boundary **and** an awaited
-  `act()` around `render`. · **R12 NOT STARTED** move performer **substitution** from `/gate` to `/payments`
-  (re-gate `/api/bookings/[id]/substitute` to `performer_payment.write`, the 030 precedent; also fixes the FS's
-  current 403 on gate).
+  `act()` around `render`. · **R12 + D3 → 043 SHIPPED** (see below).
 
-**Defect D3 (found in real use, NOT YET FIXED — a future feature in the treasurer/payments thread):** a
-**multi-booking check** on `/payments` can be saved with **no check number** (the multi-apply popup skips the
-per-row FR-014 checkless-comment guard) and its check number is then **un-editable** (inline Edit gated to
-`lines.length === 1`), so the treasurer report showed a **dash** for a real check. Fix: (a) allow editing check#
-on multi-line payments; (b) apply the FR-014 checkless-comment guard to the multi popup (**checkless-comment
-option stays — do NOT force a check#**, user-confirmed). **Data already corrected** in `zak1_dev` (not in git):
-payment `65fdeb94…` (event `7e9a83e7…`, 7/9/2026) `check_number` set to **`1792`** (was NULL) — Clara's one check
-covers Clara $50 + Micah $50.
+**043 substitution move + D3 fix (P6-R12 + defect D3, SHIPPED):** substitution moved from `/gate` to `/payments`.
+The route `POST /api/bookings/[id]/substitute` re-gated `booking.write` → **`base`** (layer 1); the REAL gate is
+`substitutePerformer`, which now asserts **EITHER `booking.write` OR `performer_payment.write`** in the event
+scope via a new **`assertEventScopeAny`** helper (`can.ts`). ⚠️ The downstream `patchBooking`/`createBooking` calls
+must pass **`authz=undefined`** (bypass their `booking.write` re-assertion — the 030 precedent), else the FS still
+403s. This keeps the **Booker's** bookings-report modal substitute working (2026-08-06 clarify) while fixing the
+FS's 403; the gate substitute UI was removed. 024 semantics unchanged. **D3 (client-only, `/payments`):** (a)
+`recordMulti` now applies the FR-014 guard — a positive multi-booking check needs a check number **or** a note
+(never forced); (b) a **multi-line** payment gets an in-place **check-number-only edit** — PATCH `{ checkNumber }`
+with **no `lines`** (the patch service only replaces the allocation when `lines` is sent, so amounts are
+preserved). ⚠️ An existing test (`payments.allocation.test.tsx`) had encoded the D3 bug (positive multi-check with
+no number saving silently) — updated to supply a check number. No migration, no schema/Zod change. **Data already
+corrected** in `zak1_dev` (not in git): payment `65fdeb94…` (event `7e9a83e7…`, 7/9/2026) `check_number` = **`1792`**
+(was NULL) — Clara's one check covers Clara $50 + Micah $50.
 
 ## 7. Load-bearing decisions (do not undo without reading why)
 
@@ -528,19 +532,20 @@ pnpm run db:seed               # ⚠️ WIPES zak1_dev — do NOT run
 - Redirect URI (in `.env`): `http://localhost:3000/api/auth/google/callback`. **`.env` is gitignored** and
   holds the real Google + PayPal secrets — never paste secrets into chat.
 
-## 14. Uncommitted / unpushed at handoff
+## 14. Committed & pushed at handoff
 
-⚠️ **`origin/main` is at `90d49d1` (the 040 context-doc correction, on top of 040-impl); local `main` is 4
-commits AHEAD, UNPUSHED:** 041 planning → 041 impl → 042 planning → **042 impl** (this context-doc update + the
-check-in gift-card change). **Push these.** **039 + 040 + 041 + 042 IMPLEMENTED** — `tsc`/lint/**703 tests**/build
-all green; working tree clean after the 042-impl commit (except a pre-existing, unrelated `.gitignore` `*.zip`
-line left unstaged).
+✅ **`origin/main` == local `main` at the 043-impl commit** — the 041/042/043 planning+impl chain (6 commits) was
+pushed this session on top of `90d49d1`. Nothing unpushed. **039–043 IMPLEMENTED** — `tsc`/lint/**712 tests**/build
+all green; working tree clean after the 043-impl commit (except a pre-existing, unrelated `.gitignore` `*.zip`
+line left unstaged — not this session's work).
 Migrations through `0032` (039) are applied to `zak1_dev` (snapshots incl. `~/zak1_pre_0031.dump`,
-`~/zak1_pre_0032.dump`); **040 + 041 + 042 added no migration.**
+`~/zak1_pre_0032.dump`); **040–043 added no migration.**
 **Operational note:** a one-off `zak1_dev` data fix set payment `65fdeb94…`.`check_number` = `1792` (D3; was
 NULL) — data only, not in git.
-**To resume:** **push the 4-commit chain**, then continue Phase 6 — remaining features are **R12** (move performer
-substitution from `/gate` to `/payments`) and defect **D3** (payments multi-booking check-number capture/edit).
-(**R10 shipped as 042; R11 as 041.**)
-⚠️ **Phase 6 process:** two commits per feature (`NNN planning` then `NNN impl`), full SpecKit pipeline each.
+**To resume:** ⭐ **Phase 6 is COMPLETE (034–043).** Next is a new phase — collect the next round of requirements
+(the Phase 1–6 pattern: a requirements doc → SpecKit features). Open backlog carries forward: **B40** contact
+email-management UI, **B42** organizer expense reimbursement, **B43** simplify `is_donated`, **B44** static-content
+CMS, plus the pre-rollout operational TODOs in §10 (real `membership_year_end`, PayPal env, publish the Google
+consent screen).
+⚠️ **Process:** two commits per feature (`NNN planning` then `NNN impl`), full SpecKit pipeline each.
 Commits are SSH-signed via 1Password (unlock if a commit fails with "1Password: failed to fill whole buffer").

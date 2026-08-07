@@ -68,6 +68,10 @@ export default function PaymentsPage() {
   const [editAmount, setEditAmount] = useState("");
   const [editCheck, setEditCheck] = useState("");
 
+  // Feature 043 (D3): check-number-only edit for a MULTI-line payment (preserves the allocation).
+  const [checkEditId, setCheckEditId] = useState<string | null>(null);
+  const [checkEditVal, setCheckEditVal] = useState("");
+
   // Multi-apply popup (US4): the old payee-dropdown + booking-checkbox flow, relocated.
   const [multiOpen, setMultiOpen] = useState(false);
   const [payeeId, setPayeeId] = useState("");
@@ -79,6 +83,11 @@ export default function PaymentsPage() {
   const [addOpen, setAddOpen] = useState(false);
   const [addQ, setAddQ] = useState("");
   const [addType, setAddType] = useState("musician");
+
+  // Substitute a performer (feature 043 P6-R12): moved here from /gate.
+  const [subOpen, setSubOpen] = useState(false);
+  const [subBookingId, setSubBookingId] = useState("");
+  const [subQ, setSubQ] = useState("");
 
   // Parked online payments (019 US3 manual-link fallback) — unchanged.
   const [parked, setParked] = useState<Parked[]>([]);
@@ -223,6 +232,20 @@ export default function PaymentsPage() {
     }
   }
 
+  // Feature 043 (D3): correct a multi-line payment's check number in place — PATCH { checkNumber } with NO
+  // `lines`, so the per-line allocation is preserved (the service only replaces lines when they are sent).
+  async function saveCheckOnly(payment: Payment) {
+    const ok = await post(
+      `/api/performer-payments/${payment.id}`,
+      { checkNumber: checkEditVal.trim() || null },
+      "PATCH",
+    );
+    if (ok) {
+      setCheckEditId(null);
+      await refresh(eventId);
+    }
+  }
+
   async function voidPayment(id: string) {
     const res = await apiFetch(`/api/performer-payments/${id}/void`, {
       method: "POST",
@@ -239,6 +262,13 @@ export default function PaymentsPage() {
       return v > 0 ? [{ bookingId, amount: v }] : [];
     });
     if (!payeeId || lines.length === 0) return;
+    // Feature 043 (D3): the FR-014 checkless guard the per-row path applies (commitRow) — a positive check with
+    // no number needs a comment on record. Never force a check number; the note (overrideReason) satisfies it.
+    const total = lines.reduce((s, l) => s + l.amount, 0);
+    if (total > 0 && !multiCheck.trim() && !multiNote.trim()) {
+      setError("Enter a check number, or a note explaining why there is no check.");
+      return;
+    }
     const ok = await post("/api/performer-payments", {
       eventId,
       payeePerformerId: payeeId,
@@ -289,6 +319,23 @@ export default function PaymentsPage() {
   const addHits = addQ.trim()
     ? performers.filter((p) => p.displayName.toLowerCase().includes(addQ.trim().toLowerCase()))
     : [];
+
+  // Feature 043 (P6-R12): substitute a performer on a booking (unpaid → clean re-point; live-paid → keep the
+  // no-show + book the sub). Authorized by the FS's performer_payment.write (or the Booker's booking.write).
+  const subHits = subQ.trim()
+    ? performers.filter((p) => p.displayName.toLowerCase().includes(subQ.trim().toLowerCase()))
+    : [];
+
+  async function substitute(newPerformerId: string) {
+    if (!subBookingId) return;
+    const ok = await post(`/api/bookings/${subBookingId}/substitute`, { newPerformerId });
+    if (ok) {
+      setSubOpen(false);
+      setSubBookingId("");
+      setSubQ("");
+      await refresh(eventId);
+    }
+  }
 
   return (
     <main style={{ padding: 24, maxWidth: 760 }}>
@@ -383,6 +430,35 @@ export default function PaymentsPage() {
                             Edit
                           </button>
                         )}{" "}
+                        {/* Feature 043 (D3): a multi-line payment's check number is editable in place (once,
+                            on the payment's first line) without touching the allocation. */}
+                        {st.payment.lines.length > 1 &&
+                          st.payment.lines[0]?.bookingId === b.id &&
+                          (checkEditId === st.payment.id ? (
+                            <>
+                              <input
+                                aria-label="New check number"
+                                value={checkEditVal}
+                                onChange={(e) => setCheckEditVal(e.target.value)}
+                                style={{ width: 80 }}
+                              />{" "}
+                              <button onClick={() => void saveCheckOnly(st.payment)}>
+                                Save check #
+                              </button>{" "}
+                              <button onClick={() => setCheckEditId(null)}>Cancel</button>{" "}
+                            </>
+                          ) : (
+                            <>
+                              <button
+                                onClick={() => {
+                                  setCheckEditId(st.payment.id);
+                                  setCheckEditVal(st.payment.checkNumber ?? "");
+                                }}
+                              >
+                                Edit check #
+                              </button>{" "}
+                            </>
+                          ))}
                         <button onClick={() => void voidPayment(st.payment.id)}>Void</button>
                       </>
                     ))}
@@ -396,6 +472,7 @@ export default function PaymentsPage() {
               Apply one check to multiple performers
             </button>
             <button onClick={() => setAddOpen(true)}>Add a performer</button>
+            <button onClick={() => setSubOpen(true)}>Substitute a performer</button>
           </div>
 
           {donateFor && (
@@ -528,6 +605,50 @@ export default function PaymentsPage() {
                 ))}
               </ul>
               <button onClick={() => setAddOpen(false)}>Close</button>
+            </div>
+          )}
+
+          {subOpen && (
+            <div role="dialog" aria-label="Substitute a performer" style={dialogStyle}>
+              <h3>Substitute a performer</h3>
+              <p style={{ color: "#666" }}>
+                <small>
+                  Unpaid → re-pointed to the substitute. A booking already paid by a live check is
+                  kept as a no-show and the substitute is booked fresh (void/reissue the check
+                  separately).
+                </small>
+              </p>
+              <label>
+                Booking{" "}
+                <select
+                  aria-label="Booking to substitute"
+                  value={subBookingId}
+                  onChange={(e) => setSubBookingId(e.target.value)}
+                >
+                  <option value="">— select —</option>
+                  {bookings.map((b) => (
+                    <option key={b.id} value={b.id}>
+                      {b.performerName} ({b.performerType})
+                    </option>
+                  ))}
+                </select>
+              </label>{" "}
+              <input
+                aria-label="Find substitute"
+                placeholder="Find substitute…"
+                value={subQ}
+                onChange={(e) => setSubQ(e.target.value)}
+              />
+              <ul style={{ listStyle: "none", padding: 0 }}>
+                {subHits.map((p) => (
+                  <li key={p.id}>
+                    <button disabled={!subBookingId} onClick={() => void substitute(p.id)}>
+                      Substitute in {p.displayName}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+              <button onClick={() => setSubOpen(false)}>Close</button>
             </div>
           )}
         </>

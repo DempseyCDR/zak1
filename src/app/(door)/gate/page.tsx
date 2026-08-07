@@ -5,7 +5,6 @@ import { EventSelector } from "@/app/EventSelector";
 import { useEffect, useState } from "react";
 
 type Candidate = { id: string; displayName: string };
-type BookingLite = { id: string; performerName: string; performerType: string; status: string };
 
 const ANON_CATEGORIES = ["merchandise", "gift_card", "misc_sales"] as const;
 const NAMED_CATEGORIES = ["donation", "future_event", "membership"] as const;
@@ -57,53 +56,12 @@ export default function GatePage() {
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [newCategory, setNewCategory] = useState<(typeof NAMED_CATEGORIES)[number]>("membership");
 
-  // Feature 024 US3 (FR-008): the FS can substitute a performer on this event's booking from the gate — when
-  // a booked player is a no-show and a check was already written, this keeps the no-show and books the sub.
-  const [subBookings, setSubBookings] = useState<BookingLite[]>([]);
-  const [subBookingId, setSubBookingId] = useState("");
-  const [subQ, setSubQ] = useState("");
-  const [subHits, setSubHits] = useState<Candidate[]>([]);
-  const [subMsg, setSubMsg] = useState<string | null>(null);
-
   useEffect(() => {
     if (!search.trim()) return setCandidates([]);
     void apiFetch(`/api/attendance/search?q=${encodeURIComponent(search)}`)
       .then((r) => r.json())
       .then((d) => setCandidates(d.items ?? []));
   }, [search]);
-
-  // Feature 024: load the event's bookings so the FS can substitute one.
-  useEffect(() => {
-    if (!eventId) return setSubBookings([]);
-    setSubBookingId("");
-    void apiFetch(`/api/events/${eventId}/bookings`)
-      .then((r) => r.json())
-      .then((d) => setSubBookings(d.bookings ?? []));
-  }, [eventId]);
-
-  useEffect(() => {
-    if (subQ.trim().length < 1) return setSubHits([]);
-    void apiFetch(`/api/performers?q=${encodeURIComponent(subQ)}`)
-      .then((r) => r.json())
-      .then((d) => setSubHits(d.items ?? []));
-  }, [subQ]);
-
-  async function substitute(newPerformerId: string) {
-    if (!subBookingId) return setSubMsg("Choose a booking to substitute");
-    setSubMsg(null);
-    const res = await apiFetch(`/api/bookings/${subBookingId}/substitute`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ newPerformerId }),
-    });
-    if (res.status === 403) return setSubMsg("Not permitted to substitute for this event.");
-    if (!res.ok) return setSubMsg("Could not substitute performer");
-    setSubQ("");
-    setSubHits([]);
-    setSubMsg("Substitute recorded (the wrong check, if any, is voided/reissued separately).");
-    const refreshed = await apiFetch(`/api/events/${eventId}/bookings`).then((r) => r.json());
-    setSubBookings(refreshed.bookings ?? []);
-  }
 
   async function openDoorRecord(selectedEventId: string) {
     setEventId(selectedEventId);
@@ -455,55 +413,6 @@ export default function GatePage() {
           Save
         </button>
       </div>
-
-      {eventId && (
-        <section style={{ marginTop: 16, borderTop: "1px solid #eee", paddingTop: 8 }}>
-          <h2>Substitute a performer</h2>
-          <p style={{ color: "#666" }}>
-            <small>
-              A paid booking is kept as a no-show and the substitute is booked fresh. Void/reissue
-              the check on the payments page.
-            </small>
-          </p>
-          <label>
-            Booking{" "}
-            <select
-              aria-label="Booking to substitute"
-              value={subBookingId}
-              onChange={(e) => setSubBookingId(e.target.value)}
-            >
-              <option value="">— select —</option>
-              {subBookings.map((b) => (
-                <option key={b.id} value={b.id}>
-                  {b.performerName} ({b.performerType}, {b.status})
-                </option>
-              ))}
-            </select>
-          </label>{" "}
-          <input
-            aria-label="Substitute performer"
-            placeholder="Find substitute…"
-            value={subQ}
-            onChange={(e) => setSubQ(e.target.value)}
-          />
-          {subHits.length > 0 && (
-            <ul>
-              {subHits.map((h) => (
-                <li key={h.id}>
-                  <button
-                    type="button"
-                    onClick={() => void substitute(h.id)}
-                    disabled={!subBookingId}
-                  >
-                    Substitute in {h.displayName}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-          {subMsg && <p role="status">{subMsg}</p>}
-        </section>
-      )}
 
       {deposit !== null && (
         <p>

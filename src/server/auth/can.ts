@@ -89,3 +89,20 @@ export function assertEventScope(
 ): void {
   assertScope(actor, capability, { seriesId: event.seriesId, groupId: event.groupId });
 }
+
+/**
+ * Assert that the actor holds ANY of the given capabilities in the event's scope (feature 043). An
+ * actor-less call bypasses (internal/CLI/test), like `assertScope`. Used where one operation is legally
+ * reachable via more than one capability — e.g. performer substitution, which the Booker does with
+ * `booking.write` and the FS does with `performer_payment.write` (the surface + gate move of P6-R12).
+ */
+export function assertEventScopeAny(
+  actor: Actor | undefined,
+  capabilities: Capability[],
+  event: EventScope,
+): void {
+  if (!actor) return;
+  const target = { seriesId: event.seriesId, groupId: event.groupId };
+  if (capabilities.some((c) => actorCan(actor, c, target))) return;
+  throw errors.unauthorized(capabilities.join(" or "));
+}
