@@ -14,3 +14,4 @@ postman/
 !.env.example
 *.tsbuildinfo
 next-env.d.ts
+*.zip
