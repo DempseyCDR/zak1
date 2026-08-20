@@ -28,6 +28,7 @@ export default tseslint.config(
       "src/server/db/migrate.ts",
       "src/server/db/seed.ts",
       "src/server/db/bootstrapOfficer.ts",
+      "src/server/db/contactLoad.ts",
       "src/jobs/**",
       "tests/**",
     ],

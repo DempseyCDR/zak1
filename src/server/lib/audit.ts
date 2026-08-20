@@ -79,7 +79,9 @@ export type AuditEvent = {
     | "performer_payment.deleted"
     | "paypal.notification.parked"
     | "paypal.notification.rejected"
-    | "paypal.notification.linked";
+    | "paypal.notification.linked"
+    // Feature 044 — one-time operator contact load (replace roster from iContact + membership workbook).
+    | "contact.bulk_load";
   actor: string | null;
   details: Record<string, unknown>;
 };

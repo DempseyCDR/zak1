@@ -1,5 +1,6 @@
 import { date, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 import { contacts } from "./contacts";
+import { membershipLevelEnum } from "./enums";
 
 export const payers = pgTable("payers", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -18,6 +19,9 @@ export const memberships = pgTable("memberships", {
     .references(() => payers.id),
   // date column, returned as 'YYYY-MM-DD' string.
   expiryDate: date("expiry_date").notNull(),
+  // Feature 044: membership tier from the CDR workbook Payer sheet. Backfilled to 'individual' for rows
+  // predating the contact load (migration 0033).
+  level: membershipLevelEnum("level").notNull().default("individual"),
   // Feature 019: acquisition-channel provenance. Both nullable — an admin-entered membership has neither.
   // The partial unique indexes on these (migration 0024) make the door (replace-all gate save, R5) and
   // online (webhook replay, FR-013) channels idempotent: a re-save/replay collides instead of duplicating.
