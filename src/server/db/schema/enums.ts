@@ -16,6 +16,14 @@ export const membershipStatusEnum = pgEnum("membership_status", [
   "never",
 ]);
 
+// Feature 044 (contact load): membership tier, imported from the CDR workbook Payer sheet "Level" column.
+export const membershipLevelEnum = pgEnum("membership_level", [
+  "individual",
+  "family",
+  "supporter",
+  "student",
+]);
+
 export const emailConsentTopicEnum = pgEnum("email_consent_topic", [
   "contra",
   "english",
@@ -71,4 +79,5 @@ export type PaymentMethod = (typeof paymentMethodEnum.enumValues)[number];
 export type EmailPurpose = (typeof emailPurposeEnum.enumValues)[number];
 export type EmailStatus = (typeof emailStatusEnum.enumValues)[number];
 export type MembershipStatus = (typeof membershipStatusEnum.enumValues)[number];
+export type MembershipLevel = (typeof membershipLevelEnum.enumValues)[number];
 export type EmailConsentTopic = (typeof emailConsentTopicEnum.enumValues)[number];

@@ -20,12 +20,14 @@
     "db:migrate": "tsx --env-file-if-exists=.env src/server/db/migrate.ts",
     "db:seed": "tsx --env-file-if-exists=.env src/server/db/seed.ts",
     "auth:bootstrap": "tsx --env-file-if-exists=.env src/server/db/bootstrapOfficer.ts",
+    "contacts:load": "tsx --env-file-if-exists=.env src/server/db/contactLoad.ts",
     "test": "vitest run",
     "test:unit": "vitest run tests/unit",
     "test:integration": "vitest run tests/integration"
   },
   "dependencies": {
     "arctic": "^3.7.0",
+    "csv-parse": "^7.0.2",
     "drizzle-orm": "^0.36.4",
     "jose": "^6.2.3",
     "next": "^16.2.10",
