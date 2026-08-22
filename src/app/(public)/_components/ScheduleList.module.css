@@ -1,0 +1,39 @@
+/* Feature 045 (P7-R1): public dance list styling (was inline). */
+.list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.row {
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--hairline);
+}
+
+.link {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+}
+
+.link:hover .date {
+  color: var(--link-hover);
+}
+
+.date {
+  font-weight: 600;
+  color: var(--link);
+}
+
+.meta {
+  color: var(--text-muted);
+}
+
+.cancelled {
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.empty {
+  color: var(--text-muted);
+}

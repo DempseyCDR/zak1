@@ -1,9 +1,11 @@
 import Link from "next/link";
+import styles from "./SeriesFilter.module.css";
 
 /**
  * Series filter (feature 037, P6-R5) — server-rendered via the URL query param, so the filtered view is
  * shareable and both listings stay pure server components. Renders an "All" link plus one
  * `basePath?series=<key>` link per club series (all series, FR-009); the current selection is marked.
+ * Feature 045 (P7-R1): styled from design tokens via CSS Modules (was inline).
  */
 export default function SeriesFilter({
   series,
@@ -22,14 +24,14 @@ export default function SeriesFilter({
         key={key ?? "__all__"}
         href={href}
         aria-current={active ? "page" : undefined}
-        style={{ marginRight: 12, fontWeight: active ? 600 : 400, textDecoration: "none", color: "inherit" }}
+        className={active ? `${styles.item} ${styles.active}` : styles.item}
       >
         {label}
       </Link>
     );
   }
   return (
-    <nav aria-label="Filter by series" style={{ padding: "8px 0", display: "flex", flexWrap: "wrap" }}>
+    <nav aria-label="Filter by series" className={styles.filter}>
       {item("All")}
       {series.map((s) => item(s.name, s.key))}
     </nav>

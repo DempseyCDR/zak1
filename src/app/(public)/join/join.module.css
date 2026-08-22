@@ -1,0 +1,5 @@
+/* Feature 045 (P7-R1): membership form layout (was inline). */
+.form {
+  display: grid;
+  gap: var(--space-2);
+}

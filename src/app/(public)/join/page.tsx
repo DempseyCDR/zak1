@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import Container from "../_components/Container";
+import styles from "./join.module.css";
 
 // Feature 019 US3 (FR-010/FR-016): the public membership page. It captures the member's name + email, then
 // hands off to the club's existing PayPal HOSTED button. The button is fully PayPal-hosted and gives the
@@ -29,12 +31,12 @@ export default function JoinPage() {
   }
 
   return (
-    <main style={{ padding: 24, maxWidth: 480 }}>
+    <Container width="narrow">
       <h1>Become a member</h1>
       {!captured ? (
         <>
           <p>Enter your details, then pay your dues with PayPal to complete your membership.</p>
-          <form onSubmit={submit} style={{ display: "grid", gap: 8 }}>
+          <form onSubmit={submit} className={styles.form}>
             <label>
               Name
               <br />
@@ -72,6 +74,6 @@ export default function JoinPage() {
           </form>
         </>
       )}
-    </main>
+    </Container>
   );
 }

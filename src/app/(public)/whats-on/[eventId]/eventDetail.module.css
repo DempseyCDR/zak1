@@ -1,0 +1,31 @@
+/* Feature 045 (P7-R1): event detail styling (was inline). */
+.meta {
+  color: var(--text-muted);
+}
+
+.cancelled {
+  color: #b00020;
+  font-weight: 700;
+}
+
+.description {
+  white-space: pre-line;
+  margin: var(--space-3) 0;
+}
+
+.section {
+  margin-bottom: var(--space-4);
+}
+
+.row {
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--hairline);
+}
+
+.bio {
+  margin: var(--space-1) 0;
+}
+
+.photo {
+  max-width: 200px;
+}
