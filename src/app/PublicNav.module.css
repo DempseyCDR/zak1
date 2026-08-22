@@ -1,0 +1,94 @@
+/* Feature 046 (P7-R2): public nav — a compact disclosure below 768px, the inline bar at ≥768px.
+   Styled from the app-wide R1 :root tokens (globals.css). The open panel flows in normal document order
+   (full-width, wrapping below the bar) so it pushes the volunteer bar down rather than overlaying it. */
+.bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: var(--surface);
+  border-bottom: 1px solid var(--hairline);
+  font-family: var(--font-body);
+}
+
+.wordmark {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  text-decoration: none;
+  color: var(--text);
+  margin-right: auto; /* push the toggle (and, on desktop, the links) to the right */
+}
+
+.toggle {
+  min-width: 44px;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 var(--space-3);
+  background: transparent;
+  border: 1px solid var(--hairline);
+  border-radius: 6px;
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+}
+
+.panel {
+  display: none; /* collapsed on mobile until opened */
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  width: 100%; /* full-width: wraps below the bar and flows (no overlay) */
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.panel.open {
+  display: flex;
+}
+
+.link {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 var(--space-2);
+  text-decoration: none;
+  color: var(--link);
+}
+
+.link:hover {
+  color: var(--link-hover);
+}
+
+.active {
+  font-weight: 600;
+}
+
+.toggle:focus-visible,
+.link:focus-visible,
+.wordmark:focus-visible {
+  outline: 2px solid var(--link);
+  outline-offset: 2px;
+}
+
+/* Desktop (≥768px): the inline bar — no toggle, destinations in a row. */
+@media (min-width: 768px) {
+  .toggle {
+    display: none;
+  }
+
+  .panel {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    width: auto;
+    gap: var(--space-4);
+  }
+
+  .link {
+    min-height: auto;
+    padding: 0;
+  }
+}
