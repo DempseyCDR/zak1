@@ -179,7 +179,9 @@ Gregory St), First Rochester (175 Allens Creek Rd), German House (315 Gregory St
 ### P7-R9 — Public performer rosters (bands & callers)
 
 **What:** Public roster page(s): bands (name, members + instruments, bio, photo, which style they play) and
-callers, filterable by style; linked from event detail lineups.
+callers, filterable by style; linked from event detail lineups. Each caller and band also displays its own
+**promotional links** — website and/or social media (Facebook, Instagram, YouTube, Bandcamp, Spotify, …) —
+as outbound links.
 
 **Why:** Use case #5; also serves bookers at *other* clubs scouting talent (the audit notes performer-contact
 pages exist for this).
@@ -188,6 +190,15 @@ pages exist for this).
 booking-grade real data; no public projection of them exists. **PII rule applies**: performer *contact* info
 (email/phone via linked contact) is Organizer-gated — the public roster shows name/bio/photo only, with
 booking inquiries routed to the role aliases (ContraBooking@/EnglishBooking@), not personal emails.
+Promotional links are the exception to that gating — they are **self-published and public-safe** — but they
+render as public `<a href>`, so validate the URL scheme is **http(s)** and treat them as untrusted (no XSS;
+the app uses no `dangerouslySetInnerHTML`).
+
+**Likely schema:** additive — a `links` **jsonb** array of `{type, url}` on **both** `performers` and
+`bands`, validated at the write boundary with zod (constitution §III), where `type` ∈
+`website | facebook | instagram | youtube | bandcamp | spotify | other` so the UI can render platform icons.
+(A polymorphic `promo_links` table is the alternative, warranted only if a cross-owner link admin/report is
+ever needed.)
 
 **Open questions:** performer photos (same storage decision as R5, §4 D-4); a "performs contra/english" tag —
 new column or derived from booking history?
