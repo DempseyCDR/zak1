@@ -1,0 +1,47 @@
+/* Feature 047 (P7-R3): site-wide public footer. */
+.footer {
+  margin-top: var(--space-7);
+  background: var(--band);
+  color: var(--link-on-dark);
+  border-top: 1px solid var(--hairline);
+}
+
+.inner {
+  max-width: var(--container-max);
+  margin-inline: auto;
+  padding: var(--space-5) var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.identity {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-weight: 600;
+  color: var(--link-on-dark);
+}
+
+.links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+}
+
+.links a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--link-on-dark);
+  text-decoration: underline;
+}
+
+.support {
+  font-weight: 600;
+}
+
+.fine {
+  margin: 0;
+  color: var(--link-on-dark);
+  font-size: var(--fs-sm);
+}

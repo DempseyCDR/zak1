@@ -1,0 +1,86 @@
+/* Feature 047 (P7-R3): public home — hero band + sections, from the R1 tokens. */
+
+.home {
+  /* content sections below the full-bleed hero share the page container width */
+}
+
+/* --- Hero band --- */
+.hero {
+  position: relative;
+  width: 100%;
+  min-height: clamp(200px, 34vh, 460px);
+  display: flex;
+  align-items: flex-end;
+  overflow: hidden;
+  background: var(--band); /* token fallback if the image is absent/slow */
+}
+
+/* next/image fill: cover, focal point via --hero-focus (upper-third default so faces aren't cropped). */
+.heroImg {
+  object-fit: cover;
+  object-position: var(--hero-focus, center 30%);
+}
+
+/* Scrim so the tagline meets WCAG AA over any photo. */
+.heroScrim {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: linear-gradient(
+    to top,
+    rgba(0, 0, 0, 0.6),
+    rgba(0, 0, 0, 0.25) 45%,
+    rgba(0, 0, 0, 0) 75%
+  );
+}
+
+.heroContent {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  max-width: var(--container-max);
+  margin-inline: auto;
+  padding: var(--space-5) var(--space-4);
+}
+
+/* Override the public-scope heading color (charcoal) with white on the dark scrim. */
+.hero .tagline {
+  margin: 0 0 var(--space-3);
+  color: #fff;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+  max-width: 22ch;
+}
+
+.heroCta {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 var(--space-4);
+  background: var(--peach);
+  color: var(--text); /* charcoal on peach = 6.13:1 (AA) */
+  font-weight: 600;
+  text-decoration: none;
+  border-radius: 6px;
+}
+
+.heroCta:hover {
+  color: var(--text);
+  filter: brightness(0.96);
+}
+
+/* --- Content sections (inside the page container) --- */
+.container {
+  max-width: var(--container-max);
+  margin-inline: auto;
+  padding: var(--space-5) var(--space-4);
+}
+
+.upcoming {
+  margin-top: var(--space-6);
+}
+
+.moreLink {
+  display: inline-block;
+  margin-top: var(--space-3);
+  font-weight: 600;
+}
