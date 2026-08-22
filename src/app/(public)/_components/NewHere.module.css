@@ -1,0 +1,26 @@
+/* Feature 047 (P7-R3): "new here?" orientation block. */
+.newHere {
+  margin: var(--space-6) 0;
+}
+
+.newHere p {
+  max-width: 60ch;
+}
+
+.cta {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 var(--space-4);
+  margin-top: var(--space-2);
+  background: var(--peach);
+  color: var(--text);
+  font-weight: 600;
+  text-decoration: none;
+  border-radius: 6px;
+}
+
+.cta:hover {
+  color: var(--text);
+  filter: brightness(0.96);
+}
