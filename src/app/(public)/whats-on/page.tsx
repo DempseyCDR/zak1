@@ -1,5 +1,6 @@
 import { db } from "@/server/db/client";
 import { getPublicSchedule, listSeries } from "@/server/domain/public/publicSchedule";
+import Container from "../_components/Container";
 import ScheduleList from "../_components/ScheduleList";
 import SeriesFilter from "../_components/SeriesFilter";
 
@@ -18,10 +19,10 @@ export default async function WhatsOnPage({
   ]);
 
   return (
-    <main style={{ padding: 24, maxWidth: 720 }}>
+    <Container>
       <h1>What&apos;s on</h1>
       <SeriesFilter series={allSeries} selected={series} basePath="/whats-on" />
       <ScheduleList items={schedule} emptyMessage="No dances to show." />
-    </main>
+    </Container>
   );
 }

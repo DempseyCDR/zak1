@@ -1,0 +1,65 @@
+/* Feature 045 (P7-R1) — the app's first styling layer.
+   This file holds ONLY the app-wide token *vocabulary* (`:root` custom properties) plus the pre-045 body
+   reset (margin + system-ui), so it changes NOTHING visually on the admin/door/volunteer surfaces. The
+   visual *application* of the tokens (ground, brand fonts, headings, links, focus) is scoped to the public
+   route group in `(public)/public.module.css`. This file is the single source of the token hex values (the
+   token tests parse it). Brand font families come from next/font (root layout). */
+:root {
+  /* Ground / surface / steel-blue bands */
+  --ground: #f6efe4;
+  --surface: #fbf7f0;
+  --band: #2d728f;
+  --band-hover: #22566c;
+
+  /* Text */
+  --text: #3d3b3d;
+  --text-muted: #5f5c5f;
+
+  /* Links — AA on the ground; on a band use --link-on-dark. Peach is NEVER a link/text color on a band. */
+  --link: #954e27;
+  --link-hover: #7a3f1f;
+  --link-on-dark: #f6efe4;
+
+  /* Accent */
+  --peach: #e5b79e;
+
+  /* Hairline / divider (non-text; a cream-tinted rule) */
+  --hairline: #e4dccc;
+
+  /* Event-type accents — badge / border / bold-or-large label use (UI 3:1). Do NOT put normal-size text on
+     these; --type-meeting with --text is 3.48:1 (accent-only, research R3). */
+  --type-contra: #82c2d6;
+  --type-english: #ffb472;
+  --type-special: #f28780;
+  --type-assembly: #b3ce84;
+  --type-meeting: #9b84ce;
+
+  /* Typography — mobile-first; body ≥16px. --font-* come from next/font on <html>, with fallbacks. */
+  --font-heading: var(--font-raleway, "Raleway"), system-ui, sans-serif;
+  --font-body: var(--font-open-sans, "Open Sans"), system-ui, sans-serif;
+  --fs-sm: 0.875rem;
+  --fs-body: 1rem;
+  --fs-h3: 1.125rem;
+  --fs-h2: 1.375rem;
+  --fs-h1: 1.75rem;
+  --lh-body: 1.55;
+  --lh-heading: 1.2;
+
+  /* Spacing scale */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+
+  /* Layout */
+  --container-max: 720px;
+}
+
+/* Pre-045 global body reset (was an inline style on <body>) — unchanged behavior for every surface. */
+body {
+  margin: 0;
+  font-family: system-ui, sans-serif;
+}

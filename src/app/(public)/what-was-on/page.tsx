@@ -1,5 +1,6 @@
 import { db } from "@/server/db/client";
 import { getPublicHistory, listSeries } from "@/server/domain/public/publicSchedule";
+import Container from "../_components/Container";
 import ScheduleList from "../_components/ScheduleList";
 import SeriesFilter from "../_components/SeriesFilter";
 
@@ -17,10 +18,10 @@ export default async function WhatWasOnPage({
   ]);
 
   return (
-    <main style={{ padding: 24, maxWidth: 720 }}>
+    <Container>
       <h1>What was on</h1>
       <SeriesFilter series={allSeries} selected={series} basePath="/what-was-on" />
       <ScheduleList items={history} emptyMessage="No past dances to show." />
-    </main>
+    </Container>
   );
 }
