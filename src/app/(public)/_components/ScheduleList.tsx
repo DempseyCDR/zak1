@@ -1,11 +1,12 @@
-import Link from "next/link";
 import type { PublicScheduleItem } from "@/server/domain/public/publicSchedule";
+import EventCard from "./EventCard";
 import styles from "./ScheduleList.module.css";
 
 /**
- * The shared public dance list (feature 037, P6-R4) — used by `/whats-on` and `/what-was-on`. Server
- * component; each row links to the shared `/whats-on/<eventId>` detail page. Renders `emptyMessage` when
- * there are no items. Feature 045 (P7-R1): styled from design tokens via CSS Modules (was inline).
+ * The shared public dance list (feature 037, P6-R4) — used by `/whats-on`, `/what-was-on`, and the P7-R3
+ * home "Coming up" strip. Server component; renders `emptyMessage` when there are no items. Feature 048
+ * (P7-R4): each item is now an `EventCard` (was a text row), so the card restyle lands on all three
+ * surfaces at once. Each card links to the shared `/whats-on/<eventId>` detail page.
  */
 export default function ScheduleList({
   items,
@@ -20,17 +21,8 @@ export default function ScheduleList({
   return (
     <ul className={styles.list}>
       {items.map((s) => (
-        <li key={s.eventId} className={styles.row}>
-          <Link href={`/whats-on/${s.eventId}`} className={styles.link}>
-            <span className={styles.date}>{s.date}</span>
-            <span className={styles.meta}>
-              {s.startTime ? ` ${s.startTime}` : ""} — {s.activity}
-              {s.label ? ` · ${s.label}` : ""}
-              {s.venueName ? ` @ ${s.venueName}` : ""}
-              {s.advertisedPrice != null ? ` · $${s.advertisedPrice.toFixed(2)}` : ""}
-            </span>
-            {s.cancelled ? <span className={styles.cancelled}> · CANCELLED</span> : null}
-          </Link>
+        <li key={s.eventId} className={styles.item}>
+          <EventCard item={s} />
         </li>
       ))}
     </ul>
