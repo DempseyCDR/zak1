@@ -20,12 +20,18 @@ export type PublicScheduleItem = {
   advertisedPrice: number | null; // feature 018 (B27): public display price in dollars; null = not shown
 };
 
-export type PublicBandBlock = { name: string; bio: string | null; photoUrl: string | null };
+export type PublicBandBlock = {
+  name: string;
+  bio: string | null;
+  photoUrl: string | null;
+  members: { name: string; isLead: boolean }[]; // feature 049 (P7-R5): the lineup's band roster (name-only)
+};
 export type PublicVenue = { name: string; address: string; mapUrl: string };
 export type PublicEventDetail = {
   eventId: string;
   date: string;
   activity: string;
+  seriesKey: string; // feature 049 (P7-R5): stable series key → page color accent + hero (matches the R4 card)
   venue: PublicVenue | null;
   label: string | null;
   startTime: string | null; // display-formatted wall-clock, venue-local
@@ -140,6 +146,7 @@ export async function getPublicEventDetail(
       eventId: events.id,
       date: events.eventDate,
       activity: series.name,
+      seriesKey: series.key,
       venueId: events.venueId,
       label: events.label,
       startTime: events.startTime,
@@ -168,6 +175,7 @@ export async function getPublicEventDetail(
     eventId: row.eventId,
     date: row.date,
     activity: row.activity,
+    seriesKey: row.seriesKey,
     venue,
     label: row.label,
     startTime: formatWallClock(row.startTime),
@@ -175,7 +183,12 @@ export async function getPublicEventDetail(
     cancelled: row.status === "cancelled",
     advertisedPrice:
       row.advertisedPriceCents === null ? null : centsToDollars(row.advertisedPriceCents),
-    bandBlocks: grouped.bandBlocks.map((b) => ({ name: b.name, bio: b.bio, photoUrl: b.photoUrl })),
+    bandBlocks: grouped.bandBlocks.map((b) => ({
+      name: b.name,
+      bio: b.bio,
+      photoUrl: b.photoUrl,
+      members: b.members,
+    })),
     performers,
   };
 }
