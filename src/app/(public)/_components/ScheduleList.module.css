@@ -1,37 +1,16 @@
-/* Feature 045 (P7-R1): public dance list styling (was inline). */
+/* Feature 045 (P7-R1): public dance list styling. Feature 048 (P7-R4): now a vertical stack of cards
+   (the per-item row/link/date styling moved to EventCard.module.css). */
 .list {
   list-style: none;
   padding: 0;
   margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
 }
 
-.row {
-  padding: var(--space-2) 0;
-  border-bottom: 1px solid var(--hairline);
-}
-
-.link {
-  display: block;
-  text-decoration: none;
-  color: inherit;
-}
-
-.link:hover .date {
-  color: var(--link-hover);
-}
-
-.date {
-  font-weight: 600;
-  color: var(--link);
-}
-
-.meta {
-  color: var(--text-muted);
-}
-
-.cancelled {
-  color: var(--text-muted);
-  font-weight: 600;
+.item {
+  margin: 0;
 }
 
 .empty {

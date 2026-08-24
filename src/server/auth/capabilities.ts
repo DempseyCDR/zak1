@@ -37,6 +37,9 @@ export type Capability =
   | "role.assign"
   | "club_settings.write"
   | "volunteer.approve"
+  // Feature 051 (P7-R7): edit/publish public content pages (the Webmaster's CMS). Webmaster-only, like
+  // `event.public.write` — the VP delegates via the role rather than inheriting it.
+  | "content.write"
   // The generated route index (FR-040b). A capability rather than an inline `role === 'super_user'`
   // check: a second authorization mechanism beside this catalog is exactly the coupling the feature
   // exists to remove, and it would be the one place roles were inlined at a call site.
@@ -147,6 +150,7 @@ export const CAPABILITIES: Catalog = {
 
   webmaster: {
     "event.public.write": "global", // the blurb and price, never the date (row 2)
+    "content.write": "global", // feature 051 (P7-R7): the content-pages CMS
   },
 
   // ⬤ per-series role — but `export.read` is `global`. THIS PAIR IS FR-008: scope varies per
@@ -194,5 +198,6 @@ export const CAPABILITIES: Catalog = {
     "role.assign": "global",
     "club_settings.write": "global",
     "volunteer.approve": "global",
+    "content.write": "global",
   },
 };

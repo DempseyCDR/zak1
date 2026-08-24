@@ -1,0 +1,44 @@
+/* Feature 049 (P7-R5): the event page lineup — bands (with members) + callers, or a "to be announced" note. */
+.lineup {
+  margin: var(--space-5) 0;
+}
+
+.heading {
+  font-family: var(--font-heading);
+  font-size: var(--fs-h2);
+  margin: 0 0 var(--space-3);
+}
+
+.band,
+.performer {
+  padding: var(--space-3) 0;
+  border-bottom: 1px solid var(--hairline);
+}
+
+.name {
+  font-size: var(--fs-h3);
+}
+
+.members {
+  margin: var(--space-2) 0 0;
+  padding-left: var(--space-5);
+  color: var(--text-muted);
+}
+
+.bio {
+  margin: var(--space-1) 0 0;
+  color: var(--text-muted);
+}
+
+.photo {
+  display: block;
+  max-width: 220px;
+  width: 100%;
+  height: auto;
+  margin-top: var(--space-2);
+  border-radius: 6px;
+}
+
+.tba {
+  color: var(--text-muted);
+}

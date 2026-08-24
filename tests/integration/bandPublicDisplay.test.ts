@@ -45,8 +45,9 @@ describe("groupEventBookingsForDisplay", () => {
       bio: "band bio",
       photoUrl: "https://example.com/band.jpg",
     });
-    // The band block does not enumerate individual members.
-    expect(grouped.bandBlocks[0]).not.toHaveProperty("members");
+    // Feature 049 (P7-R5): the band block now enumerates its members (name + lead) for the event page.
+    expect(grouped.bandBlocks[0]!.members.map((m) => m.name).sort()).toEqual(["Lead", "M1"]);
+    expect(grouped.bandBlocks[0]!.members.find((m) => m.name === "Lead")!.isLead).toBe(true);
     expect(grouped.adHoc.map((b) => b.performerName)).toEqual(["Solo Caller"]);
   });
 

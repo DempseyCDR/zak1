@@ -1,0 +1,63 @@
+/* Feature 051 (P7-R7): public content page — the title + a prose block for the sanitized Markdown. */
+.title {
+  font-family: var(--font-heading);
+  font-size: var(--fs-h1);
+  line-height: var(--lh-heading);
+  margin: var(--space-4) 0 var(--space-4);
+}
+
+.prose {
+  line-height: var(--lh-body);
+}
+
+.prose h2 {
+  font-family: var(--font-heading);
+  font-size: var(--fs-h2);
+  margin: var(--space-5) 0 var(--space-3);
+}
+
+.prose h3 {
+  font-family: var(--font-heading);
+  font-size: var(--fs-h3);
+  margin: var(--space-4) 0 var(--space-2);
+}
+
+.prose p,
+.prose ul,
+.prose ol,
+.prose blockquote {
+  margin: 0 0 var(--space-3);
+}
+
+.prose ul,
+.prose ol {
+  padding-left: var(--space-5);
+}
+
+.prose li {
+  margin: 0 0 var(--space-1);
+}
+
+.prose a {
+  color: var(--link);
+}
+
+.prose a:hover {
+  color: var(--link-hover);
+}
+
+.prose blockquote {
+  padding-left: var(--space-3);
+  border-left: 3px solid var(--hairline);
+  color: var(--text-muted);
+}
+
+.prose code {
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 0.9em;
+}
+
+.prose img {
+  max-width: 100%;
+  height: auto;
+}

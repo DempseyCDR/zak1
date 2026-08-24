@@ -11,7 +11,9 @@ export type PublicScheduleItem = {
   eventId: string;
   date: string;
   activity: string;
+  seriesKey: string; // feature 048 (P7-R4): stable series key → the card's color accent (never `activity`)
   venueName: string | null;
+  venueShortName: string | null; // feature 048 (P7-R4): the card's venue field; null → card falls back to venueName
   label: string | null;
   startTime: string | null; // display-formatted wall-clock (e.g. "7:30 PM"), venue-local
   cancelled: boolean; // feature 018 (B25): still listed, shown with a cancelled marker
@@ -26,6 +28,7 @@ export type PublicEventDetail = {
   eventId: string;
   date: string;
   activity: string;
+  seriesKey: string; // feature 049 (P7-R5): stable series key → page color accent + hero (matches the R4 card)
   venue: PublicVenue | null;
   label: string | null;
   startTime: string | null; // display-formatted wall-clock, venue-local
@@ -77,7 +80,9 @@ async function listPublicEvents(
       eventId: events.id,
       date: events.eventDate,
       activity: series.name,
+      seriesKey: series.key,
       venueName: venues.name,
+      venueShortName: venues.shortName,
       label: events.label,
       startTime: events.startTime,
       status: events.status,
@@ -138,6 +143,7 @@ export async function getPublicEventDetail(
       eventId: events.id,
       date: events.eventDate,
       activity: series.name,
+      seriesKey: series.key,
       venueId: events.venueId,
       label: events.label,
       startTime: events.startTime,
@@ -168,6 +174,7 @@ export async function getPublicEventDetail(
     eventId: row.eventId,
     date: row.date,
     activity: row.activity,
+    seriesKey: row.seriesKey,
     venue,
     label: row.label,
     startTime: formatWallClock(row.startTime),
@@ -175,7 +182,12 @@ export async function getPublicEventDetail(
     cancelled: row.status === "cancelled",
     advertisedPrice:
       row.advertisedPriceCents === null ? null : centsToDollars(row.advertisedPriceCents),
-    bandBlocks: grouped.bandBlocks.map((b) => ({ name: b.name, bio: b.bio, photoUrl: b.photoUrl })),
+    bandBlocks: grouped.bandBlocks.map((b) => ({
+      name: b.name,
+      bio: b.bio,
+      photoUrl: b.photoUrl,
+      members: b.members,
+    })),
     performers,
   };
 }
