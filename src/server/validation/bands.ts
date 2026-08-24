@@ -1,8 +1,11 @@
 import { z } from "zod";
+import { promoLinksSchema, stylesSchema } from "@/server/domain/public/promoLinks";
 
 const memberSchema = z.object({
   performerId: z.string().uuid(),
   isLead: z.boolean(),
+  // Feature 053 (P7-R9): optional instrument, shown on the roster/lineup.
+  instrument: z.string().trim().min(1).nullable().optional(),
 });
 
 /** A roster must have ≥1 member and exactly one lead. */
@@ -28,6 +31,10 @@ export const bandCreateSchema = z.object({
   bio: z.string().optional(),
   photoUrl: z.string().url().optional(),
   members: z.array(memberSchema).superRefine(exactlyOneLead),
+  // Feature 053 (P7-R9): public roster fields.
+  isPublic: z.boolean().optional(),
+  styles: stylesSchema.optional(),
+  links: promoLinksSchema.optional(),
 });
 
 export const bandPatchSchema = z.object({
@@ -35,6 +42,10 @@ export const bandPatchSchema = z.object({
   bio: z.string().nullable().optional(),
   photoUrl: z.string().url().nullable().optional(),
   members: z.array(memberSchema).superRefine(exactlyOneLead).optional(),
+  // Feature 053 (P7-R9): public roster fields (replace the set when present).
+  isPublic: z.boolean().optional(),
+  styles: stylesSchema.optional(),
+  links: promoLinksSchema.optional(),
 });
 
 export const bookBandSchema = z.object({

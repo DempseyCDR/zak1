@@ -27,7 +27,7 @@ export const NAV: { href: string; label: string; capability: Capability | null }
   { href: "/events", label: "Events", capability: "event.public.write" }, // Booker + Webmaster
   { href: "/bookings", label: "Bookings", capability: "booking.write" },
   { href: "/bookings-report", label: "Booking report", capability: "booking.write" }, // Booker report (020)
-  { href: "/performers", label: "Performers", capability: "performer.write" },
+  { href: "/manage/performers", label: "Performers", capability: "performer.write" },
   { href: "/bands", label: "Bands", capability: "performer.write" },
   { href: "/venues", label: "Venues", capability: "venue.write" },
   { href: "/venue-rents", label: "Venue rents", capability: "venue.write" },

@@ -2,7 +2,7 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import PerformersPage from "@/app/(admin)/performers/page";
+import PerformersPage from "@/app/(admin)/manage/performers/page";
 
 // Feature 026 US2 (FR-004): the performers-page create form captures structured first/last/display and POSTs
 // them — no single `displayName`.

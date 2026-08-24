@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { promoLinksSchema, stylesSchema } from "@/server/domain/public/promoLinks";
 
 const performerType = z.enum([
   "caller",
@@ -28,6 +29,11 @@ export const performerCreateSchema = z
     phone: z.string().trim().min(1).optional(),
     bio: z.string().optional(),
     photoUrl: z.string().url().optional(),
+    // Feature 053 (P7-R9): public roster fields.
+    isPublic: z.boolean().optional(),
+    isCaller: z.boolean().optional(),
+    styles: stylesSchema.optional(),
+    links: promoLinksSchema.optional(),
   })
   .refine((v) => (v.contactId != null) !== (v.firstName != null), {
     message:
@@ -39,6 +45,11 @@ export const performerPatchSchema = z.object({
   contactId: z.string().uuid().nullable().optional(),
   bio: z.string().nullable().optional(),
   photoUrl: z.string().url().nullable().optional(),
+  // Feature 053 (P7-R9): public roster fields (replace the set when present).
+  isPublic: z.boolean().optional(),
+  isCaller: z.boolean().optional(),
+  styles: stylesSchema.optional(),
+  links: promoLinksSchema.optional(),
 });
 
 export const rateParameterCreateSchema = z.object({

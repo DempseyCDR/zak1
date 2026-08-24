@@ -1,0 +1,18 @@
+/* Feature 053 (P7-R9): a performer's promotional links. */
+.links {
+  list-style: none;
+  padding: 0;
+  margin: var(--space-2) 0 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.link {
+  color: var(--link);
+  font-size: var(--fs-small);
+}
+
+.link:hover {
+  color: var(--link-hover);
+}

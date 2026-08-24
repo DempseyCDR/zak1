@@ -27,7 +27,13 @@ export default function Lineup({
             const members = [...b.members].sort((a, z) => Number(z.isLead) - Number(a.isLead));
             return (
               <div key={`band-${i}`} className={styles.band}>
-                <strong className={styles.name}>{b.name}</strong>
+                <strong className={styles.name}>
+                  {b.onPublicRoster ? (
+                    <a href={`/performers#band-${b.bandId}`}>{b.name}</a>
+                  ) : (
+                    b.name
+                  )}
+                </strong>
                 {b.photoUrl ? <img src={b.photoUrl} alt={b.name} className={styles.photo} /> : null}
                 {b.bio ? <p className={styles.bio}>{b.bio}</p> : null}
                 {members.length ? (
@@ -35,6 +41,7 @@ export default function Lineup({
                     {members.map((m, mi) => (
                       <li key={`m-${mi}`}>
                         {m.name}
+                        {m.instrument ? ` — ${m.instrument}` : ""}
                         {m.isLead ? " (lead)" : ""}
                       </li>
                     ))}
@@ -61,7 +68,13 @@ export default function Lineup({
             }
             return (
               <div key={`perf-${i}`} className={styles.performer}>
-                <strong>{p.name}</strong>
+                <strong>
+                  {p.onPublicRoster ? (
+                    <a href={`/performers#caller-${p.performerId}`}>{p.name}</a>
+                  ) : (
+                    p.name
+                  )}
+                </strong>
                 {p.bio ? <p className={styles.bio}>{p.bio}</p> : null}
                 {p.photoUrl ? <img src={p.photoUrl} alt={p.name} className={styles.photo} /> : null}
               </div>
