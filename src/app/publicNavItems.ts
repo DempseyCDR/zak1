@@ -15,5 +15,6 @@
 export const PUBLIC_NAV: readonly { href: string; label: string }[] = [
   { href: "/whats-on", label: "What's On" },
   { href: "/what-was-on", label: "What was on" }, // feature 037 (P6-R4) — dance history
+  { href: "/directions", label: "Directions" }, // feature 052 (P7-R8) — public venues & directions
   { href: "/join", label: "Join" },
 ];

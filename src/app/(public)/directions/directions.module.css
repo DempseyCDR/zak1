@@ -1,0 +1,40 @@
+/* Feature 052 (P7-R8): the public directions page. */
+.list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.venue {
+  padding: var(--space-4) 0;
+  border-bottom: 1px solid var(--hairline);
+}
+
+.name {
+  font-family: var(--font-heading);
+  font-size: var(--fs-h2);
+  margin: 0 0 var(--space-2);
+}
+
+.address {
+  margin: 0 0 var(--space-1);
+  font-weight: 600;
+}
+
+.mapLink {
+  color: var(--link);
+}
+
+.mapLink:hover {
+  color: var(--link-hover);
+}
+
+.directions {
+  margin: var(--space-2) 0 0;
+  line-height: var(--lh-body);
+  white-space: pre-line;
+}
+
+.empty {
+  color: var(--text-muted);
+}

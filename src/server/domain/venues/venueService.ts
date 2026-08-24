@@ -28,6 +28,10 @@ export async function createVenue(
     input.shortName && input.shortName.length > 0
       ? input.shortName
       : venueShortNameDefault(input.name);
+  // Feature 052 (P7-R8): a public venue MUST have an address (FR-007).
+  if (input.isPublic && input.address.trim() === "") {
+    throw errors.validation("A public venue must have an address.");
+  }
   const [row] = await db
     .insert(venues)
     .values({
@@ -36,6 +40,8 @@ export async function createVenue(
       address: input.address,
       latitude: input.latitude ?? null,
       longitude: input.longitude ?? null,
+      isPublic: input.isPublic ?? false,
+      directions: input.directions ?? null,
     })
     .returning();
   if (!row) throw new Error("venue insert failed");
@@ -61,6 +67,12 @@ export async function patchVenue(
 ): Promise<VenueRow> {
   const existing = await db.query.venues.findFirst({ where: eq(venues.id, id) });
   if (!existing) throw errors.venueNotFound();
+  // Feature 052 (P7-R8): reject any change that would leave the venue public without an address (FR-007).
+  const effectiveIsPublic = input.isPublic ?? existing.isPublic;
+  const effectiveAddress = input.address ?? existing.address;
+  if (effectiveIsPublic && effectiveAddress.trim() === "") {
+    throw errors.validation("A public venue must have an address.");
+  }
   const [row] = await db
     .update(venues)
     .set({
@@ -72,6 +84,8 @@ export async function patchVenue(
         ? { landlordContactId: input.landlordContactId }
         : {}),
       ...(input.shortName !== undefined ? { shortName: input.shortName } : {}),
+      ...(input.isPublic !== undefined ? { isPublic: input.isPublic } : {}),
+      ...(input.directions !== undefined ? { directions: input.directions } : {}),
       updatedAt: new Date(),
     })
     .where(eq(venues.id, id))

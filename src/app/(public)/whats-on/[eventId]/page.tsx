@@ -32,15 +32,21 @@ export default async function PublicEventPage({
       {detail.venue && (
         <section className={styles.section}>
           <h2>Venue</h2>
+          {/* Feature 052 (P7-R8): name always; address/map/directions only for a public venue (else null). */}
           <p>
-            {detail.venue.name} — {detail.venue.address}
+            {detail.venue.name}
+            {detail.venue.address ? ` — ${detail.venue.address}` : ""}
           </p>
-          {/* Map: static image if a maps key is configured, else a link (venueMapUrl). */}
-          <p>
-            <a href={detail.venue.mapUrl} target="_blank" rel="noreferrer">
-              View map
-            </a>
-          </p>
+          {detail.venue.mapUrl && (
+            <p>
+              <a href={detail.venue.mapUrl} target="_blank" rel="noreferrer">
+                View map
+              </a>
+            </p>
+          )}
+          {detail.venue.directions && (
+            <p className={styles.description}>{detail.venue.directions}</p>
+          )}
         </section>
       )}
 

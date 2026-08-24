@@ -4,7 +4,7 @@ import { events, series, venues } from "@/server/db/schema";
 import { groupEventBookingsForDisplay } from "@/server/domain/bands/publicDisplay";
 import { centsToDollars } from "@/server/lib/money";
 import { mapPublicPerformers, type PublicPerformer } from "./performerDisplay";
-import { venueMapUrl } from "./venueMap";
+import { publicVenueView, type PublicVenue } from "./publicVenues";
 import { formatWallClock } from "./wallClock";
 
 export type PublicScheduleItem = {
@@ -19,7 +19,9 @@ export type PublicScheduleItem = {
 };
 
 export type PublicBandBlock = { name: string; bio: string | null; photoUrl: string | null };
-export type PublicVenue = { name: string; address: string; mapUrl: string };
+// Feature 052 (P7-R8): PublicVenue now lives in publicVenues.ts (the gate), with nullable address/mapUrl/
+// directions so a non-public venue is name-only. Re-exported here for existing consumers.
+export type { PublicVenue };
 export type PublicEventDetail = {
   eventId: string;
   date: string;
@@ -46,7 +48,10 @@ export const HOME_WINDOW_LOOKBACK_DAYS = 2;
  * Pure, and UTC-based to match `today()`, so month/year rollover is correct (e.g. 2026-03-01 → 2026-02-27).
  * Feature 036 (P6-R3) — the single, testable expression of the two-day lookback.
  */
-export function homeWindowStart(day: string, lookbackDays: number = HOME_WINDOW_LOOKBACK_DAYS): string {
+export function homeWindowStart(
+  day: string,
+  lookbackDays: number = HOME_WINDOW_LOOKBACK_DAYS,
+): string {
   const d = new Date(`${day}T00:00:00Z`);
   d.setUTCDate(d.getUTCDate() - lookbackDays);
   return d.toISOString().slice(0, 10);
@@ -146,11 +151,13 @@ export async function getPublicEventDetail(
     .limit(1);
   if (!row) return null;
 
+  // Feature 052 (P7-R8): gate the venue — publicVenueView shows address/map/directions only for a public
+  // venue with an address; otherwise name-only. A private-home address is never exposed here.
   let venue: PublicVenue | null = null;
   if (row.venueId) {
     const v = await db.query.venues.findFirst({ where: eq(venues.id, row.venueId) });
     if (v) {
-      venue = { name: v.name, address: v.address, mapUrl: venueMapUrl(v) };
+      venue = publicVenueView(v);
     }
   }
 
