@@ -81,7 +81,13 @@ export type AuditEvent = {
     | "paypal.notification.rejected"
     | "paypal.notification.linked"
     // Feature 044 — one-time operator contact load (replace roster from iContact + membership workbook).
-    | "contact.bulk_load";
+    | "contact.bulk_load"
+    // Feature 051 (P7-R7) — the content-pages CMS.
+    | "content.created"
+    | "content.updated"
+    | "content.published"
+    | "content.unpublished"
+    | "content.deleted";
   actor: string | null;
   details: Record<string, unknown>;
 };

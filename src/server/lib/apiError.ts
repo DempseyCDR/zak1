@@ -35,7 +35,9 @@ export type ApiErrorCode =
   | "EVENT_HAS_ATTENDANCE"
   | "RECURRENCE_TOO_LARGE"
   | "PERFORMER_PAYMENT_NOT_FOUND"
-  | "BOOKING_EVENT_MISMATCH";
+  | "BOOKING_EVENT_MISMATCH"
+  | "CONTENT_PAGE_NOT_FOUND"
+  | "CONTENT_SLUG_TAKEN";
 
 export class ApiError extends Error {
   readonly code: ApiErrorCode;
@@ -188,4 +190,8 @@ export const errors = {
   mailingListNotFound: () => new ApiError("MAILING_LIST_NOT_FOUND", 404, "Unknown mailing list."),
   bandNotFound: () => new ApiError("BAND_NOT_FOUND", 404, "Band not found."),
   venueNotFound: () => new ApiError("VENUE_NOT_FOUND", 404, "Venue not found."),
+  // Feature 051 (P7-R7): content pages.
+  contentPageNotFound: () => new ApiError("CONTENT_PAGE_NOT_FOUND", 404, "Content page not found."),
+  contentSlugTaken: () =>
+    new ApiError("CONTENT_SLUG_TAKEN", 409, "A page with that slug already exists."),
 };
