@@ -1,7 +1,7 @@
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan
-at specs/047-public-home/plan.md
+at specs/048-whats-on-cards/plan.md
 <!-- SPECKIT END -->
 
 ## Development conventions

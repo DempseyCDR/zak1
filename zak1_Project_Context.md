@@ -2,23 +2,21 @@
 
 > Single living doc — no versioned copies. Update in place each session.
 
-**Snapshot:** 2026-08-05 · **Repo:** `/Users/rcd/Repositories/zak1` · **Remote:**
-`github.com/DempseyCDR/zak1` · **Head:** local `main` == `origin/main` at the **043-impl** commit (pushed this
-session; the 041/042/043 planning+impl chain was pushed on top of `90d49d1`). **039–043 IMPLEMENTED** (039
-migration `0032` applied to `zak1_dev`; 040–043 have no migration).
-**Phases 3, 4, 5 COMPLETE; ⭐ PHASE 6 COMPLETE (all R1–R12 + defects D1/D3 shipped as 034–043).** Phase 5 shipped
-through **033**. **Phase 6 (034–043):** **034** public nav menu (P6-R1) · **035** volunteer nav
-menu (P6-R2, subsumes D1) · **036** `/whats-on` two-days-ago window (P6-R3) · **037** `/what-was-on` history +
-series filter (P6-R4+R5) · **038** drop `non_dance_income` (P6-R6, migration `0031`, first destructive removal) ·
-**039** drop `account_mapping` (P6-R7, migration `0032` DROP TABLE — the dead GL-account annotation) · **040**
-treasurer report QBO restructure (P6-R8) + comp/gift-card counts (P6-R9) — report reshape + 3 additive fields, no
-migration · **041** organizer report shows the **band name** + member detail on drill-in (P6-R11) — display-only,
-no migration · **042** gift-card option on **both** named-person check-in paths (new-contact + returning/matched)
-(P6-R10) — client-only, no migration · **043** move performer **substitution** `/gate`→`/payments` (P6-R12,
-either-capability re-gate) + fix **D3** (multi-booking check capture guard + in-place check-number edit) —
-client-only + one route/service authz change, no migration. **Phase 6 has no remaining items.** Suite
-**712 tests / 218 files green**; clean build. The **Node-18 Bash gotcha is RESOLVED** (Bash runs Node 24; the stale Node 16 was purged). Purpose: seed a
-fresh session to continue work on zak1 (CDR).
+**Snapshot:** 2026-08-22 · **Repo:** `/Users/rcd/Repositories/zak1` · **Remote:**
+`github.com/DempseyCDR/zak1` · **Head:** local `main` == `origin/main` at **`51cecea`** (PR #7 `backlog-tidy`
+merge). **Working now on branch `048-whats-on-cards`** (P7-R4 spec+plan+tasks done, **not yet implemented**;
+uncommitted). **Phases 3, 4, 5, 6 COMPLETE.** ⭐ **NOW IN PHASE 7 — the public website rewrite** (requirements
+in `zak1_Phase7_Requirements.md`, keyed `P7-Rn`).
+**Shipped & merged since 043:** **044** contact load — replace roster from iContact + membership import
+(operator CLI `pnpm contacts:load`; migration **`0033`** `membership_level`) · **045** public design tokens
+(P7-R1) · **046** public nav mobile pattern (P7-R2) · **047** public home page (P7-R3). 045–047 are frontend,
+**no migration**. **048** `/whats-on` mobile-first event cards (P7-R4) is **specced/planned/tasked, implementing
+next** (a small +2-field projection change, no migration).
+⭐ **MAJOR GOVERNANCE CHANGE — MULTI-CONTRIBUTOR MODE IS NOW ACTIVE.** Zak became a second contributor at
+feature 044, so per constitution v1.3.0 the workflow is permanently: **feature branches + reviewed PRs, no
+self-merge to `main`** (the solo-maintainer one-atomic-commit-to-main habit is retired — see §4).
+Suite **765 tests / 234 files green** through 047; `tsc`/eslint/markdownlint/prettier/build all clean. Node 24,
+pnpm. Purpose: seed a fresh session to continue work on zak1 (CDR).
 
 ---
 
@@ -29,7 +27,8 @@ contra/English dance club): contacts & membership, door attendance & gate money,
 treasurer & organizer reports, mailing-list exports, a public website, staff auth, authorization, check-in,
 booking & event management, membership acquisition (door + online), the Booker's booking-report/modal UX, and
 the Financial-Secretary payment substrate.
-**43 features shipped (001–043); Phase 6 COMPLETE.** Money is always **integer cents**.
+**47 features shipped (001–047); Phases 1–6 COMPLETE; Phase 7 (public website rewrite) UNDERWAY** (044 contact
+load + P7-R1..R3 shipped; P7-R4 in progress as 048). Money is always **integer cents**.
 Single tenant (multi-tenant deferred).
 
 > **Naming:** `zak1` is the internal codename; the club-facing name is **cdrochester** (what Google's
@@ -66,7 +65,9 @@ set +a`.
 - **`zak1_test`** (`TEST_DATABASE_URL`) — auto-migrated; `resetDb()` TRUNCATEs (list includes the 019/020
   tables).
 - **Migrations:** additive SQL in `src/server/db/migrations/`, `pnpm run db:migrate`. **Latest =
-  `0032_drop_account_mapping.sql`** (039, P6-R7) — a **destructive** `DROP TABLE IF EXISTS account_mapping`
+  `0033_membership_level.sql`** (044) — adds a `membership_level` enum (`individual`/`family`/`supporter`/
+  `student`) + `memberships.level` (backfilled to `individual`, then NOT NULL); for the contact-load re-import.
+  Prior: **`0032_drop_account_mapping.sql`** (039, P6-R7) — a **destructive** `DROP TABLE IF EXISTS account_mapping`
   (idempotent; the second destructive migration; snapshot `~/zak1_pre_0032.dump`; applied). `0031` (038, P6-R6)
   was the first destructive `DROP TABLE IF EXISTS non_dance_income` (snapshot `~/zak1_pre_0031.dump`).
   `0030_normalize_contact_phones.sql` (032, P5-R6) normalized `contacts.phone` to E.164 (snapshot
@@ -88,15 +89,12 @@ set +a`.
 ## 4. Tests & governance
 
 Pipeline `/speckit-specify → clarify → plan → tasks → analyze → implement`. Active pointer
-`.specify/feature.json` → **`specs/043-payments-substitute-checkfix`** (implemented). **Constitution v1.3.0**
-(non-negotiable):
+`.specify/feature.json` → **`specs/048-whats-on-cards`** (specced/planned/tasked; implementing next).
+**Constitution v1.3.0** (non-negotiable):
 I Test-First (Red-Green-Refactor), II YAGNI, III Type Safety (Zod at boundaries), IV Observability.
 Testing standard: integration against **real** local infra; DBs never mocked; third-party services (Google,
-PayPal) exercised at their **boundary**, never production endpoints. **Suite: 712 tests / 218 files green
-through 043**. tsc, eslint, markdownlint, prettier, production build all clean on Next 16. ⚠️ **Phase 6 process
-change:** features 034–039 ship as **TWO commits each** — a `NNN planning` commit (spec+plan+tasks after
-`/speckit-analyze`) then a `NNN impl` commit — run through the full SpecKit pipeline (specify→clarify→plan→
-tasks→analyze→implement) per feature. (031/032/033 used one atomic commit; the split resumed with 034.)
+PayPal) exercised at their **boundary**, never production endpoints. **Suite: 765 tests / 234 files green
+through 047**. tsc, eslint, markdownlint, prettier, production build all clean on Next 16.
 
 **⚠️ Two test types (feature 020, closes analyze finding C1):**
 
@@ -108,14 +106,16 @@ tasks→analyze→implement) per feature. (031/032/033 used one atomic commit; t
   separately (`5d62e1b`). ⚠️ **Lesson learned (020):** stubbed responses must mirror what the real API
   returns — a component test that stubbed `startTime: "19:30"` missed a `HH:MM:SS` validation bug (see §9).
 
-**⚠️ Constitution v1.3.0 amendment (2026-07-23):** §Development Workflow is now **two-mode**, keyed to how
-many people contribute code. **Solo-maintainer mode** (current): one atomic commit per feature direct to
-`main`, feature branches optional, the full local gate suite standing in for a reviewer. **Multi-contributor
-mode** activates permanently the moment a **second contributor (e.g. Zak)** lands code — feature branches +
-mandatory PR review, no self-merge. No further amendment needed at that point.
+**⚠️⚠️ MULTI-CONTRIBUTOR MODE IS NOW ACTIVE (since feature 044, 2026-08-20).** Constitution v1.3.0's
+§Development Workflow is **two-mode**, keyed to how many people contribute code. **Zak landed code at 044**, so
+per the amendment the project **switched permanently out of solo-maintainer mode**. The rules are now:
+**every feature on its own branch → reviewed PR → merge; NO self-merge to `main`, NO direct commits to `main`.**
+(The old solo habit — one atomic commit straight to `main`, feature branches optional — is retired; do not
+resume it.) Features 044–047 all shipped this way (PRs #2, #4, #5, #6; backlog-tidy #7). Recorded in memory as
+`zak1-multi-contributor-mode.md`.
 
-**Commits:** one atomic commit per feature, direct to `main`, trailer
-`Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>`. Commits are **SSH-signed via 1Password**
+**Commits:** one atomic commit per feature **on a feature branch**, opened as a **PR** (never self-merged),
+trailer `Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>`. Commits are **SSH-signed via 1Password**
 (`commit.gpgsign=true`, `op-ssh-sign`); if a commit fails with "1Password: failed to fill whole buffer",
 1Password is locked — ask the user to unlock, then retry. Ask before pushing (routine).
 
@@ -159,9 +159,10 @@ tests/{unit,integration,component}/
 `zak1-implementation-status.md`, `zak1-020-booker-experience.md`, `zak1-phase3-roles.md`,
 `zak1-015-staff-auth.md`, `zak1-demo-db-persistence.md`, plus the feature-breakdown and backlog notes, and the
 **Phase 4** notes: `zak1-phase4-requirements.md` (umbrella), `zak1-phase4-fs-payments-draft.md`,
-`zak1-phase4-meg-checkin-notes.md`.
+`zak1-phase4-meg-checkin-notes.md`. **Governance:** `zak1-multi-contributor-mode.md` (multi-contributor mode is
+active since 044 — feature branches + reviewed PRs, no self-merge to `main`).
 
-## 6. Implementation status (001–039 shipped)
+## 6. Implementation status (001–047 shipped)
 
 Phase 1 (001–009) · Phase 2 (010–014) · **Phase 3 COMPLETE: 015 auth · 016 authz · 017 check-in · 018
 booking/event mgmt · 019 payments & membership** · **Phase 4 COMPLETE: 020 Booker experience (P4-1) · 021 drop
@@ -181,7 +182,7 @@ migration). **All R-items R1–R7 delivered.** Deferred out of Phase 5: dedup ph
 backlog **B43** (simplify `is_donated` model — deferred during 030), and defect **D1** (`/payments` has no nav
 link — rehomed to Phase 6, see below).
 
-**Phase 6 (UNDERWAY — BUILDING):** requirements in **`zak1_Phase6_Requirements.md`** (R1–R12 + defects D1/D3).
+**Phase 6 (COMPLETE):** requirements in **`zak1_Phase6_Requirements.md`** (R1–R12 + defects D1/D3).
 Each R-item goes through the full SpecKit pipeline as its own feature. **Requirement → feature map:**
 
 - **Navigation** — **R1 → 034** (public-pages menu, rendered once from the ROOT layout on every page; hand-
@@ -232,6 +233,47 @@ preserved). ⚠️ An existing test (`payments.allocation.test.tsx`) had encoded
 no number saving silently) — updated to supply a check number. No migration, no schema/Zod change. **Data already
 corrected** in `zak1_dev` (not in git): payment `65fdeb94…` (event `7e9a83e7…`, 7/9/2026) `check_number` = **`1792`**
 (was NULL) — Clara's one check covers Clara $50 + Micah $50.
+
+**044 contact load (SHIPPED, merged PR #2):** operator CLI **`pnpm contacts:load`** (`src/server/db/contactLoad.ts`)
+that **replaces the roster** from a real **iContact CSV export** + a **CDR membership `.ods`** workbook. Hard-reset
+of all non-role contacts; **retains only role-grant holders** (FR-018); imports email-consent permissions
+(custom attribute `-1` == blank, NOT unsubscribe; **all import emails valid for contact_tracing**), memberships
+with the new **`level`**, and volunteer flags (`is_volunteer` from the sheet's `Yes`). Member sheet **wins
+identity**; performer↔contact links are **proposed for human confirmation**, never auto-applied. Migration
+**`0033`** adds `membership_level` + `memberships.level`. Domain module `src/server/domain/contactLoad/`
+(parse iContact/member/payer sheets, buildRoster, buildMemberships, matchPerformers, execute, summary). Operator
+safety: **dry-run by default**, **pg_dump backup**, **single transaction**, audit event. **RESTRICT-FK handling:**
+null the nullable refs (`audit_events.actor_contact_id`, `role_grants.granted_by`) and retain merge-audit parties
+so the hard reset can proceed. iContact attributes not already in the schema are discarded.
+
+⭐ **Phase 7 (UNDERWAY — the public website rewrite):** requirements in **`zak1_Phase7_Requirements.md`**
+(keyed `P7-Rn`). Frontend-first; each R-item is its own SpecKit feature; **all merged via reviewed PRs**
+(multi-contributor mode). **Requirement → feature map:**
+
+- **P7-R1 → 045 design tokens (SHIPPED, PR #4):** hand-rolled **CSS custom properties** in `globals.css`
+  (`:root` tokens only) + **CSS Modules** (chosen over Tailwind in `/speckit-clarify`), `next/font/google`
+  (Raleway + Open Sans) in `layout.tsx`, a public-scoped visual layer `(public)/public.module.css`, and a
+  `(public)/_components/Container`. **WCAG AA is baked into the token *values*** — a contrast test parses
+  `globals.css` (e.g. `--link: #954e27`, the AA-correct link colour, not the failing `#b96131`). `tokens.ts`
+  exports `EventType` + `EVENT_TYPE_COLORS: Record<EventType, string>` → `var(--type-*)`.
+- **P7-R2 → 046 public nav mobile (SHIPPED, PR #5):** `PublicNav.tsx` — a **React-controlled hamburger
+  disclosure** (`aria-expanded`/`aria-controls`, list always in the DOM, `<noscript>` reveal, Escape
+  closes + returns focus, close-on-route-change); `PublicNav.module.css` swaps compact↔inline at **768px**
+  with ≥44px targets. Flat link list (no dropdowns).
+- **P7-R3 → 047 public home (SHIPPED, PR #6):** `/` **becomes** the public home (`(public)/page.tsx`,
+  the old `src/app/page.tsx` removed). Hero via `<Image src="/hero.webp" fill priority sizes="100vw">`
+  (a **URL string, NOT a static import** — Next can't static-import from `public/`), `--hero-focus: center 30%`,
+  `object-fit:cover` + `min-height: clamp(...)` + scrim; a `NewHere` orientation block ("no partner needed");
+  next dances via `getPublicSchedule(db)` sliced to 4 + the shared `ScheduleList`. Site-wide `Footer` +
+  `(public)/layout.tsx`. Asset `public/hero.webp` (283 KB, lowercase, re-encoded from a 1.2 MB PNG).
+- **P7-R4 → 048 whats-on cards (SPEC/PLAN/TASKS DONE — implementing next, on branch `048-whats-on-cards`):**
+  restyle the shared dance list from text rows into tappable **cards** (one `EventCard` used by `/whats-on`,
+  `/what-was-on`, and the home strip). Adds **two projection fields** to `PublicScheduleItem` —
+  `seriesKey: string` + `venueShortName: string | null` — by selecting `series.key` + `venues.short_name` in
+  `listPublicEvents` (**no migration**). A co-located `seriesColor.ts` maps series key → R1 colour var
+  (`tnc`→contra, `ecd`→english, `community_dance`→special, `general`→assembly; unmapped → neutral `var(--band)`);
+  the colour is a **left accent stripe** (`--card-accent`), never behind text (AA holds). The `?series=` filter,
+  cancelled marker, and confirmed-only rule are unchanged.
 
 ## 7. Load-bearing decisions (do not undo without reading why)
 
@@ -499,7 +541,13 @@ simplify the `is_donated` model (derive donation from `pay_cents=0` for payable 
 CMS (mission/values/history/FAQs; tabled 2026-08-04; recommended Tier-2 = a `content_pages` table + small admin
 on the existing auth; the 034 public menu would gain hand-maintained entries — the "generate the menu from
 published content" idea is deferred here too) · **B38**
-self-service login-email change. Deferred pre-Phase-3: **B1**
+self-service login-email change. **Phase 7 additions:** **B45** represent a **video meeting** (Google Meet
+preferred, else Zoom/Teams) as a venue for meetings — standing "room" on the venue, physical+video **hybrid**
+allowed; deferred to a future meetings-design feature (raised at P7-R8). **B47** dynamic **"next-band" hero**
+— today's home hero becomes an image of the next band to play, intelligently centred (eyes not above the top);
+the current 047 hero is a static dancers image standing in. ~~**B46** performer promo links~~ (✅ **retired
+into P7-R9** — display links to performer web pages / social media is now part of that requirement). Deferred
+pre-Phase-3: **B1**
 group tickets · **B2** non-volunteer login · **007 US2** full online sales (019 B30 was deliberately narrower:
 membership only, one hosted button). **Also open:** `/bookings` page modal parity (kept its form flow in 020);
 enforcing "every performer has a contact" as NOT NULL (a few nulls today).
@@ -508,8 +556,9 @@ enforcing "every performer has a contact" as NOT NULL (a few nulls today).
 
 ```bash
 # Bash already runs Node 24 (nvm default) — no prefix needed. For psql/pg_dump: set -a; . ./.env; set +a
-pnpm run db:migrate            # apply migrations (0031 latest; already applied to zak1_dev)
-pnpm test                      # 689 green / 210 files (node + jsdom)
+pnpm run db:migrate            # apply migrations (0033 latest; already applied to zak1_dev)
+pnpm contacts:load             # operator roster re-import (044): dry-run by default, pg_dump backup, one tx
+pnpm test                      # 765 green / 234 files (node + jsdom)
 pnpm exec vitest run tests/component/…   # run a component test (jsdom via docblock)
 pnpm exec tsc --noEmit         # typecheck
 pnpm run lint                  # eslint + markdownlint
@@ -534,18 +583,21 @@ pnpm run db:seed               # ⚠️ WIPES zak1_dev — do NOT run
 
 ## 14. Committed & pushed at handoff
 
-✅ **`origin/main` == local `main` at the 043-impl commit** — the 041/042/043 planning+impl chain (6 commits) was
-pushed this session on top of `90d49d1`. Nothing unpushed. **039–043 IMPLEMENTED** — `tsc`/lint/**712 tests**/build
-all green; working tree clean after the 043-impl commit (except a pre-existing, unrelated `.gitignore` `*.zip`
-line left unstaged — not this session's work).
-Migrations through `0032` (039) are applied to `zak1_dev` (snapshots incl. `~/zak1_pre_0031.dump`,
-`~/zak1_pre_0032.dump`); **040–043 added no migration.**
-**Operational note:** a one-off `zak1_dev` data fix set payment `65fdeb94…`.`check_number` = `1792` (D3; was
-NULL) — data only, not in git.
-**To resume:** ⭐ **Phase 6 is COMPLETE (034–043).** Next is a new phase — collect the next round of requirements
-(the Phase 1–6 pattern: a requirements doc → SpecKit features). Open backlog carries forward: **B40** contact
-email-management UI, **B42** organizer expense reimbursement, **B43** simplify `is_donated`, **B44** static-content
-CMS, plus the pre-rollout operational TODOs in §10 (real `membership_year_end`, PayPal env, publish the Google
-consent screen).
-⚠️ **Process:** two commits per feature (`NNN planning` then `NNN impl`), full SpecKit pipeline each.
+✅ **`origin/main` == local `main` at `51cecea`** (the PR #7 `backlog-tidy` merge). Features **044–047 are merged
+to `main`** (PRs #2, #4, #5, #6): 044 contact load, 045 P7-R1 tokens, 046 P7-R2 nav, 047 P7-R3 home. `tsc`/lint/
+markdownlint/prettier/**765 tests**/build all green on `main`.
+**Working tree:** currently on branch **`048-whats-on-cards`** — P7-R4 has **spec + plan + tasks committed but is
+NOT yet implemented** (`/speckit-implement` pending). `.specify/feature.json` → `specs/048-whats-on-cards`. Its
+change is a **+2-field public projection** (`seriesKey`, `venueShortName`) + a new `EventCard`; **no migration**.
+Migrations through **`0033`** (044) are applied to `zak1_dev`; 045–047 added no migration.
+**Operational note (carried from Phase 6):** a one-off `zak1_dev` data fix set payment `65fdeb94…`.`check_number`
+= `1792` (D3; was NULL) — data only, not in git.
+**To resume:** run **`/speckit-implement`** on `048-whats-on-cards`, then branch → PR → review → merge (do NOT
+self-merge). After 048, continue Phase 7 (`zak1_Phase7_Requirements.md`): **P7-R5+** (event detail enrichment,
+performer promo links per updated **R9**, single-source pricing R10, admin styling, etc.). Open backlog carries
+forward: **B40** contact email-management UI, **B42** organizer expense reimbursement, **B43** simplify
+`is_donated`, **B44** static-content CMS, **B45** video-meeting venue, **B47** next-band hero, plus the pre-rollout
+operational TODOs in §10 (real `membership_year_end`, PayPal env, publish the Google consent screen).
+⚠️⚠️ **Process — MULTI-CONTRIBUTOR MODE (since 044):** every feature on its own branch → **reviewed PR** →
+merge; **NO self-merge to `main`, NO direct commits to `main`** (see §4). Full SpecKit pipeline each feature.
 Commits are SSH-signed via 1Password (unlock if a commit fails with "1Password: failed to fill whole buffer").

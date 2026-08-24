@@ -11,7 +11,9 @@ export type PublicScheduleItem = {
   eventId: string;
   date: string;
   activity: string;
+  seriesKey: string; // feature 048 (P7-R4): stable series key → the card's color accent (never `activity`)
   venueName: string | null;
+  venueShortName: string | null; // feature 048 (P7-R4): the card's venue field; null → card falls back to venueName
   label: string | null;
   startTime: string | null; // display-formatted wall-clock (e.g. "7:30 PM"), venue-local
   cancelled: boolean; // feature 018 (B25): still listed, shown with a cancelled marker
@@ -46,7 +48,10 @@ export const HOME_WINDOW_LOOKBACK_DAYS = 2;
  * Pure, and UTC-based to match `today()`, so month/year rollover is correct (e.g. 2026-03-01 → 2026-02-27).
  * Feature 036 (P6-R3) — the single, testable expression of the two-day lookback.
  */
-export function homeWindowStart(day: string, lookbackDays: number = HOME_WINDOW_LOOKBACK_DAYS): string {
+export function homeWindowStart(
+  day: string,
+  lookbackDays: number = HOME_WINDOW_LOOKBACK_DAYS,
+): string {
   const d = new Date(`${day}T00:00:00Z`);
   d.setUTCDate(d.getUTCDate() - lookbackDays);
   return d.toISOString().slice(0, 10);
@@ -72,7 +77,9 @@ async function listPublicEvents(
       eventId: events.id,
       date: events.eventDate,
       activity: series.name,
+      seriesKey: series.key,
       venueName: venues.name,
+      venueShortName: venues.shortName,
       label: events.label,
       startTime: events.startTime,
       status: events.status,
