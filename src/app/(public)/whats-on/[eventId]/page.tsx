@@ -46,27 +46,8 @@ export default async function PublicEventPage({
             <p className={styles.cancelled}>This event has been cancelled.</p>
           ) : null}
 
-      {detail.venue && (
-        <section className={styles.section}>
-          <h2>Venue</h2>
-          {/* Feature 052 (P7-R8): name always; address/map/directions only for a public venue (else null). */}
-          <p>
-            {detail.venue.name}
-            {detail.venue.address ? ` — ${detail.venue.address}` : ""}
-          </p>
-          {detail.venue.mapUrl && (
-            <p>
-              <a href={detail.venue.mapUrl} target="_blank" rel="noreferrer">
-                View map
-              </a>
-            </p>
-          )}
-          {detail.venue.directions && (
-            <p className={styles.description}>{detail.venue.directions}</p>
-          )}
-        </section>
-      )}
-
+          {/* Feature 052 (P7-R8): VenueBlock renders the gated venue — name always; address/map/directions
+              only for a public venue. */}
           <VenueBlock venue={detail.venue} />
           <Lineup bandBlocks={detail.bandBlocks} performers={detail.performers} />
         </article>
