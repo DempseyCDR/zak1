@@ -21,3 +21,11 @@
 .mapLink:hover {
   color: var(--link-hover);
 }
+
+/* Feature 052 (P7-R8): public directions/transit/parking note. */
+.directions {
+  margin: var(--space-2) 0 0;
+  color: var(--text-muted);
+  line-height: var(--lh-body);
+  white-space: pre-line;
+}

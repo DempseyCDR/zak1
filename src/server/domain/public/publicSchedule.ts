@@ -20,7 +20,12 @@ export type PublicScheduleItem = {
   advertisedPrice: number | null; // feature 018 (B27): public display price in dollars; null = not shown
 };
 
-export type PublicBandBlock = { name: string; bio: string | null; photoUrl: string | null };
+export type PublicBandBlock = {
+  name: string;
+  bio: string | null;
+  photoUrl: string | null;
+  members: { name: string; isLead: boolean }[]; // feature 049 (P7-R5): the lineup's band roster (name-only)
+};
 // Feature 052 (P7-R8): PublicVenue now lives in publicVenues.ts (the gate), with nullable address/mapUrl/
 // directions so a non-public venue is name-only. Re-exported here for existing consumers.
 export type { PublicVenue };
