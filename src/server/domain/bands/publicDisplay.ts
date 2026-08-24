@@ -7,6 +7,9 @@ export type BandBlock = {
   name: string;
   bio: string | null;
   photoUrl: string | null;
+  // Feature 049 (P7-R5): the confirmed band's roster (from getBand — already loaded), for the event page's
+  // lineup. Name-only: performers carry no instrument field today (see spec/research R4).
+  members: { name: string; isLead: boolean }[];
 };
 export type EventPublicPerformers = { bandBlocks: BandBlock[]; adHoc: BookingView[] };
 
@@ -31,8 +34,14 @@ export async function groupEventBookingsForDisplay(
 
   const bandBlocks: BandBlock[] = [];
   for (const bandId of bandIds) {
-    const band = await getBand(db, bandId); // current identity, live
-    bandBlocks.push({ bandId, name: band.name, bio: band.bio, photoUrl: band.photoUrl });
+    const band = await getBand(db, bandId); // current identity + roster, live
+    bandBlocks.push({
+      bandId,
+      name: band.name,
+      bio: band.bio,
+      photoUrl: band.photoUrl,
+      members: band.members.map((m) => ({ name: m.performerName, isLead: m.isLead })),
+    });
   }
 
   return { bandBlocks, adHoc };

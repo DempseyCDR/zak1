@@ -11,19 +11,27 @@ export type PublicScheduleItem = {
   eventId: string;
   date: string;
   activity: string;
+  seriesKey: string; // feature 048 (P7-R4): stable series key → the card's color accent (never `activity`)
   venueName: string | null;
+  venueShortName: string | null; // feature 048 (P7-R4): the card's venue field; null → card falls back to venueName
   label: string | null;
   startTime: string | null; // display-formatted wall-clock (e.g. "7:30 PM"), venue-local
   cancelled: boolean; // feature 018 (B25): still listed, shown with a cancelled marker
   advertisedPrice: number | null; // feature 018 (B27): public display price in dollars; null = not shown
 };
 
-export type PublicBandBlock = { name: string; bio: string | null; photoUrl: string | null };
+export type PublicBandBlock = {
+  name: string;
+  bio: string | null;
+  photoUrl: string | null;
+  members: { name: string; isLead: boolean }[]; // feature 049 (P7-R5): the lineup's band roster (name-only)
+};
 export type PublicVenue = { name: string; address: string; mapUrl: string };
 export type PublicEventDetail = {
   eventId: string;
   date: string;
   activity: string;
+  seriesKey: string; // feature 049 (P7-R5): stable series key → page color accent + hero (matches the R4 card)
   venue: PublicVenue | null;
   label: string | null;
   startTime: string | null; // display-formatted wall-clock, venue-local
@@ -46,7 +54,10 @@ export const HOME_WINDOW_LOOKBACK_DAYS = 2;
  * Pure, and UTC-based to match `today()`, so month/year rollover is correct (e.g. 2026-03-01 → 2026-02-27).
  * Feature 036 (P6-R3) — the single, testable expression of the two-day lookback.
  */
-export function homeWindowStart(day: string, lookbackDays: number = HOME_WINDOW_LOOKBACK_DAYS): string {
+export function homeWindowStart(
+  day: string,
+  lookbackDays: number = HOME_WINDOW_LOOKBACK_DAYS,
+): string {
   const d = new Date(`${day}T00:00:00Z`);
   d.setUTCDate(d.getUTCDate() - lookbackDays);
   return d.toISOString().slice(0, 10);
@@ -72,7 +83,9 @@ async function listPublicEvents(
       eventId: events.id,
       date: events.eventDate,
       activity: series.name,
+      seriesKey: series.key,
       venueName: venues.name,
+      venueShortName: venues.shortName,
       label: events.label,
       startTime: events.startTime,
       status: events.status,
@@ -133,6 +146,7 @@ export async function getPublicEventDetail(
       eventId: events.id,
       date: events.eventDate,
       activity: series.name,
+      seriesKey: series.key,
       venueId: events.venueId,
       label: events.label,
       startTime: events.startTime,
@@ -161,6 +175,7 @@ export async function getPublicEventDetail(
     eventId: row.eventId,
     date: row.date,
     activity: row.activity,
+    seriesKey: row.seriesKey,
     venue,
     label: row.label,
     startTime: formatWallClock(row.startTime),
@@ -168,7 +183,12 @@ export async function getPublicEventDetail(
     cancelled: row.status === "cancelled",
     advertisedPrice:
       row.advertisedPriceCents === null ? null : centsToDollars(row.advertisedPriceCents),
-    bandBlocks: grouped.bandBlocks.map((b) => ({ name: b.name, bio: b.bio, photoUrl: b.photoUrl })),
+    bandBlocks: grouped.bandBlocks.map((b) => ({
+      name: b.name,
+      bio: b.bio,
+      photoUrl: b.photoUrl,
+      members: b.members,
+    })),
     performers,
   };
 }

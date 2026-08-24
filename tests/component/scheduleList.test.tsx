@@ -5,7 +5,15 @@ import { render, screen } from "@testing-library/react";
 
 // Feature 037 (P6-R4): the shared list used by /whats-on and /what-was-on. next/link stubbed to <a>.
 vi.mock("next/link", () => ({
-  default: ({ href, children, ...rest }: { href: string; children: ReactNode; [k: string]: unknown }) => (
+  default: ({
+    href,
+    children,
+    ...rest
+  }: {
+    href: string;
+    children: ReactNode;
+    [k: string]: unknown;
+  }) => (
     <a href={href} {...rest}>
       {children}
     </a>
@@ -20,7 +28,9 @@ const ITEMS: PublicScheduleItem[] = [
     eventId: "e1",
     date: "2026-06-09",
     activity: "Thursday Night Contra",
+    seriesKey: "tnc",
     venueName: "The Rose Room",
+    venueShortName: "Rose",
     label: null,
     startTime: "7:30 PM",
     cancelled: false,
@@ -30,7 +40,9 @@ const ITEMS: PublicScheduleItem[] = [
     eventId: "e2",
     date: "2026-06-08",
     activity: "English Country Dance",
+    seriesKey: "ecd",
     venueName: null,
+    venueShortName: null,
     label: "Special",
     startTime: null,
     cancelled: true,
@@ -39,12 +51,12 @@ const ITEMS: PublicScheduleItem[] = [
 ];
 
 describe("ScheduleList", () => {
-  it("renders one row per item, each linking to its /whats-on/<eventId> detail", () => {
+  it("renders one card per item, each a whole-card link to its /whats-on/<eventId> detail", () => {
     render(<ScheduleList items={ITEMS} />);
     const links = screen.getAllByRole("link");
     expect(links.map((a) => a.getAttribute("href"))).toEqual(["/whats-on/e1", "/whats-on/e2"]);
     expect(screen.getByText(/Thursday Night Contra/)).toBeInTheDocument();
-    expect(screen.getByText(/CANCELLED/)).toBeInTheDocument(); // e2 cancelled marker
+    expect(screen.getByText(/Cancelled/i)).toBeInTheDocument(); // e2 cancelled marker
   });
 
   it("shows the empty message when there are no items", () => {

@@ -1,0 +1,27 @@
+/* Feature 050 (P7-R6): the style landing page. The series color is an accent (title underline), never behind
+   text — matching the R4 card + the event detail page. */
+.title {
+  font-family: var(--font-heading);
+  font-size: var(--fs-h1);
+  line-height: var(--lh-heading);
+  margin: var(--space-4) 0 var(--space-2);
+}
+
+.title::after {
+  content: "";
+  display: block;
+  width: 3rem;
+  height: 3px;
+  margin-top: var(--space-2);
+  background: var(--series-accent, var(--band));
+}
+
+.upcoming {
+  margin: var(--space-6) 0 var(--space-5);
+}
+
+.heading {
+  font-family: var(--font-heading);
+  font-size: var(--fs-h2);
+  margin: 0 0 var(--space-3);
+}
