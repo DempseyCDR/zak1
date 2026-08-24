@@ -42,6 +42,9 @@
     ".next/**",
     // SpecKit owns these; they are overwritten on upgrade, so our style must not fight theirs.
     ".specify/**",
-    ".claude/**"
+    ".claude/**",
+    // Gitignored scratch / working material (imports, scraped source copy, snapshots) — never part of
+    // the app and not ours to style. Mirrors the .gitignore `tmp/` entry.
+    "tmp/**"
   ]
 }

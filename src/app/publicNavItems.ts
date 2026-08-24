@@ -15,5 +15,9 @@
 export const PUBLIC_NAV: readonly { href: string; label: string }[] = [
   { href: "/whats-on", label: "What's On" },
   { href: "/what-was-on", label: "What was on" }, // feature 037 (P6-R4) — dance history
+  // Feature 050 (P7-R6) — the newcomer "what is this dance?" landing pages, one per style.
+  { href: "/dances/contra", label: "Contra" },
+  { href: "/dances/english", label: "English" },
+  { href: "/dances/community", label: "Community" },
   { href: "/join", label: "Join" },
 ];

@@ -1,0 +1,25 @@
+/* Feature 050 (P7-R6): landing-page prose sections. */
+.section {
+  margin: var(--space-5) 0;
+}
+
+.heading {
+  font-family: var(--font-heading);
+  font-size: var(--fs-h2);
+  margin: 0 0 var(--space-3);
+}
+
+.para {
+  margin: 0 0 var(--space-3);
+  line-height: var(--lh-body);
+}
+
+.list {
+  margin: 0;
+  padding-left: var(--space-5);
+}
+
+.item {
+  margin: 0 0 var(--space-3);
+  line-height: var(--lh-body);
+}
