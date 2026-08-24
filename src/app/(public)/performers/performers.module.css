@@ -1,0 +1,35 @@
+/* Feature 053 (P7-R9): the public performer roster page. */
+.filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: var(--space-3) 0 var(--space-4);
+}
+
+.filterLink {
+  color: var(--link);
+}
+
+.filterLink:hover {
+  color: var(--link-hover);
+}
+
+.activeFilter {
+  font-weight: 700;
+  color: var(--text);
+  text-decoration: underline;
+}
+
+.section {
+  margin: 0 0 var(--space-5);
+}
+
+.heading {
+  font-family: var(--font-heading);
+  font-size: var(--fs-h2);
+  margin: 0 0 var(--space-2);
+}
+
+.empty {
+  color: var(--text-muted);
+}

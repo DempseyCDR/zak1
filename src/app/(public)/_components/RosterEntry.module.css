@@ -1,0 +1,47 @@
+/* Feature 053 (P7-R9): a roster entry (band or caller). */
+.entry {
+  padding: var(--space-4) 0;
+  border-bottom: 1px solid var(--hairline);
+}
+
+.name {
+  font-family: var(--font-heading);
+  font-size: var(--fs-h3, var(--fs-h2));
+  margin: 0 0 var(--space-2);
+  scroll-margin-top: var(--space-6);
+}
+
+.styles {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  padding: 0;
+  margin: 0 0 var(--space-2);
+}
+
+.style {
+  font-size: var(--fs-small);
+  text-transform: capitalize;
+  background: var(--surface-2, var(--hairline));
+  border-radius: var(--radius-1, 4px);
+  padding: 0 var(--space-2);
+}
+
+.photo {
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--radius-1, 4px);
+  margin: 0 0 var(--space-2);
+}
+
+.bio {
+  margin: 0 0 var(--space-2);
+  line-height: var(--lh-body);
+  white-space: pre-line;
+}
+
+.members {
+  margin: 0 0 var(--space-2);
+  padding-left: var(--space-4);
+}

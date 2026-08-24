@@ -71,6 +71,11 @@ export async function createPerformer(db: Db, input: PerformerCreateInput): Prom
         contactId,
         bio: input.bio ?? null,
         photoUrl: input.photoUrl ?? null,
+        // Feature 053 (P7-R9): public roster fields.
+        ...(input.isPublic !== undefined ? { isPublic: input.isPublic } : {}),
+        ...(input.isCaller !== undefined ? { isCaller: input.isCaller } : {}),
+        ...(input.styles !== undefined ? { styles: input.styles } : {}),
+        ...(input.links !== undefined ? { links: input.links } : {}),
       })
       .returning();
     if (!row) throw new Error("performer insert failed");
@@ -169,6 +174,11 @@ export async function patchPerformer(
       ...(input.contactId !== undefined ? { contactId: input.contactId } : {}),
       ...(input.bio !== undefined ? { bio: input.bio } : {}),
       ...(input.photoUrl !== undefined ? { photoUrl: input.photoUrl } : {}),
+      // Feature 053 (P7-R9): public roster fields.
+      ...(input.isPublic !== undefined ? { isPublic: input.isPublic } : {}),
+      ...(input.isCaller !== undefined ? { isCaller: input.isCaller } : {}),
+      ...(input.styles !== undefined ? { styles: input.styles } : {}),
+      ...(input.links !== undefined ? { links: input.links } : {}),
       updatedAt: new Date(),
     })
     .where(eq(performers.id, id))

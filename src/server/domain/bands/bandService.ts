@@ -6,7 +6,12 @@ import { errors } from "@/server/lib/apiError";
 import { writeAudit } from "@/server/lib/audit";
 import type { BandCreateInput, BandPatchInput } from "@/server/validation/bands";
 
-export type BandMemberView = { performerId: string; performerName: string; isLead: boolean };
+export type BandMemberView = {
+  performerId: string;
+  performerName: string;
+  isLead: boolean;
+  instrument: string | null; // feature 053 (P7-R9): optional, shown on roster/lineup
+};
 export type BandWithRoster = BandRow & { members: BandMemberView[] };
 
 type Tx = Parameters<Parameters<Db["transaction"]>[0]>[0];
@@ -22,15 +27,20 @@ async function assertPerformersExist(tx: Tx, performerIds: string[]): Promise<vo
 async function insertRoster(
   tx: Tx,
   bandId: string,
-  members: { performerId: string; isLead: boolean }[],
+  members: { performerId: string; isLead: boolean; instrument?: string | null }[],
 ): Promise<void> {
   await assertPerformersExist(
     tx,
     members.map((m) => m.performerId),
   );
-  await tx
-    .insert(bandMembers)
-    .values(members.map((m) => ({ bandId, performerId: m.performerId, isLead: m.isLead })));
+  await tx.insert(bandMembers).values(
+    members.map((m) => ({
+      bandId,
+      performerId: m.performerId,
+      isLead: m.isLead,
+      instrument: m.instrument ?? null, // feature 053 (P7-R9)
+    })),
+  );
 }
 
 async function loadRoster(db: Db, bandId: string): Promise<BandMemberView[]> {
@@ -39,6 +49,7 @@ async function loadRoster(db: Db, bandId: string): Promise<BandMemberView[]> {
       performerId: bandMembers.performerId,
       performerName: performers.displayName,
       isLead: bandMembers.isLead,
+      instrument: bandMembers.instrument,
     })
     .from(bandMembers)
     .innerJoin(performers, eq(performers.id, bandMembers.performerId))
@@ -54,7 +65,15 @@ export async function createBand(
   const band = await db.transaction(async (tx) => {
     const [row] = await tx
       .insert(bands)
-      .values({ name: input.name, bio: input.bio ?? null, photoUrl: input.photoUrl ?? null })
+      .values({
+        name: input.name,
+        bio: input.bio ?? null,
+        photoUrl: input.photoUrl ?? null,
+        // Feature 053 (P7-R9): public roster fields.
+        ...(input.isPublic !== undefined ? { isPublic: input.isPublic } : {}),
+        ...(input.styles !== undefined ? { styles: input.styles } : {}),
+        ...(input.links !== undefined ? { links: input.links } : {}),
+      })
       .returning();
     if (!row) throw new Error("band insert failed");
     await insertRoster(tx, row.id, input.members);
@@ -109,6 +128,10 @@ export async function patchBand(
         ...(input.name !== undefined ? { name: input.name } : {}),
         ...(input.bio !== undefined ? { bio: input.bio } : {}),
         ...(input.photoUrl !== undefined ? { photoUrl: input.photoUrl } : {}),
+        // Feature 053 (P7-R9): public roster fields.
+        ...(input.isPublic !== undefined ? { isPublic: input.isPublic } : {}),
+        ...(input.styles !== undefined ? { styles: input.styles } : {}),
+        ...(input.links !== undefined ? { links: input.links } : {}),
         updatedAt: new Date(),
       })
       .where(eq(bands.id, id));

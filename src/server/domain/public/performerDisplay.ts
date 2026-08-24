@@ -5,7 +5,16 @@ import type { BookingView } from "@/server/domain/bookings/bookingService";
 import { PERFORMER_RULES } from "@/server/domain/performers/performerRules";
 
 export type PublicPerformer =
-  | { kind: "full_bio"; name: string; bio: string | null; photoUrl: string | null }
+  | {
+      kind: "full_bio";
+      name: string;
+      bio: string | null;
+      photoUrl: string | null;
+      // Feature 053 (P7-R9): link this caller's name to /performers#caller-<id> only when they have a public
+      // roster entry (public AND designated a caller) — otherwise plain text (FR-005, no broken anchor).
+      performerId: string;
+      onPublicRoster: boolean;
+    }
   | { kind: "open_band" }
   | { kind: "name_note"; name: string; note: string | null };
 
@@ -20,13 +29,28 @@ export async function mapPublicPerformers(
 ): Promise<PublicPerformer[]> {
   // Bio/photo for the full_bio entries, fetched once.
   const performerIds = [...new Set(adHocBookings.map((b) => b.performerId))];
-  const bioById = new Map<string, { bio: string | null; photoUrl: string | null }>();
+  const bioById = new Map<
+    string,
+    { bio: string | null; photoUrl: string | null; isPublic: boolean; isCaller: boolean }
+  >();
   if (performerIds.length > 0) {
     const rows = await db
-      .select({ id: performers.id, bio: performers.bio, photoUrl: performers.photoUrl })
+      .select({
+        id: performers.id,
+        bio: performers.bio,
+        photoUrl: performers.photoUrl,
+        isPublic: performers.isPublic,
+        isCaller: performers.isCaller,
+      })
       .from(performers)
       .where(inArray(performers.id, performerIds));
-    for (const r of rows) bioById.set(r.id, { bio: r.bio, photoUrl: r.photoUrl });
+    for (const r of rows)
+      bioById.set(r.id, {
+        bio: r.bio,
+        photoUrl: r.photoUrl,
+        isPublic: r.isPublic,
+        isCaller: r.isCaller,
+      });
   }
 
   const result: PublicPerformer[] = [];
@@ -40,6 +64,9 @@ export async function mapPublicPerformers(
           name: b.performerName,
           bio: p?.bio ?? null,
           photoUrl: p?.photoUrl ?? null,
+          performerId: b.performerId,
+          // Public roster entry iff public AND a designated caller (isCallerPublic predicate).
+          onPublicRoster: (p?.isPublic ?? false) && (p?.isCaller ?? false),
         });
         break;
       }

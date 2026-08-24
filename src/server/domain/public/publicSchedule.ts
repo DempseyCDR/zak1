@@ -21,10 +21,13 @@ export type PublicScheduleItem = {
 };
 
 export type PublicBandBlock = {
+  bandId: string; // feature 053 (P7-R9): anchor target for the roster deep-link
   name: string;
   bio: string | null;
   photoUrl: string | null;
-  members: { name: string; isLead: boolean }[]; // feature 049 (P7-R5): the lineup's band roster (name-only)
+  // feature 049 (P7-R5): the lineup's band roster; feature 053: each member carries an optional instrument
+  members: { name: string; isLead: boolean; instrument: string | null }[];
+  onPublicRoster: boolean; // feature 053 (P7-R9): link the name to /performers only when the anchor exists
 };
 // Feature 052 (P7-R8): PublicVenue now lives in publicVenues.ts (the gate), with nullable address/mapUrl/
 // directions so a non-public venue is name-only. Re-exported here for existing consumers.
@@ -188,10 +191,12 @@ export async function getPublicEventDetail(
     advertisedPrice:
       row.advertisedPriceCents === null ? null : centsToDollars(row.advertisedPriceCents),
     bandBlocks: grouped.bandBlocks.map((b) => ({
+      bandId: b.bandId,
       name: b.name,
       bio: b.bio,
       photoUrl: b.photoUrl,
       members: b.members,
+      onPublicRoster: b.onPublicRoster,
     })),
     performers,
   };

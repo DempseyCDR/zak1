@@ -1,6 +1,7 @@
 import type { Db } from "@/server/db/client";
 import { getBookingsForEvent, type BookingView } from "@/server/domain/bookings/bookingService";
 import { getBand } from "./bandService";
+import { isBandPublic } from "@/server/domain/public/publicPerformers";
 
 export type BandBlock = {
   bandId: string;
@@ -8,8 +9,11 @@ export type BandBlock = {
   bio: string | null;
   photoUrl: string | null;
   // Feature 049 (P7-R5): the confirmed band's roster (from getBand — already loaded), for the event page's
-  // lineup. Name-only: performers carry no instrument field today (see spec/research R4).
-  members: { name: string; isLead: boolean }[];
+  // lineup. Feature 053 (P7-R9): each member now carries an optional instrument.
+  members: { name: string; isLead: boolean; instrument: string | null }[];
+  // Feature 053 (P7-R9): true iff the band has a public roster entry (public AND not archived), so the lineup
+  // links its name to /performers#band-<id> only when the anchor actually exists (FR-005 — no broken link).
+  onPublicRoster: boolean;
 };
 export type EventPublicPerformers = { bandBlocks: BandBlock[]; adHoc: BookingView[] };
 
@@ -40,7 +44,12 @@ export async function groupEventBookingsForDisplay(
       name: band.name,
       bio: band.bio,
       photoUrl: band.photoUrl,
-      members: band.members.map((m) => ({ name: m.performerName, isLead: m.isLead })),
+      members: band.members.map((m) => ({
+        name: m.performerName,
+        isLead: m.isLead,
+        instrument: m.instrument,
+      })),
+      onPublicRoster: isBandPublic(band),
     });
   }
 
