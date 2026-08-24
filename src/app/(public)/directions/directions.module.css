@@ -1,15 +1,22 @@
-/* Feature 049 (P7-R5): event page venue block. */
-.venue {
-  margin: var(--space-5) 0;
+/* Feature 052 (P7-R8): the public directions page. */
+.list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
 }
 
-.heading {
+.venue {
+  padding: var(--space-4) 0;
+  border-bottom: 1px solid var(--hairline);
+}
+
+.name {
   font-family: var(--font-heading);
   font-size: var(--fs-h2);
   margin: 0 0 var(--space-2);
 }
 
-.name {
+.address {
   margin: 0 0 var(--space-1);
   font-weight: 600;
 }
@@ -22,10 +29,12 @@
   color: var(--link-hover);
 }
 
-/* Feature 052 (P7-R8): public directions/transit/parking note. */
 .directions {
   margin: var(--space-2) 0 0;
-  color: var(--text-muted);
   line-height: var(--lh-body);
   white-space: pre-line;
+}
+
+.empty {
+  color: var(--text-muted);
 }

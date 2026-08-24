@@ -4,7 +4,7 @@ import { events, series, venues } from "@/server/db/schema";
 import { groupEventBookingsForDisplay } from "@/server/domain/bands/publicDisplay";
 import { centsToDollars } from "@/server/lib/money";
 import { mapPublicPerformers, type PublicPerformer } from "./performerDisplay";
-import { venueMapUrl } from "./venueMap";
+import { publicVenueView, type PublicVenue } from "./publicVenues";
 import { formatWallClock } from "./wallClock";
 
 export type PublicScheduleItem = {
@@ -26,7 +26,9 @@ export type PublicBandBlock = {
   photoUrl: string | null;
   members: { name: string; isLead: boolean }[]; // feature 049 (P7-R5): the lineup's band roster (name-only)
 };
-export type PublicVenue = { name: string; address: string; mapUrl: string };
+// Feature 052 (P7-R8): PublicVenue now lives in publicVenues.ts (the gate), with nullable address/mapUrl/
+// directions so a non-public venue is name-only. Re-exported here for existing consumers.
+export type { PublicVenue };
 export type PublicEventDetail = {
   eventId: string;
   date: string;
@@ -160,11 +162,13 @@ export async function getPublicEventDetail(
     .limit(1);
   if (!row) return null;
 
+  // Feature 052 (P7-R8): gate the venue — publicVenueView shows address/map/directions only for a public
+  // venue with an address; otherwise name-only. A private-home address is never exposed here.
   let venue: PublicVenue | null = null;
   if (row.venueId) {
     const v = await db.query.venues.findFirst({ where: eq(venues.id, row.venueId) });
     if (v) {
-      venue = { name: v.name, address: v.address, mapUrl: venueMapUrl(v) };
+      venue = publicVenueView(v);
     }
   }
 

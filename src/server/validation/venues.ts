@@ -7,6 +7,9 @@ export const venueCreateSchema = z.object({
   longitude: z.number().optional(),
   // Feature 020 (US5): optional; defaults to the name's initials when omitted.
   shortName: z.string().trim().max(16).optional(),
+  // Feature 052 (P7-R8): opt-in public exposure + public directions note.
+  isPublic: z.boolean().optional(),
+  directions: z.string().trim().nullable().optional(),
 });
 
 export const venuePatchSchema = z.object({
@@ -18,6 +21,9 @@ export const venuePatchSchema = z.object({
   landlordContactId: z.string().uuid().nullable().optional(),
   // Feature 020 (US5): editable short name (display-only, non-unique).
   shortName: z.string().trim().max(16).optional(),
+  // Feature 052 (P7-R8): opt-in public exposure + public directions note (null clears the note).
+  isPublic: z.boolean().optional(),
+  directions: z.string().trim().nullable().optional(),
 });
 
 // Event PATCH (feature 007 venue assignment; 011 per-event rent; 013 label/start time/description).

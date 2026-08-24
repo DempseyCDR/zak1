@@ -9,6 +9,9 @@ type Venue = {
   shortName: string | null;
   address: string;
   landlordContactId: string | null;
+  // Feature 052 (P7-R8): opt-in public exposure + public directions note.
+  isPublic: boolean;
+  directions: string | null;
 };
 type EventRow = { id: string; eventDate: string; venueId: string | null };
 type Contact = { id: string; displayName: string };
@@ -96,6 +99,37 @@ export default function VenuesPage() {
     void load();
   }
 
+  // Feature 052 (P7-R8): opt a venue into public exposure. The server rejects public-without-address (FR-007).
+  async function savePublic(id: string, isPublic: boolean) {
+    setMessage(null);
+    const res = await apiFetch(`/api/venues/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ isPublic }),
+    });
+    if (!res.ok) {
+      setMessage(
+        (await res.json().catch(() => null))?.error?.message ?? "Failed to update public flag",
+      );
+      void load(); // reload so the checkbox reflects the unchanged state
+      return;
+    }
+    setMessage(isPublic ? "Venue is now public." : "Venue is no longer public.");
+    void load();
+  }
+
+  // Feature 052 (P7-R8): edit a venue's public directions note.
+  async function saveDirections(id: string, value: string) {
+    setMessage(null);
+    const res = await apiFetch(`/api/venues/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ directions: value || null }),
+    });
+    if (!res.ok) return setMessage("Failed to update directions");
+    void load();
+  }
+
   async function assign() {
     if (!eventId) return;
     setMessage(null);
@@ -117,7 +151,7 @@ export default function VenuesPage() {
       <h1>Venues</h1>
       <ul>
         {venues.map((v) => (
-          <li key={v.id}>
+          <li key={v.id} style={{ marginBottom: 10 }}>
             <strong>{v.shortName ?? "—"}</strong> · {v.name} — {v.address}
             {v.landlordContactId ? " · landlord set" : ""}{" "}
             <input
@@ -127,6 +161,26 @@ export default function VenuesPage() {
               onBlur={(e) => {
                 if (e.target.value !== (v.shortName ?? ""))
                   void saveShortName(v.id, e.target.value);
+              }}
+            />
+            {/* Feature 052 (P7-R8): opt-in public exposure + directions note. */}
+            <label style={{ marginLeft: 8 }}>
+              <input
+                type="checkbox"
+                checked={v.isPublic}
+                onChange={(e) => void savePublic(v.id, e.target.checked)}
+                aria-label={`Public for ${v.name}`}
+              />{" "}
+              Public
+            </label>
+            <input
+              aria-label={`Directions for ${v.name}`}
+              defaultValue={v.directions ?? ""}
+              placeholder="Public directions / transit / parking"
+              style={{ display: "block", width: "100%", marginTop: 4 }}
+              onBlur={(e) => {
+                if (e.target.value !== (v.directions ?? ""))
+                  void saveDirections(v.id, e.target.value);
               }}
             />
           </li>

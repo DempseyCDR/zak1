@@ -1,4 +1,4 @@
-import { doublePrecision, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { boolean, doublePrecision, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 import { contacts } from "./contacts";
 
 export const venues = pgTable("venues", {
@@ -10,6 +10,10 @@ export const venues = pgTable("venues", {
   address: text("address").notNull(),
   latitude: doublePrecision("latitude"),
   longitude: doublePrecision("longitude"),
+  // Feature 052 (P7-R8): opt-in public exposure (default off) + a public directions/transit/parking note.
+  // A venue's address/map/directions are exposed publicly ONLY when is_public AND it has an address.
+  isPublic: boolean("is_public").notNull().default(false),
+  directions: text("directions"),
   // Feature 018 (B22): optional landlord contact (the party the Booker negotiates rent with).
   landlordContactId: uuid("landlord_contact_id").references(() => contacts.id, {
     onDelete: "set null",

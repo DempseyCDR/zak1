@@ -2,10 +2,10 @@ import type { PublicVenue } from "@/server/domain/public/publicSchedule";
 import styles from "./VenueBlock.module.css";
 
 /**
- * Feature 049 (P7-R5): the event page's venue block — the venue name and the address as a tappable link to
- * the map (`venue.mapUrl`, from `venueMapUrl`). A directions/transit/parking note is **P7-R8**
- * (`venues.directions`, not yet in the schema); this block reserves that slot and renders no note today.
- * Renders nothing when the event has no venue.
+ * Feature 049 (P7-R5) + 052 (P7-R8): the event page's venue block. Shows the venue **name always**; the
+ * **address** (as a tappable map link) and the **directions** note only for a **public** venue — for a
+ * non-public venue the gated projection (`publicVenueView`) returns them as null, so a private-home address
+ * is never shown here. Renders nothing when the event has no venue.
  */
 export default function VenueBlock({ venue }: { venue: PublicVenue | null }) {
   if (!venue) return null;
@@ -13,10 +13,12 @@ export default function VenueBlock({ venue }: { venue: PublicVenue | null }) {
     <section className={styles.venue}>
       <h2 className={styles.heading}>Venue</h2>
       <p className={styles.name}>{venue.name}</p>
-      <a className={styles.mapLink} href={venue.mapUrl} target="_blank" rel="noreferrer">
-        {venue.address}
-      </a>
-      {/* Directions/transit/parking note slot — P7-R8 (venues.directions). */}
+      {venue.address && venue.mapUrl ? (
+        <a className={styles.mapLink} href={venue.mapUrl} target="_blank" rel="noreferrer">
+          {venue.address}
+        </a>
+      ) : null}
+      {venue.directions ? <p className={styles.directions}>{venue.directions}</p> : null}
     </section>
   );
 }
