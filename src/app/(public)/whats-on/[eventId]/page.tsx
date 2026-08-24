@@ -1,9 +1,21 @@
+import type { CSSProperties } from "react";
 import { notFound } from "next/navigation";
 import { db } from "@/server/db/client";
 import { getPublicEventDetail } from "@/server/domain/public/publicSchedule";
+import { seriesColorVar } from "../../_components/seriesColor";
 import Container from "../../_components/Container";
+import EventHero from "../../_components/EventHero";
+import VenueBlock from "../../_components/VenueBlock";
+import Lineup from "../../_components/Lineup";
 import styles from "./eventDetail.module.css";
 
+/**
+ * Feature 049 (P7-R5): the enriched public event page — the shareable destination of every R4 card. A
+ * series-default hero (or a clean series-colored header), the title + a series-color accent (matching the
+ * card, single source via `seriesColorVar`), date/time/price, description, the venue block (name + map
+ * link), and the confirmed lineup (bands + members + callers). Confirmed-only + cancelled marker retained;
+ * unknown id → not-found.
+ */
 export default async function PublicEventPage({
   params,
 }: {
@@ -13,71 +25,33 @@ export default async function PublicEventPage({
   const detail = await getPublicEventDetail(db, eventId);
   if (!detail) notFound();
 
+  const accent = { "--series-accent": seriesColorVar(detail.seriesKey) } as CSSProperties;
+
   return (
-    <Container>
-      <h1>
-        {detail.activity}
-        {detail.label ? ` — ${detail.label}` : ""}
-      </h1>
-      <p className={styles.meta}>
-        {detail.date}
-        {detail.startTime ? ` · ${detail.startTime}` : ""}
-        {detail.advertisedPrice != null ? ` · $${detail.advertisedPrice.toFixed(2)}` : ""}
-      </p>
-
-      {detail.cancelled && <p className={styles.cancelled}>This event has been cancelled.</p>}
-
-      {detail.description && <p className={styles.description}>{detail.description}</p>}
-
-      {detail.venue && (
-        <section className={styles.section}>
-          <h2>Venue</h2>
-          <p>
-            {detail.venue.name} — {detail.venue.address}
+    <>
+      <EventHero seriesKey={detail.seriesKey} activity={detail.activity} />
+      <Container>
+        <article style={accent}>
+          <h1 className={styles.title}>
+            {detail.activity}
+            {detail.label ? ` — ${detail.label}` : ""}
+          </h1>
+          <p className={styles.meta}>
+            {detail.date}
+            {detail.startTime ? ` · ${detail.startTime}` : ""}
+            {detail.advertisedPrice != null ? ` · $${detail.advertisedPrice.toFixed(2)}` : ""}
           </p>
-          {/* Map: static image if a maps key is configured, else a link (venueMapUrl). */}
-          <p>
-            <a href={detail.venue.mapUrl} target="_blank" rel="noreferrer">
-              View map
-            </a>
-          </p>
-        </section>
-      )}
 
-      <section>
-        <h2>Performers</h2>
-        {detail.bandBlocks.map((b) => (
-          <div key={b.name} className={styles.row}>
-            <strong>{b.name}</strong>
-            {b.bio && <p className={styles.bio}>{b.bio}</p>}
-            {b.photoUrl && <img src={b.photoUrl} alt={b.name} className={styles.photo} />}
-          </div>
-        ))}
-        {detail.performers.map((p, i) => {
-          if (p.kind === "open_band") {
-            return (
-              <div key={`ob-${i}`} className={styles.row}>
-                Open Band
-              </div>
-            );
-          }
-          if (p.kind === "name_note") {
-            return (
-              <div key={`nn-${i}`} className={styles.row}>
-                <strong>{p.name}</strong>
-                {p.note && <span> — {p.note}</span>}
-              </div>
-            );
-          }
-          return (
-            <div key={`fb-${i}`} className={styles.row}>
-              <strong>{p.name}</strong>
-              {p.bio && <p className={styles.bio}>{p.bio}</p>}
-              {p.photoUrl && <img src={p.photoUrl} alt={p.name} className={styles.photo} />}
-            </div>
-          );
-        })}
-      </section>
-    </Container>
+          {detail.cancelled ? (
+            <p className={styles.cancelled}>This event has been cancelled.</p>
+          ) : null}
+
+          {detail.description ? <p className={styles.description}>{detail.description}</p> : null}
+
+          <VenueBlock venue={detail.venue} />
+          <Lineup bandBlocks={detail.bandBlocks} performers={detail.performers} />
+        </article>
+      </Container>
+    </>
   );
 }

@@ -1,31 +1,33 @@
-/* Feature 045 (P7-R1): event detail styling (was inline). */
+/* Feature 045 (P7-R1) → enriched by feature 049 (P7-R5): the public event page. Mobile-first, token-based.
+   The series color appears as an accent (the title underline + the hero border), never behind text. */
+.title {
+  font-family: var(--font-heading);
+  font-size: var(--fs-h1);
+  line-height: var(--lh-heading);
+  margin: var(--space-4) 0 var(--space-2);
+}
+
+.title::after {
+  content: "";
+  display: block;
+  width: 3rem;
+  height: 3px;
+  margin-top: var(--space-2);
+  background: var(--series-accent, var(--band));
+}
+
 .meta {
   color: var(--text-muted);
+  margin: 0;
 }
 
 .cancelled {
   color: #b00020;
   font-weight: 700;
+  margin: var(--space-3) 0 0;
 }
 
 .description {
   white-space: pre-line;
-  margin: var(--space-3) 0;
-}
-
-.section {
-  margin-bottom: var(--space-4);
-}
-
-.row {
-  padding: var(--space-2) 0;
-  border-bottom: 1px solid var(--hairline);
-}
-
-.bio {
-  margin: var(--space-1) 0;
-}
-
-.photo {
-  max-width: 200px;
+  margin: var(--space-4) 0 0;
 }

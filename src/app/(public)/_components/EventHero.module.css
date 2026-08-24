@@ -1,0 +1,21 @@
+/* Feature 049 (P7-R5): the event page hero. Image variant is full-bleed with a series-color accent bar;
+   the clean-header variant (no committed image) is a short series-colored band. Accent only — no text. */
+.hero {
+  position: relative;
+  width: 100%;
+  min-height: clamp(180px, 30vh, 380px);
+  border-bottom: 4px solid var(--series-accent, var(--band));
+  overflow: hidden;
+  background: var(--ground);
+}
+
+.image {
+  object-fit: cover;
+  object-position: center 35%;
+}
+
+.plain {
+  width: 100%;
+  height: var(--space-3);
+  background: var(--series-accent, var(--band));
+}
