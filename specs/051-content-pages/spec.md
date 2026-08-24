@@ -25,7 +25,17 @@ purpose-built pages (the dance listings, event detail, or series landings) — t
 
 ## Clarifications
 
-<!-- Populated by /speckit-clarify. Three open decisions are recorded as defaults in Assumptions below. -->
+### Session 2026-08-23
+
+- Q: How should the Webmaster author a page's body, and how is it stored (D-3's open editor question)? → A:
+  **Markdown** — edit plain Markdown, store the Markdown, render to **sanitized HTML** on display; a live
+  preview covers "what will it look like". No WYSIWYG editor library.
+- Q: What publication workflow should a content page support? → A: **Separate draft vs published body** — the
+  Webmaster edits a **draft** body without changing the live page, previews it, then **publishes** to promote
+  the draft to the **published** body the public sees. Editing a live page never changes it until publish.
+- Q: How should policy PDFs and images inside content pages be handled? → A: **Committed static assets,
+  linked** — PDFs (bylaws, social contract) and images live in the repo as committed files a page links to; no
+  upload substrate (consistent with D-4).
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -59,15 +69,16 @@ its title and body — then publishes it. The change is live to the public witho
 **Why this priority**: The whole point of the feature (D-3 / B44) is that the club edits its own prose without
 engineering. Without this, the pages are just as stuck as before.
 
-**Independent Test**: As a signed-in Webmaster, create a page, give it a title and body, publish it, and confirm
-it is live at its public URL; edit the body and confirm the change is reflected — all without a code change.
+**Independent Test**: As a signed-in Webmaster, create a page, give it a title and draft body, publish it, and
+confirm it is live at its public URL; edit the draft and publish again, and confirm the change is reflected —
+all without a code change.
 
 **Acceptance Scenarios**:
 
-1. **Given** a signed-in Webmaster, **When** they create a page with a slug, title, and body and publish it,
-   **Then** the page is live at its public URL.
-2. **Given** an existing page, **When** the Webmaster edits its title or body and saves, **Then** the public
-   page reflects the change with no deploy.
+1. **Given** a signed-in Webmaster, **When** they create a page with a slug, title, and draft body and publish
+   it, **Then** the page is live at its public URL showing the published body.
+2. **Given** a published page, **When** the Webmaster edits its draft body and saves, **Then** the public page
+   is **unchanged**; **When** they then publish, **Then** the public page reflects the change — with no deploy.
 3. **Given** a person **without** content-edit permission, **When** they try to reach the content admin or its
    save actions, **Then** they are denied (default-deny).
 4. **Given** any create/edit/publish action, **When** it is saved, **Then** it is recorded in the audit trail
@@ -89,8 +100,8 @@ publish it; unpublish it and confirm the public URL now 404s; see the page liste
 
 **Acceptance Scenarios**:
 
-1. **Given** an unpublished page, **When** the Webmaster previews it, **Then** they see it rendered without it
-   being public.
+1. **Given** a page's draft body, **When** the Webmaster previews it, **Then** they see it rendered as it will
+   appear, without it being public.
 2. **Given** a published page, **When** the Webmaster unpublishes it, **Then** its public URL returns not-found.
 3. **Given** the content admin, **When** the Webmaster opens it, **Then** they see the pages and each one's
    published/unpublished state, and can delete a page.
@@ -111,13 +122,16 @@ publish it; unpublish it and confirm the public URL now 404s; see the page liste
 ### Functional Requirements
 
 - **FR-001**: A person with **content-edit permission** (the Webmaster capability) MUST be able to **create** a
-  content page with a unique **slug**, a **title**, and a **body**.
-- **FR-002**: They MUST be able to **edit** a page's title/body and **publish** or **unpublish** it, and
-  **delete** a page.
-- **FR-003**: A **published** page MUST be readable by the public at a **clean URL** derived from its slug; an
-  **unpublished** page or an **unknown** URL MUST return **not-found** to the public.
-- **FR-004**: Page body content MUST be **sanitized** before display — untrusted markup MUST NOT execute
-  (no script injection/XSS).
+  content page with a unique **slug**, a **title**, and a **Markdown body** (a **draft**).
+- **FR-002**: They MUST be able to **edit** a page's title and **draft body** without changing the live page;
+  **publish** (promote the draft body to the **published** body the public sees); **unpublish** (take the page
+  down without deleting); and **delete** a page. Editing a published page's draft MUST NOT change what the
+  public sees until the next publish.
+- **FR-003**: A **published** page MUST be readable by the public at a **clean URL** derived from its slug,
+  showing the **published** body; an **unpublished** page or an **unknown** URL MUST return **not-found** to
+  the public.
+- **FR-004**: The Markdown body MUST be rendered to **sanitized** HTML before display — untrusted markup MUST
+  NOT execute (no script injection/XSS).
 - **FR-005**: The content admin and all its create/edit/publish/delete actions MUST be **default-deny**,
   permitted only for the content-edit capability (the existing staff-auth model).
 - **FR-006**: Every create/edit/publish/unpublish/delete MUST be **audited** (who and when), using the existing
@@ -128,14 +142,16 @@ publish it; unpublish it and confirm the public URL now 404s; see the page liste
   as a committed static asset; the feature does **not** provide file upload (see Assumptions).
 - **FR-009**: Slugs MUST be **unique and URL-safe**, and MUST NOT collide with existing site routes; content
   changes MUST require **no code deploy**.
-- **FR-010**: The Webmaster MUST be able to **preview** an unpublished page (rendered, but not public).
+- **FR-010**: The Webmaster MUST be able to **preview** the **draft** body rendered (as it will appear), without
+  it being public.
 
 ### Key Entities
 
 - **Content page**: the unit of editable prose. Identity is a unique, URL-safe **slug**. Attributes: **title**
-  (the page heading), **body** (the prose the Webmaster edits), a **published** state (public vs. not),
-  create/update **timestamps**, and **editor attribution** (via audit). Optionally a short **summary/meta**
-  description for the page head. The body format (markdown vs. rich HTML) is a clarification.
+  (the page heading); a **draft body** (Markdown — what the Webmaster edits and previews); a **published body**
+  (the Markdown the public sees, set when the draft is published; empty until first publish); a **published**
+  state (public vs. not); create/update **timestamps**; and **editor attribution** (via audit). Optionally a
+  short **summary/meta** description for the page head. Body is **Markdown**, rendered to **sanitized** HTML.
 - **Content-edit capability**: a new staff **capability** (held by the Webmaster / VP delegate) that gates the
   content admin and its write actions, within the existing role × capability model.
 
@@ -159,15 +175,13 @@ publish it; unpublish it and confirm the public URL now 404s; see the page liste
   the existing capability catalog, route-inventory, and nav-completeness guards.
 - **Tier-2 CMS (D-3, decided)** — a content-pages store + a minimal admin editor on the existing auth, **not** a
   third-party/headless CMS and **not** a general website builder. Scope is the ~15 org/prose pages.
-- **Editor / body format (clarify)** — **default: Markdown** (edited as plain markdown text, rendered to
-  sanitized HTML), which needs no client editor library and keeps sanitization simple. *(Markdown vs. a WYSIWYG
-  editor library — e.g. TipTap or Lexical — is the open D-3 decision for `/speckit-clarify`.)*
-- **Publication workflow (clarify)** — **default: a published flag + Webmaster preview of unpublished pages**
-  (unpublished = not public but previewable by the editor). *(Whether that suffices, or a fuller separate
-  draft-vs-published body is wanted, is an open decision for `/speckit-clarify`.)*
-- **Media in pages (clarify)** — **default: committed static assets** for policy PDFs and images, **linked**
-  from a page (no upload substrate — consistent with D-4's committed-assets-for-v1 decision). *(Committed static
-  assets vs. building a file-upload substrate now is an open decision for `/speckit-clarify`.)*
+- **Editor / body format (clarified)** — **Markdown**: the body is edited as plain Markdown, stored as Markdown,
+  and rendered to **sanitized** HTML; a live preview shows the rendered result. **No WYSIWYG editor library.**
+- **Publication workflow (clarified)** — **separate draft vs published body**: the Webmaster edits a **draft**
+  body (previewable, not public) and **publishes** to promote it to the **published** body the public sees;
+  editing a live page never changes it until publish. **Unpublish** takes a page down without deleting it.
+- **Media in pages (clarified)** — **committed static assets**: policy PDFs (bylaws, social contract) and images
+  live in the repo as committed files a page **links** to; **no upload substrate** (consistent with D-4).
 - **Navigation** — a published page is reachable at its URL; **PUBLIC_NAV stays hand-maintained** (feature 034):
   a nav entry for a content page is added deliberately. Auto-generating the public menu from published pages is
   **deferred** (the 034/B44 decision).
