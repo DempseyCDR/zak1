@@ -1,0 +1,19 @@
+/* Feature 055 (P7-R12): the contact page. */
+.block {
+  margin: var(--space-5) 0 0;
+  line-height: var(--lh-body);
+}
+
+.block :global(h2) {
+  font-family: var(--font-heading);
+  font-size: var(--fs-h2);
+  margin: var(--space-4) 0 var(--space-2);
+}
+
+.block :global(p) {
+  margin: 0 0 var(--space-3);
+}
+
+.block :global(a) {
+  color: var(--link);
+}

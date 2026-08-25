@@ -22,15 +22,19 @@ vi.mock("next/link", () => ({
 
 import Footer from "@/app/(public)/_components/Footer";
 
-describe("public footer (US3)", () => {
-  it("renders a contentinfo landmark with org identity, key links, and a support affordance", () => {
+describe("public footer (US3 / 055 org cluster)", () => {
+  it("renders a contentinfo landmark with org identity, key links, an About group, and a Donate affordance", () => {
     render(<Footer />);
     const footer = screen.getByRole("contentinfo");
     expect(footer).toBeInTheDocument();
     expect(footer.textContent).toMatch(/Country Dancers of Rochester/i);
     expect(screen.getByRole("link", { name: "What's On" })).toHaveAttribute("href", "/whats-on");
     expect(screen.getByRole("link", { name: "Join" })).toHaveAttribute("href", "/join");
-    // support/donate affordance
-    expect(screen.getByRole("link", { name: /support/i })).toHaveAttribute("href", "/join");
+    // Feature 055 (P7-R12): Contact Us (board + aliases, merged) in the footer — not the top nav.
+    expect(screen.getByRole("link", { name: "Contact Us" })).toHaveAttribute("href", "/contact-us");
+    // Donate affordance — distinct from Join, an outbound PayPal donation link.
+    const donate = screen.getByRole("link", { name: "Donate" });
+    expect(donate.getAttribute("href")).toMatch(/paypal\.com\/donate/);
+    expect(donate).toHaveAttribute("target", "_blank");
   });
 });

@@ -47,8 +47,24 @@ export default function PublicNav() {
 
   return (
     <nav aria-label="Site" className={styles.bar} onKeyDown={onKeyDown}>
-      <Link href="/whats-on" className={styles.wordmark}>
-        Country Dancers of Rochester
+      {/* Feature 055 (P7-R12): the brand logo, image-only, linking home. The icon (logomark) shows on narrow
+          viewports and names the link; the full logotype shows on wide screens (decorative — same link). */}
+      <Link href="/" className={styles.wordmark}>
+        <img
+          src="/CDR_Icon.svg"
+          alt="Country Dancers of Rochester"
+          className={styles.logoIcon}
+          width={36}
+          height={49}
+        />
+        <img
+          src="/CDR_Logotype_4Color.svg"
+          alt=""
+          aria-hidden="true"
+          className={styles.logoType}
+          width={72}
+          height={44}
+        />
       </Link>
       <button
         ref={toggleRef}

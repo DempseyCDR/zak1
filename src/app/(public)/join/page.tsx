@@ -1,79 +1,61 @@
-"use client";
-
-import { useState } from "react";
+import { eq } from "drizzle-orm";
+import { db } from "@/server/db/client";
+import { clubSettings } from "@/server/db/schema";
+import { membershipYearLabel } from "@/server/domain/org/membershipYear";
+import { grantedMembershipExpiry } from "@/server/domain/membership/membershipTerm";
 import Container from "../_components/Container";
-import styles from "./join.module.css";
+import MembershipTiers from "../_components/MembershipTiers";
+import DonateButton from "../_components/DonateButton";
+import JoinForm from "./JoinForm";
 
-// Feature 019 US3 (FR-010/FR-016): the public membership page. It captures the member's name + email, then
-// hands off to the club's existing PayPal HOSTED button. The button is fully PayPal-hosted and gives the
-// site NO callback, so this page must NOT claim the membership is active — it activates once PayPal's
-// server-side notification (webhook) confirms and matches the payment. No staff/finance data appears here.
-const PAYPAL_BUTTON_ID = "Z5FUDMVGE6CVQ";
+/**
+ * Feature 055 (P7-R12): the content-complete membership page. A server component that reads the club setting
+ * and single-sources the membership year + the coverage-through date (via the shared `grantedMembershipExpiry`,
+ * which grants the 2-month early-renewal grace — the same calc enrollment uses). The interactive capture +
+ * PayPal handoff (feature 019) is the client `<JoinForm>`, unchanged.
+ */
+const MONTHS = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+];
 
-export default function JoinPage() {
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [captured, setCaptured] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+function humanDate(iso: string): string {
+  const [y, m, d] = iso.split("-").map(Number);
+  return `${MONTHS[(m ?? 1) - 1]} ${d}, ${y}`;
+}
 
-  async function submit(e: React.FormEvent) {
-    e.preventDefault();
-    setError(null);
-    const res = await fetch("/api/public/membership", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, email }),
-    });
-    if (res.status === 429) return setError("Too many requests — please try again in a minute.");
-    if (!res.ok)
-      return setError("Could not save your details. Please check your email and try again.");
-    setCaptured(true);
-  }
+export default async function JoinPage() {
+  const settings = await db.query.clubSettings.findFirst({ where: eq(clubSettings.id, 1) });
+  const boundary = settings?.membershipYearEnd ?? "08-31";
+  const yearLabel = membershipYearLabel(boundary);
+  const today = new Date().toISOString().slice(0, 10);
+  const coverageThrough = humanDate(grantedMembershipExpiry(today, boundary));
 
   return (
     <Container width="narrow">
       <h1>Become a member</h1>
-      {!captured ? (
-        <>
-          <p>Enter your details, then pay your dues with PayPal to complete your membership.</p>
-          <form onSubmit={submit} className={styles.form}>
-            <label>
-              Name
-              <br />
-              <input value={name} onChange={(e) => setName(e.target.value)} required />
-            </label>
-            <label>
-              Email (use the same address as your PayPal account)
-              <br />
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
-            </label>
-            <button type="submit">Continue to payment</button>
-            {error && <p role="alert">{error}</p>}
-          </form>
-        </>
-      ) : (
-        <>
-          <p>
-            Thanks, {name}. Please complete your dues payment with PayPal below. Your membership
-            will be activated once your payment is confirmed — you don&rsquo;t need to do anything
-            else here.
-          </p>
-          {/* PayPal-hosted no-code button; opens on PayPal, which notifies us server-side (no callback). */}
-          <form
-            action={`https://www.paypal.com/ncp/payment/${PAYPAL_BUTTON_ID}`}
-            method="post"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <button type="submit">Pay dues with PayPal</button>
-          </form>
-        </>
-      )}
+      <p>
+        Your membership sustains the Country Dancers of Rochester — the callers, bands, halls, and
+        the community that keeps contra and English dancing alive here.
+      </p>
+
+      <MembershipTiers yearLabel={yearLabel} coverageThrough={coverageThrough} />
+
+      <JoinForm />
+
+      <p>
+        Prefer to give a one-time gift instead of (or in addition to) joining? <DonateButton />
+      </p>
     </Container>
   );
 }

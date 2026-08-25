@@ -7,6 +7,15 @@ import Nav from "./Nav";
 export const metadata = {
   title: "CDR Platform",
   description: "Contacts & Membership",
+  // Feature 055 (P7-R12): committed favicons for the browser tab.
+  icons: {
+    icon: [
+      { url: "/favicon.ico", sizes: "any" },
+      { url: "/favicon-96x96.png", type: "image/png", sizes: "96x96" },
+      { url: "/favicon.png", type: "image/png" },
+    ],
+    shortcut: "/favicon.ico",
+  },
 };
 
 // Feature 045 (P7-R1): brand fonts, self-hosted via next/font (no external request, CSP-safe). Exposed as

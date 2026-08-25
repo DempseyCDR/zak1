@@ -1,0 +1,35 @@
+/* Feature 055 (P7-R12): the contact directory (roles · officer names · aliases). */
+.list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  max-width: 34rem;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0 var(--space-3);
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--hairline);
+}
+
+.role {
+  font-weight: 600;
+}
+
+.name {
+  grid-column: 1;
+  color: var(--text);
+}
+
+.alias {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  align-self: center;
+  color: var(--link);
+}
+
+.alias:hover {
+  color: var(--link-hover);
+}

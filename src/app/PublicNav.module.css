@@ -6,18 +6,40 @@
   flex-wrap: wrap;
   align-items: center;
   gap: var(--space-3);
-  padding: var(--space-3) var(--space-4);
+  padding: var(--space-2) var(--space-4); /* reduced vertical padding (2026-08-25) */
   background: var(--surface);
   border-bottom: 1px solid var(--hairline);
   font-family: var(--font-body);
 }
 
 .wordmark {
-  font-family: var(--font-heading);
-  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
   text-decoration: none;
-  color: var(--text);
   margin-right: auto; /* push the toggle (and, on desktop, the links) to the right */
+}
+
+/* Feature 055 (P7-R12): responsive brand logo — logomark (icon) on narrow, full logotype on wide.
+   Sizes bumped +33% (2026-08-25). */
+.logoIcon {
+  display: block;
+  height: clamp(48px, 9.3vw, 59px);
+  width: auto;
+}
+
+.logoType {
+  display: none;
+  height: clamp(48px, 6.65vw, 59px);
+  width: auto;
+}
+
+@media (min-width: 640px) {
+  .logoIcon {
+    display: none;
+  }
+  .logoType {
+    display: block;
+  }
 }
 
 .toggle {

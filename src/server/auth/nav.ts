@@ -41,6 +41,7 @@ export const NAV: { href: string; label: string; capability: Capability | null }
   { href: "/dedup", label: "Duplicate review", capability: "dedup.write" },
   { href: "/access", label: "Access control", capability: "role.assign" },
   { href: "/content", label: "Content pages", capability: "content.write" }, // feature 051 (P7-R7)
+  { href: "/officers", label: "Officers", capability: "content.write" }, // feature 055 (P7-R12)
   { href: "/dev/routes", label: "Route index (dev)", capability: "dev.routes.read" },
 ];
 

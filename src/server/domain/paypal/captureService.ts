@@ -12,7 +12,7 @@ import {
   createMembership,
   ensurePayerForContact,
 } from "@/server/domain/membership/membershipService";
-import { nextMembershipYearEnd } from "@/server/domain/membership/membershipTerm";
+import { grantedMembershipExpiry } from "@/server/domain/membership/membershipTerm";
 import { clubSettings } from "@/server/db/schema";
 import type { ExtractedNotification } from "@/server/validation/paypal";
 
@@ -200,7 +200,7 @@ export async function linkParkedNotification(
 /** Resolve the membership year-end boundary from club settings (fallback '08-31'), for online enrollment. */
 async function targetExpiry(tx: DbOrTx): Promise<string> {
   const settingsRow = await tx.query.clubSettings.findFirst({ where: eq(clubSettings.id, 1) });
-  return nextMembershipYearEnd(
+  return grantedMembershipExpiry(
     new Date().toISOString().slice(0, 10),
     settingsRow?.membershipYearEnd ?? "08-31",
   );

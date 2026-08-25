@@ -127,6 +127,15 @@ export default function ContentAdminPage() {
     <div className={styles.wrap}>
       <h1>Content pages</h1>
 
+      {/* Feature 055 (P7-R12): tell editors about embedded-block slugs — pages read by another page rather than
+          shown at their own URL, so the exact slug matters. */}
+      <p className={styles.hint}>
+        Most pages appear at <code>/&lt;slug&gt;</code>. One special page is embedded elsewhere: a
+        published page with the slug <code>contact-info</code> renders as the free-text block below
+        the directory on the <strong>Contact&nbsp;Us</strong> page (it must be{" "}
+        <strong>published</strong>, and the slug must be exactly <code>contact-info</code>).
+      </p>
+
       <div className={styles.layout}>
         <aside className={styles.list}>
           <button type="button" onClick={startNew} className={styles.newBtn}>

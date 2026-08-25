@@ -22,6 +22,7 @@ export const RESERVED_SLUGS: ReadonlySet<string> = new Set([
   "join",
   "dances",
   "organizer",
+  "contact-us", // feature 055 (P7-R12): dedicated /contact-us route (board officers + aliases + a "contact-info" CMS block)
   // admin / door page routes
   "access",
   "bands",
