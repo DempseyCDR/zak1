@@ -19,7 +19,7 @@ import {
   createMembership,
   ensurePayerForContact,
 } from "@/server/domain/membership/membershipService";
-import { nextMembershipYearEnd } from "@/server/domain/membership/membershipTerm";
+import { grantedMembershipExpiry } from "@/server/domain/membership/membershipTerm";
 import { resolveParameterCentsOrNull } from "@/server/domain/parameters/seriesParameterService";
 import { depositCents, posFeeCents } from "./calc";
 import type { DoorRecordPatchInput, GateSalesPutInput } from "@/server/validation/door";
@@ -277,7 +277,7 @@ async function enrollDoorMemberships(
   if (!event) throw errors.eventNotFound();
   const settingsRow = await tx.query.clubSettings.findFirst({ where: eq(clubSettings.id, 1) });
   const boundary = settingsRow?.membershipYearEnd ?? "08-31";
-  const targetExpiry = nextMembershipYearEnd(event.eventDate, boundary);
+  const targetExpiry = grantedMembershipExpiry(event.eventDate, boundary);
 
   const enrolled: DoorEnrollment[] = [];
   for (const sale of named) {

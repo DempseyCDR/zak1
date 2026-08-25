@@ -35,3 +35,30 @@ export function nextMembershipYearEnd(paymentDate: string, boundaryMMDD: string)
   const thisYear = boundaryInYear(py, mm, dd);
   return thisYear >= paymentDate ? thisYear : boundaryInYear(py + 1, mm, dd);
 }
+
+/**
+ * Feature 055 (P7-R12): the club's **2-month early-renewal grace**. A dues payment in the final two months of
+ * the membership year rolls to the NEXT year-end — i.e. the expiry is the first boundary that is at least two
+ * months after the payment. Applies uniformly to every dues payment (new joins and renewals), so a member
+ * paying on 2026-07-01 is covered through 2027-08-31. This is the single shared expiry calc for online
+ * enrollment, door enrollment, and the public /join page. Built by shifting the payment forward two months and
+ * reusing the pure `nextMembershipYearEnd` — the pure boundary math stays unchanged.
+ */
+export const EARLY_RENEWAL_GRACE_MONTHS = 2;
+
+/** Add `n` calendar months to a 'YYYY-MM-DD', clamping the day to the target month's length. */
+function addMonths(dateISO: string, n: number): string {
+  const [y, m, d] = dateISO.split("-").map(Number);
+  if (y === undefined || m === undefined || d === undefined) {
+    throw new Error(`invalid date input: ${dateISO}`);
+  }
+  const total = m - 1 + n; // 0-based month arithmetic
+  const year = y + Math.floor(total / 12);
+  const month = (total % 12) + 1;
+  const day = Math.min(d, daysInMonth(year, month));
+  return `${year}-${pad2(month)}-${pad2(day)}`;
+}
+
+export function grantedMembershipExpiry(paymentDate: string, boundaryMMDD: string): string {
+  return nextMembershipYearEnd(addMonths(paymentDate, EARLY_RENEWAL_GRACE_MONTHS), boundaryMMDD);
+}

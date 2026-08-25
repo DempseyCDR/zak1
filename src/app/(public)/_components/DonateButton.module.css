@@ -1,0 +1,16 @@
+/* Feature 055 (P7-R12): the donate affordance. */
+.donate {
+  display: inline-block;
+  min-height: 44px;
+  line-height: 44px;
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-1, 4px);
+  background: var(--type-english, var(--link));
+  color: #fff;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.donate:hover {
+  filter: brightness(0.94);
+}

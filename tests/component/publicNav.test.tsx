@@ -40,9 +40,10 @@ describe("PublicNav — US1: consistent menu of public destinations", () => {
     // Nav landmark, distinct from the volunteer nav's aria-label="Main".
     const nav = screen.getByRole("navigation", { name: "Site" });
     expect(nav).toBeInTheDocument();
-    // Wordmark / home affordance (FR-006).
+    // Feature 055 (P7-R12): the brand logo (image, alt "Country Dancers of Rochester") links home (`/`).
     const home = screen.getByRole("link", { name: "Country Dancers of Rochester" });
-    expect(home).toHaveAttribute("href", "/whats-on");
+    expect(home).toHaveAttribute("href", "/");
+    expect(screen.getByAltText("Country Dancers of Rochester")).toBeInTheDocument();
     // One link per entry, data-driven from PUBLIC_NAV (FR-002).
     for (const entry of PUBLIC_NAV) {
       expect(screen.getByRole("link", { name: entry.label })).toHaveAttribute("href", entry.href);
@@ -94,11 +95,12 @@ describe("PublicNav — US2: current section marked active (FR-004)", () => {
 describe("PublicNav — US3: render is driven by PUBLIC_NAV (single source, FR-003/SC-003)", () => {
   it("renders exactly the PUBLIC_NAV entries, in order, and no more", () => {
     render(<PublicNav />);
-    // All links minus the leading wordmark home link = the entry links, in DOM order.
-    const entryLinks = screen
-      .getAllByRole("link")
-      .filter((a) => a.getAttribute("href") !== "/whats-on" || a.textContent !== "Country Dancers of Rochester");
-    const rendered = entryLinks.map((a) => ({ label: a.textContent, href: a.getAttribute("href") }));
+    // All links minus the leading brand/home logo link (href "/") = the entry links, in DOM order.
+    const entryLinks = screen.getAllByRole("link").filter((a) => a.getAttribute("href") !== "/");
+    const rendered = entryLinks.map((a) => ({
+      label: a.textContent,
+      href: a.getAttribute("href"),
+    }));
     expect(rendered).toEqual(PUBLIC_NAV.map((e) => ({ label: e.label, href: e.href })));
   });
 });

@@ -24,3 +24,4 @@ export * from "./membershipCaptures";
 export * from "./paypalNotifications";
 export * from "./contentPages";
 export * from "./admissionPrices";
+export * from "./officers";
