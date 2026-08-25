@@ -27,7 +27,7 @@ const items = [
     activity: "Contra Dance",
     label: null,
     venueName: "Rose Room",
-    advertisedPrice: 12,
+    pricing: { kind: "flat", amount: 12 },
     cancelled: false,
   },
 ] as unknown as Items;

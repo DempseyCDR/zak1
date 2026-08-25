@@ -1,6 +1,7 @@
 import type { CSSProperties } from "react";
 import Link from "next/link";
 import type { PublicScheduleItem } from "@/server/domain/public/publicSchedule";
+import { pricingSummary } from "@/server/domain/public/publicPricing";
 import { seriesColorVar } from "./seriesColor";
 import styles from "./EventCard.module.css";
 
@@ -16,6 +17,7 @@ import styles from "./EventCard.module.css";
  */
 export default function EventCard({ item }: { item: PublicScheduleItem }) {
   const venue = item.venueShortName ?? item.venueName;
+  const priceSummary = pricingSummary(item.pricing); // feature 054 (P7-R10): derived from the single source
   const accent = { "--card-accent": seriesColorVar(item.seriesKey) } as CSSProperties;
   return (
     <Link href={`/whats-on/${item.eventId}`} className={styles.card} style={accent}>
@@ -25,9 +27,7 @@ export default function EventCard({ item }: { item: PublicScheduleItem }) {
         <span className={styles.activity}>{item.activity}</span>
         {item.label ? <span className={styles.label}>{item.label}</span> : null}
         {venue ? <span className={styles.venue}>{venue}</span> : null}
-        {item.advertisedPrice != null ? (
-          <span className={styles.price}>${item.advertisedPrice.toFixed(2)}</span>
-        ) : null}
+        {priceSummary != null ? <span className={styles.price}>{priceSummary}</span> : null}
       </span>
       {item.cancelled ? <span className={styles.cancelled}>Cancelled</span> : null}
     </Link>

@@ -34,7 +34,7 @@ function item(overrides: Partial<PublicScheduleItem> = {}): PublicScheduleItem {
     label: null,
     startTime: "7:30 PM",
     cancelled: false,
-    advertisedPrice: 12,
+    pricing: { kind: "flat", amount: 12 }, // feature 054 (P7-R10): single-sourced pricing
     ...overrides,
   };
 }
@@ -51,7 +51,7 @@ describe("EventCard", () => {
     expect(screen.getByText("2026-06-09")).toBeInTheDocument();
     expect(screen.getByText(/7:30 PM/)).toBeInTheDocument();
     expect(screen.getByText(/Rose/)).toBeInTheDocument();
-    expect(screen.getByText(/\$12\.00/)).toBeInTheDocument();
+    expect(screen.getByText("$12")).toBeInTheDocument();
   });
 
   it("falls back to the full venue name when there is no short name", () => {
@@ -65,7 +65,7 @@ describe("EventCard", () => {
   });
 
   it("omits the price line when there is no advertised price", () => {
-    render(<EventCard item={item({ advertisedPrice: null })} />);
+    render(<EventCard item={item({ pricing: null })} />);
     expect(screen.queryByText(/\$/)).not.toBeInTheDocument();
   });
 

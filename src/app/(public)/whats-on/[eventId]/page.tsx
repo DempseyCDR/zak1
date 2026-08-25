@@ -7,6 +7,7 @@ import Container from "../../_components/Container";
 import EventHero from "../../_components/EventHero";
 import VenueBlock from "../../_components/VenueBlock";
 import Lineup from "../../_components/Lineup";
+import PricingBlock from "../../_components/PricingBlock";
 import styles from "./eventDetail.module.css";
 
 /**
@@ -39,12 +40,14 @@ export default async function PublicEventPage({
           <p className={styles.meta}>
             {detail.date}
             {detail.startTime ? ` · ${detail.startTime}` : ""}
-            {detail.advertisedPrice != null ? ` · $${detail.advertisedPrice.toFixed(2)}` : ""}
           </p>
 
           {detail.cancelled ? (
             <p className={styles.cancelled}>This event has been cancelled.</p>
           ) : null}
+
+          {/* Feature 054 (P7-R10): full admission pricing from the single source (nothing when unconfigured). */}
+          <PricingBlock pricing={detail.pricing} />
 
           {/* Feature 052 (P7-R8): VenueBlock renders the gated venue — name always; address/map/directions
               only for a public venue. */}

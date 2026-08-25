@@ -1,0 +1,40 @@
+/* Feature 054 (P7-R10): admission pricing on the event detail page and series landing. */
+.pricing {
+  margin: var(--space-4) 0;
+}
+
+.heading {
+  font-family: var(--font-heading);
+  font-size: var(--fs-h2);
+  margin: 0 0 var(--space-2);
+}
+
+.flat {
+  font-size: var(--fs-lead, var(--fs-body));
+  font-weight: 600;
+  margin: 0;
+}
+
+.tiers {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  max-width: 22rem;
+}
+
+.tier {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-1) 0;
+  border-bottom: 1px solid var(--hairline);
+}
+
+.tierLabel {
+  color: var(--text);
+}
+
+.tierAmount {
+  font-weight: 600;
+  white-space: nowrap;
+}

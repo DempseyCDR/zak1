@@ -7,6 +7,8 @@ export const series = pgTable("series", {
   key: text("key").notNull().unique(),
   name: text("name").notNull(),
   hasSoundTech: boolean("has_sound_tech").notNull().default(true),
+  // Feature 054 (P7-R10): curated standing-schedule sentence (no recurrence engine; carries the DST note).
+  scheduleSentence: text("schedule_sentence"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

@@ -1,7 +1,7 @@
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan
-at specs/053-performer-rosters/plan.md
+at specs/054-single-source-pricing/plan.md
 <!-- SPECKIT END -->
 
 ## Development conventions

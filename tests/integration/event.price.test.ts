@@ -44,7 +44,8 @@ describe("advertised admission price", () => {
     expect(r2.status).toBe(200);
 
     const detail = await getPublicEventDetail(db, evt.id);
-    expect(detail?.advertisedPrice).toBe(20); // dollars, display
+    // Feature 054 (P7-R10): the per-event advertised price surfaces as a flat pricing override (dollars).
+    expect(detail?.pricing).toEqual({ kind: "flat", amount: 20 });
   });
 
   it("has no effect on accounting (organizer report unchanged)", async () => {

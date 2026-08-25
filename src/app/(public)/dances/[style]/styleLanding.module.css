@@ -16,6 +16,13 @@
   background: var(--series-accent, var(--band));
 }
 
+.schedule {
+  margin: var(--space-4) 0;
+  font-size: var(--fs-lead, var(--fs-body));
+  line-height: var(--lh-body);
+  white-space: pre-line;
+}
+
 .upcoming {
   margin: var(--space-6) 0 var(--space-5);
 }

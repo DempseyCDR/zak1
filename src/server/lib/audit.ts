@@ -43,6 +43,7 @@ export type AuditEvent = {
     | "treasurer_report.generated"
     | "qbo_mapping.updated"
     | "expense_parameter.created"
+    | "admission_pricing.set" // feature 054 (P7-R10): a series' admission tiers or schedule sentence changed
     | "mailing_list.exported"
     | "band.created"
     | "band.updated"

@@ -2,7 +2,11 @@ import { and, asc, desc, eq, gte, lt } from "drizzle-orm";
 import type { Db } from "@/server/db/client";
 import { events, series, venues } from "@/server/db/schema";
 import { groupEventBookingsForDisplay } from "@/server/domain/bands/publicDisplay";
-import { centsToDollars } from "@/server/lib/money";
+import {
+  loadRevisionsForSeries,
+  tiersEffectiveOn,
+} from "@/server/domain/pricing/admissionPricingService";
+import { pricingFromTiers, resolveEventPricing, type PublicPricing } from "./publicPricing";
 import { mapPublicPerformers, type PublicPerformer } from "./performerDisplay";
 import { publicVenueView, type PublicVenue } from "./publicVenues";
 import { formatWallClock } from "./wallClock";
@@ -17,7 +21,7 @@ export type PublicScheduleItem = {
   label: string | null;
   startTime: string | null; // display-formatted wall-clock (e.g. "7:30 PM"), venue-local
   cancelled: boolean; // feature 018 (B25): still listed, shown with a cancelled marker
-  advertisedPrice: number | null; // feature 018 (B27): public display price in dollars; null = not shown
+  pricing: PublicPricing; // feature 054 (P7-R10): single-sourced admission price (override → flat, else tiers)
 };
 
 export type PublicBandBlock = {
@@ -42,7 +46,7 @@ export type PublicEventDetail = {
   startTime: string | null; // display-formatted wall-clock, venue-local
   description: string | null;
   cancelled: boolean; // feature 018 (B25)
-  advertisedPrice: number | null; // feature 018 (B27), dollars; display-only
+  pricing: PublicPricing; // feature 054 (P7-R10): single-sourced admission price
   bandBlocks: PublicBandBlock[];
   performers: PublicPerformer[];
 };
@@ -88,6 +92,7 @@ async function listPublicEvents(
       eventId: events.id,
       date: events.eventDate,
       activity: series.name,
+      seriesId: events.seriesId,
       seriesKey: series.key,
       venueName: venues.name,
       venueShortName: venues.shortName,
@@ -101,11 +106,20 @@ async function listPublicEvents(
     .leftJoin(venues, eq(venues.id, events.venueId))
     .where(conds.length ? and(...conds) : undefined)
     .orderBy(opts.order === "asc" ? asc(events.eventDate) : desc(events.eventDate));
-  return rows.map(({ status, advertisedPriceCents, ...r }) => ({
+  // Feature 054 (P7-R10) + analyze F3: load each series' revisions ONCE, then resolve every event's price in
+  // memory (no query per event). Override (advertised_price_cents) still wins per event.
+  const revisionsBySeries = await loadRevisionsForSeries(
+    db,
+    rows.map((r) => r.seriesId),
+  );
+  return rows.map(({ status, advertisedPriceCents, seriesId, ...r }) => ({
     ...r,
     startTime: formatWallClock(r.startTime),
     cancelled: status === "cancelled",
-    advertisedPrice: advertisedPriceCents === null ? null : centsToDollars(advertisedPriceCents),
+    pricing:
+      advertisedPriceCents !== null
+        ? pricingFromTiers([], advertisedPriceCents)
+        : pricingFromTiers(tiersEffectiveOn(revisionsBySeries.get(seriesId) ?? [], r.date), null),
   }));
 }
 
@@ -151,6 +165,7 @@ export async function getPublicEventDetail(
       eventId: events.id,
       date: events.eventDate,
       activity: series.name,
+      seriesId: events.seriesId,
       seriesKey: series.key,
       venueId: events.venueId,
       label: events.label,
@@ -164,6 +179,12 @@ export async function getPublicEventDetail(
     .where(eq(events.id, eventId))
     .limit(1);
   if (!row) return null;
+
+  const pricing = await resolveEventPricing(db, {
+    seriesId: row.seriesId,
+    eventDate: row.date,
+    advertisedPriceCents: row.advertisedPriceCents,
+  });
 
   // Feature 052 (P7-R8): gate the venue — publicVenueView shows address/map/directions only for a public
   // venue with an address; otherwise name-only. A private-home address is never exposed here.
@@ -188,8 +209,7 @@ export async function getPublicEventDetail(
     startTime: formatWallClock(row.startTime),
     description: row.description,
     cancelled: row.status === "cancelled",
-    advertisedPrice:
-      row.advertisedPriceCents === null ? null : centsToDollars(row.advertisedPriceCents),
+    pricing,
     bandBlocks: grouped.bandBlocks.map((b) => ({
       bandId: b.bandId,
       name: b.name,

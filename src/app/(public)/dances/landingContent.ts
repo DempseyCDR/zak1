@@ -80,7 +80,6 @@ const COMMUNITY: StyleLanding = {
   whatToExpect: [
     "No partner needed, and no experience either — every dance is simple and taught as you go.",
     "All ages welcome; families dance together. It's smoke- and alcohol-free.",
-    "Cost: $5 per person, with a $15 family cap.",
     "Parking is next door at the Historic German House (when there's no conflicting event), or on the street.",
     "Gender-free calling — the same welcoming “Larks” and “Robins” roles as the evening contra.",
     "Supported by a grant from the Country Dance and Song Society.",

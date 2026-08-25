@@ -34,7 +34,7 @@ const ITEMS: PublicScheduleItem[] = [
     label: null,
     startTime: "7:30 PM",
     cancelled: false,
-    advertisedPrice: 12,
+    pricing: { kind: "flat", amount: 12 },
   },
   {
     eventId: "e2",
@@ -46,7 +46,7 @@ const ITEMS: PublicScheduleItem[] = [
     label: "Special",
     startTime: null,
     cancelled: true,
-    advertisedPrice: null,
+    pricing: null,
   },
 ];
 
