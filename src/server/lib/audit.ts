@@ -89,7 +89,10 @@ export type AuditEvent = {
     | "content.updated"
     | "content.published"
     | "content.unpublished"
-    | "content.deleted";
+    | "content.deleted"
+    // Feature 056 (P7-R13) — the site-wide announcement banner.
+    | "announcement.posted"
+    | "announcement.cleared";
   actor: string | null;
   details: Record<string, unknown>;
 };
