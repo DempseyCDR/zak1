@@ -92,7 +92,11 @@ export type AuditEvent = {
     | "content.deleted"
     // Feature 056 (P7-R13) — the site-wide announcement banner.
     | "announcement.posted"
-    | "announcement.cleared";
+    | "announcement.cleared"
+    // Feature 057 (P7-R14) — the home-page promotional campaign slot.
+    | "campaign.created"
+    | "campaign.updated"
+    | "campaign.deleted";
   actor: string | null;
   details: Record<string, unknown>;
 };
