@@ -12,6 +12,7 @@ The favicons + both SVGs are already committed on this branch.
 
 > **Post-implementation revisions (2026-08-25)** — the tasks below record the original plan; the shipped code
 > diverges as follows (see spec §Clarifications):
+>
 > - **Contact + Board merged into one `/contact-us` page.** T017–T019 built `/contact-us` (route hyphenated;
 >   `ContactList` now shows role · officer-name · alias via `listContactRoles`). T027–T029 (`/board`, `BoardList`,
 >   `boardList.test.tsx`, `listBoardOfficers`) were **removed** after review. The officer admin (T030) still

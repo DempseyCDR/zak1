@@ -10,8 +10,8 @@ emailAlias + isBoardSeat + order`) is the shared source for a single **contact d
 (revised 2026-08-25 — the board page was merged in): every role → alias, plus the officer name on board seats,
 plus a 051-CMS block. *(Originally two pages — a `/contact` role→alias list and a separate `/board` officers
 page; merged after review, since the board page was the directory plus names.)* A small **`officers` table** maps a board-seat role → the contact
-holding it (staff-maintained via a `content.write` admin); a **PII-gated projection** exposes only name + role
-+ alias. The **membership page** (`/join`) is content-completed — tiers, the Sep 1–Aug 31 year (derived from
+holding it (staff-maintained via a `content.write` admin); a **PII-gated projection** exposes only name + role +
+alias. The **membership page** (`/join`) is content-completed — tiers, the Sep 1–Aug 31 year (derived from
 `club_settings.membership_year_end`, closing the placeholder TODO), the coverage-through date a joiner gets
 today, benefits — keeping the 019 capture→PayPal flow. It also **corrects the shared membership-expiry calc**
 (`nextMembershipYearEnd`) to grant the club's **2-month early-renewal grace** (a payment in the final two months
@@ -62,7 +62,7 @@ No violations. Complexity Tracking: none.
 
 ### Documentation (this feature)
 
-```
+```text
 specs/055-org-cluster/
 ├── spec.md · plan.md · research.md · data-model.md · quickstart.md
 ├── contracts/org-cluster.md
@@ -71,7 +71,7 @@ specs/055-org-cluster/
 
 ### Source Code (repository root)
 
-```
+```text
 public/CDR_Icon.svg · CDR_Logotype_4Color.svg · favicon.ico · favicon.png · favicon-96x96.png   # assets (added)
 
 src/server/db/migrations/0038_officers.sql            # NEW — officers table

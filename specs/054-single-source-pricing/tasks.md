@@ -24,8 +24,8 @@ detail render the same value, so they can never disagree. Per-event override reu
   effective_date date NOT NULL, created_at timestamptz NOT NULL DEFAULT now())` + index on
   `(series_id, effective_date)`; `ALTER TABLE series ADD COLUMN IF NOT EXISTS schedule_sentence text`.
   Snapshot `zak1_dev` first, then `pnpm run db:migrate`.
-- [X] T004 Drizzle schema `src/server/db/schema/admissionPrices.ts` (mirror the table; export `admissionPrices`
-  + `AdmissionPriceRow`) and export it from the schema index; add `scheduleSentence: text("schedule_sentence")`
+- [X] T004 Drizzle schema `src/server/db/schema/admissionPrices.ts` (mirror the table; export `admissionPrices` +
+  `AdmissionPriceRow`) and export it from the schema index; add `scheduleSentence: text("schedule_sentence")`
   (nullable) to the `series` table in `src/server/db/schema/events.ts`.
 - [X] T005 [P] Zod `src/server/validation/admissionPricing.ts`: `admissionPricingSetSchema`
   (`seriesId` uuid, `effectiveDate` `YYYY-MM-DD`, `tiers` non-empty array of `{ label: non-empty,

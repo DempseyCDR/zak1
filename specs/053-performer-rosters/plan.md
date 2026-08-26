@@ -56,7 +56,7 @@ No violations. Complexity Tracking: none required.
 
 ### Documentation (this feature)
 
-```
+```text
 specs/053-performer-rosters/
 ├── spec.md
 ├── plan.md              # this file
@@ -70,7 +70,7 @@ specs/053-performer-rosters/
 
 ### Source Code (repository root)
 
-```
+```text
 src/server/db/migrations/0036_performer_roster.sql        # NEW — additive columns
 src/server/db/schema/performers.ts                         # + isPublic, isCaller, styles, links
 src/server/db/schema/bands.ts                              # + isPublic, styles, links; band_members + instrument

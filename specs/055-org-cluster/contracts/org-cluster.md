@@ -35,7 +35,8 @@ export function setOfficer(
 ): Promise<void>;
 ```
 
-**Guarantees**
+### Guarantees
+
 - `listBoardOfficers` returns **only** name + role + alias — no contact email/phone/PII on the type.
 - `setOfficer` rejects a `roleKey` that is not a board-seat registry key (422).
 - `contactId=null` deletes the assignment (vacant seat).

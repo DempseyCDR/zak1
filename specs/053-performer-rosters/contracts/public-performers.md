@@ -41,7 +41,8 @@ export function listPublicBands(db: Db, style?: string): Promise<PublicBand[]>;
 export function listPublicCallers(db: Db, style?: string): Promise<PublicCaller[]>;
 ```
 
-**Guarantees**
+### Guarantees
+
 - Neither function selects any contact column; the return types have no contact field (PII cannot leak).
 - `style` filter: when provided and one of the known styles, returns only entries whose `styles` contains
   it (`style = ANY(styles)`); when absent/unknown, returns the full roster (no filtering).
@@ -61,7 +62,8 @@ export const promoLinkSchema: z.ZodType<PromoLink>;   // type ∈ enum; url abso
 export const promoLinksSchema: z.ZodType<PromoLink[]>; // array; default []
 ```
 
-**Rules**
+### Rules
+
 - `url` MUST parse as an absolute URL AND have protocol `http:` or `https:`. `javascript:`, `data:`,
   `mailto:`, `ftp:`, relative, and malformed URLs are rejected.
 - Validation runs at the write boundary (create + patch on both bands and performers); an invalid link

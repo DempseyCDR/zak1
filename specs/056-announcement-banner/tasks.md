@@ -51,8 +51,8 @@ server-rendered, with urgency styling and an optional safe link; nothing when no
 served HTML (scripts off); clear/expire it → no banner anywhere, no layout shift.
 
 - [x] T009 [P] [US1] Component test `tests/component/announcementBanner.test.tsx` (jsdom): given a
-  `PublicAnnouncement`, the banner renders the text; `level:"urgent"` → `role="alert"`, else `role="status"`
-  + `aria-live="polite"`; a link renders as `<a target="_blank" rel="noopener noreferrer">`; no personal data.
+  `PublicAnnouncement`, the banner renders the text; `level:"urgent"` → `role="alert"`, else `role="status"` +
+  `aria-live="polite"`; a link renders as `<a target="_blank" rel="noopener noreferrer">`; no personal data.
   (Test-first — fails until T010.)
 - [x] T010 [P] [US1] Create `src/app/(public)/_components/AnnouncementBanner.tsx` (+ `AnnouncementBanner.module.css`):
   a client component taking `{ announcement: PublicAnnouncement }` — render the text, optional link, and the
