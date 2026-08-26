@@ -52,7 +52,7 @@ No violations. Complexity Tracking: none.
 
 ### Documentation (this feature)
 
-```
+```text
 specs/056-announcement-banner/
 ├── spec.md · plan.md · research.md · data-model.md · quickstart.md
 ├── contracts/announcement.md
@@ -61,7 +61,7 @@ specs/056-announcement-banner/
 
 ### Source Code (repository root)
 
-```
+```text
 src/server/db/migrations/0039_announcements.sql        # NEW — announcements table
 src/server/db/schema/announcements.ts                   # NEW — table; export from index
 src/server/validation/announcement.ts                   # NEW — Zod: post payload (text, link http(s), level, hours)

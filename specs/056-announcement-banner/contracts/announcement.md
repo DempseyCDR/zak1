@@ -37,7 +37,8 @@ export function postAnnouncement(
 export function clearAnnouncement(db: Db, actorContactId: string | null): Promise<void>;
 ```
 
-**Guarantees**
+### Guarantees
+
 - `getActiveAnnouncement` returns only display-safe fields; `null` when nothing is active (expired/cleared/none).
 - `postAnnouncement` writes `recordAudit(kind:"announcement.posted")`; `clearAnnouncement` writes
   `announcement.cleared`.

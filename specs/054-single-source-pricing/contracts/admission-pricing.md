@@ -48,7 +48,8 @@ export function resolveEventPricing(
 export function pricingSummary(p: PublicPricing): string | null;
 ```
 
-**Guarantees**
+### Guarantees
+
 - The card summary and the detail tiers are both derived from the same `PublicPricing`, so they never disagree
   (SC-001).
 - No configured pricing and no override → `null` → no price rendered (never `$0`) (FR-006/SC-005).

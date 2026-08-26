@@ -71,10 +71,10 @@ type PublicPricing =
 
 - `resolveEventPricing(db, { seriesId, eventDate, advertisedPriceCents })`:
   `advertisedPriceCents != null → { flat }`; else tiers = resolveAdmissionTiers → `tiers.length ? { tiers } : null`.
-- `pricingSummary(p)` (card): `flat → "$X"` (or `"Free"` if the flat amount is 0); `tiers → "$min–$max"` over
-  distinct **non-zero** amounts (single → "$X"); a non-empty tier set that is **all `$0`** → `"Free"` (not
-  blank — configured-free ≠ unconfigured); `null → null`. Detail/landing render the full `tiers` (including any
-  `$0` tier).
+- `pricingSummary(p)` (card): a flat price renders as "$X" (or "Free" when the flat amount is 0); tiers render as
+  "$min–$max" over the distinct **non-zero** amounts (a single distinct amount renders as "$X"); a non-empty tier
+  set that is **all $0** renders as "Free" (not blank — configured-free ≠ unconfigured); `null` renders as null.
+  Detail and landing render the full tier list (including any $0 tier).
 
 ## Audit
 

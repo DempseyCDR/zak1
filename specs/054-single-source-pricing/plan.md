@@ -57,7 +57,7 @@ No violations. Complexity Tracking: none.
 
 ### Documentation (this feature)
 
-```
+```text
 specs/054-single-source-pricing/
 ├── spec.md · plan.md · research.md · data-model.md · quickstart.md
 ├── contracts/admission-pricing.md
@@ -66,7 +66,7 @@ specs/054-single-source-pricing/
 
 ### Source Code (repository root)
 
-```
+```text
 src/server/db/migrations/0037_admission_pricing.sql          # NEW — admission_prices + series.schedule_sentence
 src/server/db/schema/admissionPrices.ts                       # NEW — table
 src/server/db/schema/events.ts                                # series += scheduleSentence
