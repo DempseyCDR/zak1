@@ -16,7 +16,7 @@ export async function ensureSchema(): Promise<void> {
 
 /** Truncate all feature tables between tests (preserves club_settings seed). */
 export async function resetDb(): Promise<void> {
-  await sql`TRUNCATE announcements, officers, admission_prices, content_pages, role_grants, audit_events, staff_sessions, staff_identities, mailing_list_exports, series_parameters, series_parameter_audit, venue_rents, venue_rent_audit, misc_expenses, series_qbo_map, treasurer_report_audit, mapping_audit, payment_bookings, performer_payments, paypal_notifications, membership_captures, band_members, bands, bookings, performers, door_record_audit, gate_sales, door_records, attendance, quarterly_attendance_counts, events, event_groups, venues, merge_audit, status_change_audit, memberships, payers, contact_emails, contacts RESTART IDENTITY CASCADE`;
+  await sql`TRUNCATE campaigns, announcements, officers, admission_prices, content_pages, role_grants, audit_events, staff_sessions, staff_identities, mailing_list_exports, series_parameters, series_parameter_audit, venue_rents, venue_rent_audit, misc_expenses, series_qbo_map, treasurer_report_audit, mapping_audit, payment_bookings, performer_payments, paypal_notifications, membership_captures, band_members, bands, bookings, performers, door_record_audit, gate_sales, door_records, attendance, quarterly_attendance_counts, events, event_groups, venues, merge_audit, status_change_audit, memberships, payers, contact_emails, contacts RESTART IDENTITY CASCADE`;
   // series + QBO mapping are config (seeded once); ensure they exist for tests
   await sql`INSERT INTO series (key, name, has_sound_tech) VALUES
     ('tnc','Thursday Night Contra',true),

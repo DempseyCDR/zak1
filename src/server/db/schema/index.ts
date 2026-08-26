@@ -26,3 +26,4 @@ export * from "./contentPages";
 export * from "./admissionPrices";
 export * from "./officers";
 export * from "./announcements";
+export * from "./campaigns";

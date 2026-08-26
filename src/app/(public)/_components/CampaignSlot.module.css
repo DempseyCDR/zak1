@@ -1,0 +1,72 @@
+/* Feature 057 (P7-R14): the home-page promotional campaign slot — a marquee band above the hero. Mobile-first:
+   a stacked card (image over text) that becomes image-beside-text on wider screens. No horizontal scroll. */
+
+.slot {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  background: var(--surface);
+  border-bottom: 3px solid var(--band);
+}
+
+.image {
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  border-radius: 6px;
+  object-fit: cover;
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  align-items: flex-start;
+  min-width: 0;
+}
+
+.heading {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.blurb {
+  margin: 0;
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+
+/* `.slot .cta` (and :hover) out-specify the global `.public a` rule so the CTA keeps its on-dark text. */
+.slot .cta {
+  display: inline-block;
+  padding: var(--space-2) var(--space-4);
+  background: var(--band);
+  color: var(--link-on-dark);
+  border-radius: 6px;
+  text-decoration: none;
+  font-weight: 600;
+  min-height: 44px; /* tap target */
+  line-height: 1.6;
+}
+
+.slot .cta:hover {
+  background: var(--band-hover);
+  color: var(--link-on-dark);
+}
+
+@media (min-width: 640px) {
+  .slot {
+    flex-direction: row;
+    align-items: center;
+    gap: var(--space-5);
+  }
+  .image {
+    width: 40%;
+    max-width: 320px;
+    flex: none;
+  }
+  .body {
+    flex: 1 1 auto;
+  }
+}

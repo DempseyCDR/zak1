@@ -43,6 +43,7 @@ export const NAV: { href: string; label: string; capability: Capability | null }
   { href: "/content", label: "Content pages", capability: "content.write" }, // feature 051 (P7-R7)
   { href: "/officers", label: "Officers", capability: "content.write" }, // feature 055 (P7-R12)
   { href: "/announcement", label: "Announcement", capability: "content.write" }, // feature 056 (P7-R13)
+  { href: "/campaigns", label: "Campaigns", capability: "content.write" }, // feature 057 (P7-R14)
   { href: "/dev/routes", label: "Route index (dev)", capability: "dev.routes.read" },
 ];
 

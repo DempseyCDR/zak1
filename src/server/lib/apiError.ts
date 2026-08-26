@@ -37,7 +37,8 @@ export type ApiErrorCode =
   | "PERFORMER_PAYMENT_NOT_FOUND"
   | "BOOKING_EVENT_MISMATCH"
   | "CONTENT_PAGE_NOT_FOUND"
-  | "CONTENT_SLUG_TAKEN";
+  | "CONTENT_SLUG_TAKEN"
+  | "CAMPAIGN_NOT_FOUND";
 
 export class ApiError extends Error {
   readonly code: ApiErrorCode;
@@ -194,4 +195,6 @@ export const errors = {
   contentPageNotFound: () => new ApiError("CONTENT_PAGE_NOT_FOUND", 404, "Content page not found."),
   contentSlugTaken: () =>
     new ApiError("CONTENT_SLUG_TAKEN", 409, "A page with that slug already exists."),
+  // Feature 057 (P7-R14): the campaign slot.
+  campaignNotFound: () => new ApiError("CAMPAIGN_NOT_FOUND", 404, "Campaign not found."),
 };

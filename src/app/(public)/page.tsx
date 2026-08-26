@@ -2,8 +2,10 @@ import Image from "next/image";
 import Link from "next/link";
 import { db } from "@/server/db/client";
 import { getPublicSchedule } from "@/server/domain/public/publicSchedule";
+import { getShownCampaign } from "@/server/domain/campaigns/campaignService";
 import ScheduleList from "./_components/ScheduleList";
 import NewHere from "./_components/NewHere";
+import CampaignSlot from "./_components/CampaignSlot";
 import styles from "./home.module.css";
 
 // Feature 047 (P7-R3): the public home at `/`. Orientation-first for the growth funnel — a hero (tagline
@@ -13,11 +15,14 @@ import styles from "./home.module.css";
 const NEXT_DANCES = 4;
 
 export default async function Home() {
-  const schedule = await getPublicSchedule(db);
+  const [schedule, campaign] = await Promise.all([getPublicSchedule(db), getShownCampaign(db)]);
   const next = schedule.slice(0, NEXT_DANCES);
 
   return (
     <div className={styles.home}>
+      {/* Feature 057 (P7-R14): the promotional campaign slot — above the hero, home page only. Nothing when
+          no campaign is active. */}
+      {campaign && <CampaignSlot campaign={campaign} />}
       <section className={styles.hero}>
         {/* Public asset (public/hero.webp) referenced by URL — Next serves & optimizes it; `fill` covers
             the band via home.module.css (object-fit: cover, --hero-focus). */}
