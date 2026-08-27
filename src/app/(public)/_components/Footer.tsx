@@ -19,6 +19,8 @@ export default function Footer() {
           <Link href="/whats-on">What&apos;s On</Link>
           <Link href="/join">Join</Link>
           <Link href="/contact-us">Contact Us</Link>
+          {/* Feature 058 (P7-R15): the print-friendly schedule. */}
+          <Link href="/printable-calendar">Printable calendar</Link>
         </nav>
         <DonateButton className={styles.support} />
         <p className={styles.fine}>&copy; {year} Country Dancers of Rochester</p>

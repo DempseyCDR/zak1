@@ -32,6 +32,11 @@ describe("public footer (US3 / 055 org cluster)", () => {
     expect(screen.getByRole("link", { name: "Join" })).toHaveAttribute("href", "/join");
     // Feature 055 (P7-R12): Contact Us (board + aliases, merged) in the footer — not the top nav.
     expect(screen.getByRole("link", { name: "Contact Us" })).toHaveAttribute("href", "/contact-us");
+    // Feature 058 (P7-R15): the printable calendar is reachable from the footer.
+    expect(screen.getByRole("link", { name: "Printable calendar" })).toHaveAttribute(
+      "href",
+      "/printable-calendar",
+    );
     // Donate affordance — distinct from Join, an outbound PayPal donation link.
     const donate = screen.getByRole("link", { name: "Donate" });
     expect(donate.getAttribute("href")).toMatch(/paypal\.com\/donate/);
