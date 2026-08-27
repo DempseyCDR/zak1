@@ -100,6 +100,11 @@ describe("contentService", () => {
     expect(
       contentPageCreateSchema.safeParse({ slug: "gate", title: "x", draftBody: "y" }).success,
     ).toBe(false);
+    // Feature 058 (P7-R15): the printable-calendar route is reserved.
+    expect(
+      contentPageCreateSchema.safeParse({ slug: "printable-calendar", title: "x", draftBody: "y" })
+        .success,
+    ).toBe(false);
     expect(
       contentPageCreateSchema.safeParse({ slug: "mission", title: "x", draftBody: "y" }).success,
     ).toBe(true);

@@ -23,6 +23,7 @@ export const RESERVED_SLUGS: ReadonlySet<string> = new Set([
   "dances",
   "organizer",
   "contact-us", // feature 055 (P7-R12): dedicated /contact-us route (board officers + aliases + a "contact-info" CMS block)
+  "printable-calendar", // feature 058 (P7-R15): the print-friendly schedule route
   // admin / door page routes
   "access",
   "bands",
