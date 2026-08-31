@@ -174,6 +174,35 @@ describe("can() — scope varies per CAPABILITY, not per role (FR-008)", () => {
   });
 });
 
+// Feature 059 (M-R1, M-R2): the mailing-list manager maintains contacts club-wide. A contact is not
+// series-scoped, so both contact capabilities are `global` — like the role's export.read / pii.read.
+describe("can() — mailing-list manager contact authority (feature 059)", () => {
+  const mlmOfEcd: Grant[] = [{ role: "mailing_list_manager", seriesId: ECD, groupId: null }];
+  const mlmClubWide: Grant[] = [{ role: "mailing_list_manager", seriesId: null, groupId: null }];
+
+  it("maintains the contact record (contact.write) club-wide, even from a series-scoped grant (M-R1)", () => {
+    expect(can(mlmClubWide, "contact.write")).toBe(true);
+    expect(can(mlmOfEcd, "contact.write", { seriesId: TNC })).toBe(true);
+    expect(can(mlmOfEcd, "contact.write", { seriesId: ECD })).toBe(true);
+  });
+
+  it("edits emails/consent (contact.mailing.write) club-wide, regardless of series (M-R2)", () => {
+    expect(can(mlmOfEcd, "contact.mailing.write", { seriesId: TNC })).toBe(true);
+    expect(can(mlmOfEcd, "contact.mailing.write", { seriesId: ECD })).toBe(true);
+  });
+
+  it("still manages only its OWN series' mailing LIST — contact.mailing.write ≠ mailing_list.write", () => {
+    expect(can(mlmOfEcd, "mailing_list.write", { seriesId: ECD })).toBe(true);
+    expect(can(mlmOfEcd, "mailing_list.write", { seriesId: TNC })).toBe(false);
+  });
+
+  it("holds NO authority beyond its map — governance boundary stays refused (FR-004)", () => {
+    expect(can(mlmOfEcd, "role.assign")).toBe(false);
+    expect(can(mlmOfEcd, "membership.write")).toBe(false);
+    expect(can(mlmOfEcd, "gate.write", { seriesId: ECD })).toBe(false);
+  });
+});
+
 describe("can() — PII read rides on the roles that need it (FR-016a)", () => {
   it("is conferred by a Door Attendant grant (matching a dancer)", () => {
     expect(

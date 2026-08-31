@@ -158,7 +158,12 @@ export const CAPABILITIES: Catalog = {
   mailing_list_manager: {
     "mailing_list.write": "scoped",
     "export.read": "global",
-    "contact.mailing.write": "scoped",
+    // Feature 059 (M-R1/M-R2): the mailing-list manager maintains contacts club-wide. A contact is not
+    // series-scoped, so both are `global` (like export.read / contact.pii.read above). `contact.write`
+    // is the record itself (names/pronouns/phone); `contact.mailing.write` is emails/consent — distinct
+    // from `mailing_list.write` (managing a SERIES' list), which stays scoped.
+    "contact.write": "global",
+    "contact.mailing.write": "global",
     "dedup.write": "global",
     "contact.pii.read": "global",
   },
