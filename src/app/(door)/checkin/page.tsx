@@ -40,6 +40,7 @@ export default function CheckinPage() {
   const [selectedSeriesId, setSelectedSeriesId] = useState<string | null>(null);
   const [q, setQ] = useState("");
   const [candidates, setCandidates] = useState<Candidate[]>([]);
+  const [candidatesTruncated, setCandidatesTruncated] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const searchRef = useRef<HTMLInputElement>(null);
 
@@ -84,10 +85,15 @@ export default function CheckinPage() {
   }, [eventId, rosterSort, loadRoster]);
 
   const search = useCallback(async (query: string) => {
-    if (!query.trim()) return setCandidates([]);
+    if (!query.trim()) {
+      setCandidates([]);
+      setCandidatesTruncated(false);
+      return;
+    }
     const res = await apiFetch(`/api/attendance/search?q=${encodeURIComponent(query)}`);
     const data = await res.json();
     setCandidates(data.items ?? []);
+    setCandidatesTruncated(!!data.truncated);
   }, []);
 
   useEffect(() => {
@@ -110,6 +116,7 @@ export default function CheckinPage() {
     // Clear the entry forms and return focus to search for the next dancer (US3, FR-016).
     setQ("");
     setCandidates([]);
+    setCandidatesTruncated(false);
     setNewFirst("");
     setNewLast("");
     setNewDisplay("");
@@ -195,6 +202,9 @@ export default function CheckinPage() {
           />
         ))}
       </ul>
+      {candidatesTruncated && (
+        <p style={{ color: "#5f5c5f", fontSize: 14 }}>More matches — refine your search.</p>
+      )}
 
       <h2>No match</h2>
       <div style={{ display: "grid", gap: 6, maxWidth: 360 }}>
