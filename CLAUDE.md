@@ -1,7 +1,7 @@
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan
-at specs/061-fix-contact-search/plan.md
+at specs/062-contact-search-sections/plan.md
 <!-- SPECKIT END -->
 
 ## Development conventions

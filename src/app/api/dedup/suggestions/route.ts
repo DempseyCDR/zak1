@@ -7,6 +7,7 @@ export const GET = withAuth({ requires: "base" }, async (req) => {
   const url = new URL(req.url);
   const thresholdParam = url.searchParams.get("threshold");
   const threshold = thresholdParam ? Number(thresholdParam) : undefined;
-  const pairs = await getMergeSuggestions(db, threshold);
+  const q = url.searchParams.get("q") ?? undefined;
+  const pairs = await getMergeSuggestions(db, threshold, undefined, q);
   return NextResponse.json({ pairs });
 });
