@@ -43,6 +43,51 @@
   margin: var(--space-2) 0 0;
 }
 
+.dupList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-2);
+}
+
+.dupRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: 8px;
+}
+
+.dupPair {
+  font-weight: 600;
+}
+
+.dupActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.dupButton {
+  composes: touchTarget from "../_components/AdminPage.module.css";
+  padding-inline: var(--space-3);
+  font: inherit;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.dupButton:hover {
+  border-color: var(--band);
+}
+
 .h2 {
   font-family: var(--font-heading);
   font-size: var(--fs-h2);

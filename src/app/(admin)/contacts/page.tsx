@@ -1,7 +1,7 @@
 "use client";
 import { apiFetch } from "@/app/apiFetch";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import AdminPage from "@/app/(admin)/_components/AdminPage";
 import TriageList from "@/app/(admin)/_components/TriageList";
 import RecordView from "@/app/(admin)/_components/RecordView";
@@ -14,6 +14,10 @@ type ContactSummary = {
   listMember: boolean;
   pronouns: string | null;
 };
+
+// Feature 062 (M-R4): a likely-duplicate pair from the dedup engine (shape of MergeSuggestion).
+type DupContact = { id: string; displayName: string };
+type DupPair = { a: DupContact; b: DupContact; similarity: number };
 
 const PURPOSES = ["personal", "booking", "public_profile", "other"] as const;
 const TOPICS = [
@@ -30,7 +34,9 @@ export default function ContactsPage() {
   const [q, setQ] = useState("");
   const [items, setItems] = useState<ContactSummary[]>([]);
   const [searchTruncated, setSearchTruncated] = useState(false);
+  const [dupPairs, setDupPairs] = useState<DupPair[]>([]);
   const [selected, setSelected] = useState<ContactSummary | null>(null);
+  const searchRef = useRef<HTMLInputElement>(null);
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [displayNameOverride, setDisplayNameOverride] = useState("");
@@ -47,11 +53,32 @@ export default function ContactsPage() {
     const data = await res.json();
     setItems(data.items ?? []);
     setSearchTruncated(!!data.truncated);
+    // Feature 062 (M-R4): the potential-duplicates section — query-scoped, or the global queue when empty.
+    const dres = await apiFetch(`/api/dedup/suggestions?q=${encodeURIComponent(query)}`);
+    const ddata = await dres.json();
+    setDupPairs(ddata.pairs ?? []);
   }, []);
 
   useEffect(() => {
     void search(q);
   }, [q, search]);
+
+  // Feature 062 (M-R3): focus-to-search — ready to type on load.
+  useEffect(() => {
+    searchRef.current?.focus();
+  }, []);
+
+  async function merge(canonicalId: string, mergedId: string) {
+    const res = await apiFetch("/api/dedup/merge", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ canonicalId, mergedId }),
+    });
+    if (res.ok) {
+      void search(q);
+      searchRef.current?.focus(); // refocus after the action
+    }
+  }
 
   async function createContact(e: React.FormEvent) {
     e.preventDefault();
@@ -98,6 +125,7 @@ export default function ContactsPage() {
       {/* Triage mode: search results as a worklist; a row opens the record (FR-006/FR-007). */}
       <section className={styles.section}>
         <input
+          ref={searchRef}
           className={styles.search}
           placeholder="Search by name…"
           value={q}
@@ -122,6 +150,38 @@ export default function ContactsPage() {
           <p className={styles.hint}>More matches — refine your search to narrow the list.</p>
         )}
       </section>
+
+      {/* Feature 062 (M-R4): potential duplicates — candidate pairs, each routing to the merge flow. */}
+      {dupPairs.length > 0 && (
+        <section className={styles.section}>
+          <h2 className={styles.h2}>Potential duplicates</h2>
+          <ul className={styles.dupList}>
+            {dupPairs.map((p) => (
+              <li key={`${p.a.id}-${p.b.id}`} className={styles.dupRow}>
+                <span className={styles.dupPair}>
+                  {p.a.displayName} ↔ {p.b.displayName}
+                </span>
+                <span className={styles.dupActions}>
+                  <button
+                    type="button"
+                    className={styles.dupButton}
+                    onClick={() => merge(p.a.id, p.b.id)}
+                  >
+                    Keep {p.a.displayName}
+                  </button>
+                  <button
+                    type="button"
+                    className={styles.dupButton}
+                    onClick={() => merge(p.b.id, p.a.id)}
+                  >
+                    Keep {p.b.displayName}
+                  </button>
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       {/* Record mode: the opened contact's summary (read-only here; editing is Mel's feature). */}
       {selected && (
