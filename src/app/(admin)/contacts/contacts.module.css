@@ -37,6 +37,12 @@
   color: var(--text-muted);
 }
 
+.hint {
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+  margin: var(--space-2) 0 0;
+}
+
 .h2 {
   font-family: var(--font-heading);
   font-size: var(--fs-h2);

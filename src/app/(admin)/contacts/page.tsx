@@ -29,6 +29,7 @@ const TOPICS = [
 export default function ContactsPage() {
   const [q, setQ] = useState("");
   const [items, setItems] = useState<ContactSummary[]>([]);
+  const [searchTruncated, setSearchTruncated] = useState(false);
   const [selected, setSelected] = useState<ContactSummary | null>(null);
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -45,6 +46,7 @@ export default function ContactsPage() {
     const res = await apiFetch(`/api/contacts?q=${encodeURIComponent(query)}`);
     const data = await res.json();
     setItems(data.items ?? []);
+    setSearchTruncated(!!data.truncated);
   }, []);
 
   useEffect(() => {
@@ -116,6 +118,9 @@ export default function ContactsPage() {
           )}
           emptyState={<span className={styles.empty}>No contacts</span>}
         />
+        {searchTruncated && (
+          <p className={styles.hint}>More matches — refine your search to narrow the list.</p>
+        )}
       </section>
 
       {/* Record mode: the opened contact's summary (read-only here; editing is Mel's feature). */}

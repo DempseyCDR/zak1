@@ -127,43 +127,105 @@ export type ContactSummary = Pick<
   "id" | "displayName" | "membershipStatus" | "listMember" | "pronouns"
 >;
 
+export type ContactSearchResult = { items: ContactSummary[]; truncated: boolean };
+
+/** Below this many primary (substring) matches, we also surface fuzzy "did you mean" matches. */
+const FUZZY_FLOOR = 5;
+
+const SEARCH_COLS = {
+  id: contacts.id,
+  displayName: contacts.displayName,
+  membershipStatus: contacts.membershipStatus,
+  listMember: contacts.listMember,
+  pronouns: contacts.pronouns,
+};
+
+/** Escape LIKE/ILIKE wildcards in a user needle (Postgres default '\' escape char). */
+function escapeLike(s: string): string {
+  return s.replace(/[\\%_]/g, (c) => `\\${c}`);
+}
+
+/** Fetch one past `limit` to detect truncation; slice back to `limit`. */
+function withTruncation(rows: ContactSummary[], limit: number): ContactSearchResult {
+  const truncated = rows.length > limit;
+  return { items: truncated ? rows.slice(0, limit) : rows, truncated };
+}
+
 /**
- * Fuzzy name search using pg_trgm similarity, restricted to non-merged contacts.
- * Returns ranked summaries. When q is empty, returns recent contacts.
+ * Contact search (feature 061 / X-R3). **Substring-PRIMARY and monotonic** — a longer query yields a
+ * subset, so typing narrows predictably ("cat" → "Catherine"). Matches a contact by `name_normalized`
+ * ∪ `dedup_normalized` (real first/last, ignoring any display override) ∪ a **prefix** of one of their
+ * active emails. Trigram similarity is a **secondary** "did you mean" fallback, appended only when the
+ * primary result is thin (< FUZZY_FLOOR) and ranked below the exact set. Non-merged only. Empty `q`
+ * browses the roster. Returns `{ items, truncated }` (truncated = more matched than `limit`).
  */
 export async function searchContacts(
   db: Db,
   q: string,
   limit = 20,
   opts: { orderBy?: "recent" | "name" } = {},
-): Promise<ContactSummary[]> {
-  const cols = {
-    id: contacts.id,
-    displayName: contacts.displayName,
-    membershipStatus: contacts.membershipStatus,
-    listMember: contacts.listMember,
-    pronouns: contacts.pronouns,
-  };
-
+): Promise<ContactSearchResult> {
   if (!q.trim()) {
-    // Browse the roster: alphabetical by last then first name for the door (FR-007), else most recent.
+    // Browse the roster: alphabetical by last then first name for the door, else most recent.
     const order =
       opts.orderBy === "name"
         ? [sql`${contacts.lastName} ASC NULLS LAST`, contacts.firstName]
         : [desc(contacts.createdAt)];
-    return db
-      .select(cols)
+    const rows = await db
+      .select(SEARCH_COLS)
       .from(contacts)
       .where(isNull(contacts.mergedIntoId))
       .orderBy(...order)
-      .limit(limit);
+      .limit(limit + 1);
+    return withTruncation(rows, limit);
   }
 
   const needle = normalizeName(q);
-  return db
-    .select(cols)
+  const esc = escapeLike(needle);
+  const infix = `%${esc}%`;
+  const prefix = `${esc}%`;
+
+  // Primary: substring of the display name OR the dedup key (real first/last) OR an active email prefix.
+  const primary = await db
+    .select(SEARCH_COLS)
+    .from(contacts)
+    .where(
+      and(
+        isNull(contacts.mergedIntoId),
+        sql`(${contacts.nameNormalized} ILIKE ${infix}
+          OR ${contacts.dedupNormalized} ILIKE ${infix}
+          OR EXISTS (
+            SELECT 1 FROM contact_emails ce
+            WHERE ce.contact_id = ${contacts.id}
+              AND ce.status IN ('active', 'transition')
+              AND lower(trim(ce.email::text)) LIKE ${prefix}
+          ))`,
+      ),
+    )
+    // Prefix (starts-with) matches before other substrings, then alphabetical — stable + intuitive.
+    .orderBy(
+      sql`CASE WHEN ${contacts.nameNormalized} ILIKE ${prefix} THEN 0 ELSE 1 END`,
+      contacts.nameNormalized,
+    )
+    .limit(limit + 1);
+
+  if (primary.length >= FUZZY_FLOOR) {
+    return withTruncation(primary, limit);
+  }
+
+  // Thin exact results → append trigram-similar names not already present, ranked after the exact set.
+  const seen = new Set(primary.map((r) => r.id));
+  const fuzzy = await db
+    .select(SEARCH_COLS)
     .from(contacts)
     .where(and(isNull(contacts.mergedIntoId), sql`${contacts.nameNormalized} % ${needle}`))
     .orderBy(sql`similarity(${contacts.nameNormalized}, ${needle}) DESC`)
-    .limit(limit);
+    .limit(limit + 1);
+  const merged = [...primary];
+  for (const r of fuzzy) {
+    if (seen.has(r.id)) continue;
+    merged.push(r);
+    if (merged.length > limit) break;
+  }
+  return withTruncation(merged, limit);
 }

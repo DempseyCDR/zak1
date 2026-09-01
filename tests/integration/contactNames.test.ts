@@ -53,7 +53,7 @@ describe("contact structured names", () => {
     });
     // The maintained display_name flows to any reader (here: read-back + the directory search result).
     expect((await getContact(db, c.id)).displayName).toBe("Bob Frost");
-    const results = await searchContacts(db, "Bob");
-    expect(results.find((r) => r.id === c.id)?.displayName).toBe("Bob Frost");
+    const { items } = await searchContacts(db, "Bob");
+    expect(items.find((r) => r.id === c.id)?.displayName).toBe("Bob Frost");
   });
 });

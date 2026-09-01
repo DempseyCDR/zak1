@@ -8,8 +8,8 @@ import { createContact, searchContacts } from "@/server/domain/contacts/contactS
 export const GET = withAuth({ requires: "base" }, async (req) => {
   const url = new URL(req.url);
   const q = url.searchParams.get("q") ?? "";
-  const items = await searchContacts(db, q);
-  return NextResponse.json({ items, total: items.length });
+  const { items, truncated } = await searchContacts(db, q);
+  return NextResponse.json({ items, truncated });
 });
 
 export const POST = withAuth({ requires: "contact.write" }, async (req) => {

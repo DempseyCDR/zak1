@@ -15,7 +15,7 @@ describe("check-in roster sort", () => {
     await createContact(db, { firstName: "Bob", lastName: "Frost" });
 
     // Exclude the harness's standing staff member (feature 015 seeds one for API auth).
-    const roster = (await searchContacts(db, "", 20, { orderBy: "name" })).filter(
+    const roster = (await searchContacts(db, "", 20, { orderBy: "name" })).items.filter(
       (r) => r.displayName !== TEST_STAFF_DISPLAY_NAME,
     );
     expect(roster.map((r) => r.displayName)).toEqual(["Bob Frost", "Grace Hopper", "Ada Lovelace"]);
@@ -27,7 +27,7 @@ describe("check-in roster sort", () => {
       lastName: "Frost",
       displayNameOverride: "Bob Frost",
     });
-    const roster = await searchContacts(db, "", 20, { orderBy: "name" });
+    const { items: roster } = await searchContacts(db, "", 20, { orderBy: "name" });
     expect(roster.map((r) => r.displayName)).toContain("Bob Frost");
   });
 });

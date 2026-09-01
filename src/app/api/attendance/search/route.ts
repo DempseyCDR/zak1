@@ -10,13 +10,13 @@ export const GET = withAuth({ requires: "base" }, async (req, { actor }) => {
   const url = new URL(req.url);
   const q = url.searchParams.get("q") ?? "";
   // Door roster: browse alphabetically by last name (feature 012, FR-007); a query ranks by similarity.
-  const matches = await searchContacts(db, q, 20, { orderBy: "name" });
+  const { items: matches, truncated } = await searchContacts(db, q, 20, { orderBy: "name" });
 
   // FR-016/FR-017 — "matching a dancer": this lookup shows a match's PII to a holder (the Door
   // Attendant needs it to pick the right John Smith), and returns names-only to everyone else. The
   // checked-in ROSTER (a different endpoint) is names-only for all, by construction.
   if (!canReadPii(actor)) {
-    return NextResponse.json({ items: matches.map((m) => ({ ...m, emails: [] })) });
+    return NextResponse.json({ items: matches.map((m) => ({ ...m, emails: [] })), truncated });
   }
 
   const ids = matches.map((m) => m.id);
@@ -35,5 +35,5 @@ export const GET = withAuth({ requires: "base" }, async (req, { actor }) => {
   const items = matches.map((m) => ({ ...m, emails: byContact.get(m.id) ?? [] }));
   // One row per request, counting contacts whose PII was disclosed (FR-017b) — never one per contact.
   await recordPiiDisclosure(db, actor, "attendance.search", byContact.size);
-  return NextResponse.json({ items });
+  return NextResponse.json({ items, truncated });
 });
