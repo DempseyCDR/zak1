@@ -2,6 +2,10 @@
 import { apiFetch } from "@/app/apiFetch";
 
 import { useCallback, useEffect, useState } from "react";
+import AdminPage from "@/app/(admin)/_components/AdminPage";
+import TriageList from "@/app/(admin)/_components/TriageList";
+import RecordView from "@/app/(admin)/_components/RecordView";
+import styles from "./contacts.module.css";
 
 type ContactSummary = {
   id: string;
@@ -25,6 +29,7 @@ const TOPICS = [
 export default function ContactsPage() {
   const [q, setQ] = useState("");
   const [items, setItems] = useState<ContactSummary[]>([]);
+  const [selected, setSelected] = useState<ContactSummary | null>(null);
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [displayNameOverride, setDisplayNameOverride] = useState("");
@@ -87,70 +92,104 @@ export default function ContactsPage() {
   }
 
   return (
-    <main style={{ padding: 24, maxWidth: 800 }}>
-      <h1>Contacts</h1>
-
-      <section style={{ marginBottom: 24 }}>
+    <AdminPage title="Contacts">
+      {/* Triage mode: search results as a worklist; a row opens the record (FR-006/FR-007). */}
+      <section className={styles.section}>
         <input
+          className={styles.search}
           placeholder="Search by name…"
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          style={{ padding: 8, width: "100%" }}
         />
-        <ul>
-          {items.map((c) => (
-            <li key={c.id}>
-              {c.displayName}
-              {c.pronouns ? ` (${c.pronouns})` : ""} — <em>{c.membershipStatus}</em>
-            </li>
-          ))}
-          {items.length === 0 && <li style={{ color: "#888" }}>No contacts</li>}
-        </ul>
+        <TriageList
+          items={items}
+          getKey={(c) => c.id}
+          onOpen={(c) => setSelected(c)}
+          renderRow={(c) => (
+            <span className={styles.rowText}>
+              <span className={styles.rowName}>
+                {c.displayName}
+                {c.pronouns ? ` (${c.pronouns})` : ""}
+              </span>
+              <span className={styles.rowMeta}>{c.membershipStatus}</span>
+            </span>
+          )}
+          emptyState={<span className={styles.empty}>No contacts</span>}
+        />
       </section>
 
-      <section>
-        <h2>Add contact</h2>
-        <form onSubmit={createContact} style={{ display: "grid", gap: 8 }}>
+      {/* Record mode: the opened contact's summary (read-only here; editing is Mel's feature). */}
+      {selected && (
+        <section className={styles.section}>
+          <RecordView
+            title={selected.displayName}
+            actions={
+              <button type="button" className={styles.button} onClick={() => setSelected(null)}>
+                Close
+              </button>
+            }
+          >
+            <dl className={styles.detail}>
+              <div>
+                <dt>Pronouns</dt>
+                <dd>{selected.pronouns ?? "—"}</dd>
+              </div>
+              <div>
+                <dt>Membership</dt>
+                <dd>{selected.membershipStatus}</dd>
+              </div>
+              <div>
+                <dt>On mailing list</dt>
+                <dd>{selected.listMember ? "Yes" : "No"}</dd>
+              </div>
+            </dl>
+          </RecordView>
+        </section>
+      )}
+
+      <section className={styles.section}>
+        <h2 className={styles.h2}>Add contact</h2>
+        <form onSubmit={createContact} className={styles.form}>
           <input
+            className={styles.input}
             placeholder="First name"
             value={firstName}
             onChange={(e) => setFirstName(e.target.value)}
-            style={{ padding: 8 }}
           />
           <input
+            className={styles.input}
             placeholder="Last name (optional)"
             value={lastName}
             onChange={(e) => setLastName(e.target.value)}
-            style={{ padding: 8 }}
           />
           <input
+            className={styles.input}
             placeholder="Display name override (optional)"
             value={displayNameOverride}
             onChange={(e) => setDisplayNameOverride(e.target.value)}
-            style={{ padding: 8 }}
           />
           <input
+            className={styles.input}
             placeholder="Pronouns (optional)"
             value={pronouns}
             onChange={(e) => setPronouns(e.target.value)}
-            style={{ padding: 8 }}
           />
           <input
+            className={styles.input}
             placeholder="Email address (optional)"
             value={address}
             onChange={(e) => setAddress(e.target.value)}
-            style={{ padding: 8 }}
           />
           <input
+            className={styles.input}
             placeholder="Phone (optional)"
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
-            style={{ padding: 8 }}
           />
-          <fieldset>
+          <fieldset className={styles.fieldset}>
             <legend>Purposes</legend>
             {PURPOSES.map((p) => (
-              <label key={p} style={{ marginRight: 12 }}>
+              <label key={p} className={styles.check}>
                 <input
                   type="checkbox"
                   checked={purposes.includes(p)}
@@ -160,10 +199,10 @@ export default function ContactsPage() {
               </label>
             ))}
           </fieldset>
-          <fieldset>
+          <fieldset className={styles.fieldset}>
             <legend>Consent topics</legend>
             {TOPICS.map((t) => (
-              <label key={t} style={{ marginRight: 12 }}>
+              <label key={t} className={styles.check}>
                 <input
                   type="checkbox"
                   checked={topics.includes(t)}
@@ -173,13 +212,13 @@ export default function ContactsPage() {
               </label>
             ))}
           </fieldset>
-          <button type="submit" style={{ padding: 8 }}>
+          <button type="submit" className={styles.button}>
             Create
           </button>
-          {error && <p style={{ color: "crimson" }}>{error}</p>}
-          {warning && <p style={{ color: "#a15c00" }}>{warning}</p>}
+          {error && <p className={styles.error}>{error}</p>}
+          {warning && <p className={styles.warning}>{warning}</p>}
         </form>
       </section>
-    </main>
+    </AdminPage>
   );
 }

@@ -1,0 +1,27 @@
+/* Feature 060 (X-R1): mobile-first admin page shell + shared touch-target helper.
+   Applies the globals.css token vocabulary (globals.css stays vocabulary-only, per its contract). */
+
+.page {
+  max-width: var(--container-max);
+  margin-inline: auto;
+  padding: var(--space-5) var(--space-4);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: var(--fs-body);
+  line-height: var(--lh-body);
+}
+
+.title {
+  font-family: var(--font-heading);
+  font-size: var(--fs-h1);
+  line-height: var(--lh-heading);
+  color: var(--text);
+  margin: 0 0 var(--space-4);
+}
+
+/* The 48×48px touch-target floor (FR-008/SC-005) === var(--space-7). Compose into interactive controls:
+   `composes: touchTarget from "../_components/AdminPage.module.css";` */
+.touchTarget {
+  min-block-size: var(--space-7);
+  min-inline-size: var(--space-7);
+}

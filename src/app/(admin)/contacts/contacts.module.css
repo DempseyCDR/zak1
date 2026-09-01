@@ -1,0 +1,131 @@
+/* Feature 060 (X-R1/FR-010): the contacts reference surface — token-driven, mobile-first, replacing the
+   former inline `style={{}}`. 48px touch targets are composed from the shared AdminPage helper. */
+
+.section {
+  margin-block-end: var(--space-5);
+}
+
+.search {
+  composes: touchTarget from "../_components/AdminPage.module.css";
+  inline-size: 100%;
+  padding: var(--space-3);
+  font: inherit;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: 8px;
+}
+
+.rowText {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-2);
+  inline-size: 100%;
+}
+
+.rowName {
+  font-weight: 600;
+}
+
+.rowMeta {
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+}
+
+.empty {
+  color: var(--text-muted);
+}
+
+.h2 {
+  font-family: var(--font-heading);
+  font-size: var(--fs-h2);
+  line-height: var(--lh-heading);
+  color: var(--text);
+  margin: 0 0 var(--space-3);
+}
+
+.detail {
+  margin: 0;
+  display: grid;
+  gap: var(--space-3);
+}
+
+.detail div {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.detail dt {
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+}
+
+.detail dd {
+  margin: 0;
+  color: var(--text);
+}
+
+.form {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.input {
+  composes: touchTarget from "../_components/AdminPage.module.css";
+  inline-size: 100%;
+  padding: var(--space-3);
+  font: inherit;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: 8px;
+}
+
+.fieldset {
+  border: 1px solid var(--hairline);
+  border-radius: 8px;
+  padding: var(--space-3);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.fieldset legend {
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+  padding-inline: var(--space-1);
+}
+
+.check {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.button {
+  composes: touchTarget from "../_components/AdminPage.module.css";
+  padding-inline: var(--space-4);
+  font: inherit;
+  color: var(--link-on-dark);
+  background: var(--band);
+  border: 1px solid var(--band);
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.button:hover {
+  background: var(--band-hover);
+  border-color: var(--band-hover);
+}
+
+/* Status messages — semantic error/warning colors (the shared palette carries none). */
+.error {
+  color: #b3261e;
+  margin: 0;
+}
+
+.warning {
+  color: #a15c00;
+  margin: 0;
+}

@@ -1,0 +1,36 @@
+/* Feature 060 (X-R2): Record mode — single-entity shell. Fields stack vertically (mobile-first). */
+
+.record {
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: 8px;
+  padding: var(--space-4);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-block-end: var(--space-3);
+}
+
+.title {
+  font-family: var(--font-heading);
+  font-size: var(--fs-h2);
+  line-height: var(--lh-heading);
+  color: var(--text);
+  margin: 0;
+}
+
+.actions {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+/* Fields/sections stack — never forces horizontal scroll on a narrow screen. */
+.body {
+  display: grid;
+  gap: var(--space-3);
+}
