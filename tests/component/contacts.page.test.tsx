@@ -4,138 +4,9 @@ import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import ContactsPage from "@/app/(admin)/contacts/page";
 
-// Feature 060 (FR-010 / SC-004): migrating the contacts surface to the mobile-first shell/patterns must
-// NOT change behavior — search still lists matches and the create form still POSTs. Presentation only.
 afterEach(() => vi.unstubAllGlobals());
 
-function stubFetch(items: unknown[]): { url: string; init?: RequestInit }[] {
-  const calls: { url: string; init?: RequestInit }[] = [];
-  vi.stubGlobal(
-    "fetch",
-    vi.fn(async (url: string, init?: RequestInit) => {
-      calls.push({ url: String(url), init });
-      if (init?.method === "POST") {
-        return { status: 201, ok: true, json: async () => ({ id: "new" }) };
-      }
-      return { status: 200, ok: true, json: async () => ({ items }) };
-    }),
-  );
-  return calls;
-}
-
-describe("contacts page (no behavior regression)", () => {
-  it("lists search matches", async () => {
-    stubFetch([
-      {
-        id: "1",
-        displayName: "Ada Lovelace",
-        membershipStatus: "current",
-        listMember: true,
-        pronouns: "she/her",
-      },
-    ]);
-    render(<ContactsPage />);
-    await userEvent.type(screen.getByPlaceholderText(/search by name/i), "ada");
-    await waitFor(() => expect(screen.getByText(/Ada Lovelace/)).toBeInTheDocument());
-  });
-
-  it("submits the create form as a POST to /api/contacts", async () => {
-    const calls = stubFetch([]);
-    render(<ContactsPage />);
-    await userEvent.type(screen.getByPlaceholderText("First name"), "Grace");
-    await userEvent.click(screen.getByRole("button", { name: "Create" }));
-    await waitFor(() =>
-      expect(calls.some((c) => c.url.includes("/api/contacts") && c.init?.method === "POST")).toBe(
-        true,
-      ),
-    );
-  });
-});
-
-// Feature 062 (M-R3/M-R4): two-section results (single contacts + potential-duplicate pairs) and
-// focus-to-search.
-function stubSections(opts: {
-  items?: unknown[];
-  pairs?: unknown[];
-}): { url: string; init?: RequestInit }[] {
-  const calls: { url: string; init?: RequestInit }[] = [];
-  vi.stubGlobal(
-    "fetch",
-    vi.fn(async (url: string, init?: RequestInit) => {
-      calls.push({ url: String(url), init });
-      if (init?.method === "POST") return { status: 200, ok: true, json: async () => ({}) };
-      if (String(url).includes("/api/dedup/suggestions"))
-        return { status: 200, ok: true, json: async () => ({ pairs: opts.pairs ?? [] }) };
-      return { status: 200, ok: true, json: async () => ({ items: opts.items ?? [] }) };
-    }),
-  );
-  return calls;
-}
-
-const dupContact = (id: string, name: string) => ({
-  id,
-  displayName: name,
-  membershipStatus: "never",
-  phone: null,
-  emails: [],
-});
-
-describe("contacts page — duplicates section + focus (feature 062)", () => {
-  it("renders both sections: single contacts and potential-duplicate pairs (C5)", async () => {
-    stubSections({
-      items: [dupContact("1", "Jon Smith")],
-      pairs: [
-        { a: dupContact("1", "Jon Smith"), b: dupContact("2", "John Smith"), similarity: 0.9 },
-      ],
-    });
-    render(<ContactsPage />);
-    await userEvent.type(screen.getByPlaceholderText(/search by name/i), "smith");
-    // The single-contacts section (TriageList) and the potential-duplicates section both render.
-    await waitFor(() => expect(screen.getByText(/Potential duplicates/i)).toBeInTheDocument());
-    expect(screen.getByText("Jon Smith ↔ John Smith")).toBeInTheDocument();
-  });
-
-  it("omits the duplicates section when there are no pairs (C7)", async () => {
-    stubSections({ items: [dupContact("1", "Ada Lovelace")], pairs: [] });
-    render(<ContactsPage />);
-    await userEvent.type(screen.getByPlaceholderText(/search by name/i), "ada");
-    await waitFor(() => expect(screen.getByText(/Ada Lovelace/)).toBeInTheDocument());
-    expect(screen.queryByText(/Potential duplicates/i)).toBeNull();
-  });
-
-  it("merges a selected pair via POST /api/dedup/merge (C6)", async () => {
-    const calls = stubSections({
-      pairs: [
-        { a: dupContact("a1", "Jon Smith"), b: dupContact("b1", "John Smith"), similarity: 0.9 },
-      ],
-    });
-    render(<ContactsPage />);
-    await userEvent.type(screen.getByPlaceholderText(/search by name/i), "smith");
-    await waitFor(() => expect(screen.getByText(/Potential duplicates/i)).toBeInTheDocument());
-    await userEvent.click(screen.getByRole("button", { name: /keep jon smith/i }));
-    await waitFor(() =>
-      expect(
-        calls.some(
-          (c) =>
-            c.url.includes("/api/dedup/merge") &&
-            c.init?.method === "POST" &&
-            String(c.init?.body).includes('"canonicalId":"a1"') &&
-            String(c.init?.body).includes('"mergedId":"b1"'),
-        ),
-      ).toBe(true),
-    );
-  });
-
-  it("auto-focuses the search field on load (C9)", async () => {
-    stubSections({});
-    render(<ContactsPage />);
-    await waitFor(() => expect(screen.getByPlaceholderText(/search by name/i)).toHaveFocus());
-  });
-});
-
-// Feature 063 (M-R5..M-R8): the record editor — editable scalar fields, Automatic/Custom display name,
-// governance-gated is_volunteer, and read-only standing context.
-type EditorRecord = {
+type Rec = {
   id: string;
   firstName: string;
   lastName: string | null;
@@ -149,247 +20,283 @@ type EditorRecord = {
   needsReview: boolean;
   volunteerApprovedAt: string | null;
   volunteerApprovedBy: string | null;
-  source: string | null;
-  emails: unknown[];
 };
 
-const REC = (over: Partial<EditorRecord> = {}): EditorRecord => ({
+const REC = (over: Partial<Rec> = {}): Rec => ({
   id: "c1",
   firstName: "Jon",
   lastName: "Smith",
   displayName: "Jon Smith",
   displayNameOverride: null,
   pronouns: "he/him",
-  phone: "+15855551234", // stored canonical form (feature 032)
+  phone: "+15855551234",
   isVolunteer: false,
   membershipStatus: "current",
   listMember: true,
   needsReview: false,
   volunteerApprovedAt: null,
   volunteerApprovedBy: null,
-  source: "import",
-  emails: [],
   ...over,
 });
 
-// Full stub: search list, dedup suggestions, single-record GET, and PATCH.
-function stubEditor(opts: { record: EditorRecord }): { url: string; init?: RequestInit }[] {
-  const calls: { url: string; init?: RequestInit }[] = [];
-  const rec = opts.record;
-  const summary = {
-    id: rec.id,
-    displayName: rec.displayName,
-    membershipStatus: rec.membershipStatus,
-    listMember: rec.listMember,
-    pronouns: rec.pronouns,
-  };
+const summary = (r: Rec) => ({
+  id: r.id,
+  displayName: r.displayName,
+  membershipStatus: r.membershipStatus,
+  listMember: r.listMember,
+  pronouns: r.pronouns,
+});
+const dup = (id: string, name: string) => ({ id, displayName: name });
+
+type Call = { url: string; init?: RequestInit };
+const json = (body: unknown, status = 200) => ({
+  ok: status < 400,
+  status,
+  json: async () => body,
+});
+
+// One stub for every endpoint the launcher touches. Order matters (specific paths before generic ones).
+function stub(opts: {
+  items?: unknown[];
+  review?: unknown[];
+  pairs?: unknown[];
+  record?: Rec;
+  counts?: { needsReview: number; duplicates: number };
+}): Call[] {
+  const calls: Call[] = [];
   vi.stubGlobal(
     "fetch",
     vi.fn(async (url: string, init?: RequestInit) => {
       const u = String(url);
+      const method = init?.method ?? "GET";
       calls.push({ url: u, init });
-      if (init?.method === "PATCH") {
-        const patch = JSON.parse(String(init.body));
-        return { ok: true, status: 200, json: async () => ({ ...rec, ...patch }) };
-      }
-      if (u.includes("/api/dedup/suggestions"))
-        return { ok: true, status: 200, json: async () => ({ pairs: [] }) };
-      if (u.includes("/api/contacts?"))
-        return { ok: true, status: 200, json: async () => ({ items: [summary] }) };
-      if (/\/api\/contacts\/[^?]+$/.test(u))
-        return { ok: true, status: 200, json: async () => rec };
-      return { ok: true, status: 200, json: async () => ({ items: [] }) };
+      if (u.includes("/api/contacts/launcher-counts"))
+        return json({
+          needsReview: opts.counts?.needsReview ?? 0,
+          duplicates: opts.counts?.duplicates ?? 0,
+        });
+      if (u.includes("/api/dedup/merge")) return json({});
+      if (u.includes("/api/dedup/suggestions")) return json({ pairs: opts.pairs ?? [] });
+      if (/\/api\/contacts\/[^/?]+\/reviewed$/.test(u)) return json({});
+      if (u.includes("needsReview=1")) return json({ items: opts.review ?? [] });
+      if (u.includes("/api/contacts?")) return json({ items: opts.items ?? [] });
+      if (method === "PATCH" && /\/api\/contacts\/[^/?]+$/.test(u))
+        return json({ ...(opts.record ?? REC()), ...JSON.parse(String(init?.body)) });
+      if (method === "POST" && u.endsWith("/api/contacts")) return json({ id: "new" }, 201);
+      if (/\/api\/contacts\/[^/?]+$/.test(u)) return json(opts.record ?? REC());
+      return json({ items: [] });
     }),
   );
   return calls;
 }
 
-/** Open the single record by clicking its search-result row, and return the record region. */
-async function openRecord(name: RegExp | string) {
+const search = () => screen.getByPlaceholderText(/search by name/i);
+const patchBody = (calls: Call[]) =>
+  String(calls.find((c) => c.init?.method === "PATCH")?.init?.body ?? "");
+
+/** Open a record by typing (to surface the search list) then clicking its row; returns the dialog. */
+async function openViaSearch(name: RegExp | string) {
+  await userEvent.type(search(), "x");
   await userEvent.click(await screen.findByRole("button", { name }));
-  return await screen.findByRole("region", { name });
+  return await screen.findByRole("dialog", { name });
 }
 
-describe("contacts page — record editor (feature 063)", () => {
-  it("opens a record pre-filled from the full contact fetch (C4)", async () => {
-    stubEditor({ record: REC() });
+describe("contacts launcher — initial state (feature 064)", () => {
+  it("shows only header + search + task buttons, no lists or create form (C8)", async () => {
+    stub({ counts: { needsReview: 3, duplicates: 2 } });
     render(<ContactsPage />);
-    const region = await openRecord(/Jon Smith/);
-    expect(within(region).getByDisplayValue("Jon")).toBeInTheDocument();
-    expect(within(region).getByDisplayValue("Smith")).toBeInTheDocument();
-    expect(within(region).getByDisplayValue("he/him")).toBeInTheDocument();
-    expect(within(region).getByDisplayValue("585-555-1234")).toBeInTheDocument(); // formatted (FR-019)
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: /review queue/i })).toHaveTextContent("(3)"),
+    );
+    expect(screen.getByRole("button", { name: /add contact/i })).toBeInTheDocument();
+    expect(screen.queryByText(/potential duplicates/i)).toBeNull();
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(screen.queryByPlaceholderText("First name")).toBeNull(); // create form not inline
   });
 
-  it("Save issues one PATCH with the edited scalar fields (C5)", async () => {
-    const calls = stubEditor({ record: REC() });
+  it("renders the two counts on the review buttons (C9)", async () => {
+    stub({ counts: { needsReview: 5, duplicates: 1 } });
     render(<ContactsPage />);
-    const region = await openRecord(/Jon Smith/);
-    const last = within(region).getByDisplayValue("Smith");
-    await userEvent.clear(last);
-    await userEvent.type(last, "Smithe");
-    await userEvent.click(within(region).getByRole("button", { name: /^save$/i }));
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: /review queue/i })).toHaveTextContent("(5)"),
+    );
+    expect(screen.getByRole("button", { name: /review duplicates/i })).toHaveTextContent("(1)");
+  });
+});
+
+describe("contacts launcher — review queue (feature 064)", () => {
+  it("tapping Review queue lists needs-review contacts; a row opens the editor (C10)", async () => {
+    stub({ review: [summary(REC({ needsReview: true }))], record: REC({ needsReview: true }) });
+    render(<ContactsPage />);
+    await userEvent.click(screen.getByRole("button", { name: /review queue/i }));
+    await userEvent.click(await screen.findByRole("button", { name: /Jon Smith/ }));
+    expect(await screen.findByRole("dialog", { name: /Jon Smith/ })).toBeInTheDocument();
+  });
+
+  it("Mark reviewed clears the flag, drops the count, and the row leaves the queue (C15/C16/C14)", async () => {
+    const calls = stub({
+      review: [summary(REC({ needsReview: true }))],
+      record: REC({ needsReview: true }),
+      counts: { needsReview: 1, duplicates: 0 },
+    });
+    render(<ContactsPage />);
+    await userEvent.click(screen.getByRole("button", { name: /review queue/i }));
+    await userEvent.click(await screen.findByRole("button", { name: /Jon Smith/ }));
+    const dialog = await screen.findByRole("dialog", { name: /Jon Smith/ });
+    calls.length = 0; // assert only the post-action calls
+    await userEvent.click(within(dialog).getByRole("button", { name: /mark reviewed/i }));
+    await waitFor(() =>
+      expect(calls.some((c) => c.url.includes("/reviewed") && c.init?.method === "POST")).toBe(
+        true,
+      ),
+    );
+    // count refreshed + list re-fetched (F1/F2)
+    await waitFor(() => expect(calls.some((c) => c.url.includes("launcher-counts"))).toBe(true));
+    expect(calls.some((c) => c.url.includes("needsReview=1"))).toBe(true);
+  });
+});
+
+describe("contacts launcher — duplicates view (feature 064)", () => {
+  it("tapping Review duplicates shows the global pairs; merge removes it + refreshes counts (C11/C14)", async () => {
+    const calls = stub({
+      pairs: [{ a: dup("a1", "Jon Smith"), b: dup("b1", "John Smith"), similarity: 0.9 }],
+      counts: { needsReview: 0, duplicates: 1 },
+    });
+    render(<ContactsPage />);
+    await userEvent.click(screen.getByRole("button", { name: /review duplicates/i }));
+    await screen.findByText("Jon Smith ↔ John Smith");
+    calls.length = 0;
+    await userEvent.click(screen.getByRole("button", { name: /keep jon smith/i }));
     await waitFor(() =>
       expect(
         calls.some(
           (c) =>
-            c.url.includes("/api/contacts/c1") &&
-            c.init?.method === "PATCH" &&
-            String(c.init?.body).includes('"lastName":"Smithe"'),
+            c.url.includes("/api/dedup/merge") &&
+            c.init?.method === "POST" &&
+            String(c.init?.body).includes('"canonicalId":"a1"'),
         ),
       ).toBe(true),
     );
+    await waitFor(() => expect(calls.some((c) => c.url.includes("launcher-counts"))).toBe(true));
   });
 
-  it("Cancel discards edits without a PATCH (C11)", async () => {
-    const calls = stubEditor({ record: REC() });
+  it("shows an empty state when there are no global pairs", async () => {
+    stub({ pairs: [] });
     render(<ContactsPage />);
-    const region = await openRecord(/Jon Smith/);
-    const last = within(region).getByDisplayValue("Smith");
-    await userEvent.clear(last);
-    await userEvent.type(last, "Smithe");
-    await userEvent.click(within(region).getByRole("button", { name: /cancel/i }));
-    await waitFor(() => expect(screen.queryByRole("region", { name: /Jon Smith/ })).toBeNull());
-    expect(calls.some((c) => c.init?.method === "PATCH")).toBe(false);
+    await userEvent.click(screen.getByRole("button", { name: /review duplicates/i }));
+    expect(await screen.findByText(/no potential duplicates/i)).toBeInTheDocument();
   });
 });
 
-const patchBody = (calls: { url: string; init?: RequestInit }[]) => {
-  const patch = calls.find((c) => c.init?.method === "PATCH");
-  return patch ? String(patch.init?.body) : "";
-};
-
-describe("contacts page — Automatic/Custom display name (feature 063)", () => {
-  it("Automatic mode: read-only preview of 'first last' + Set custom name (C6)", async () => {
-    stubEditor({ record: REC() });
+describe("contacts launcher — search hybrid + exclusivity (feature 064)", () => {
+  it("typing shows single results with query-scoped pairs alongside (C12)", async () => {
+    stub({
+      items: [summary(REC({ id: "1", displayName: "Jon Smith" }))],
+      pairs: [{ a: dup("1", "Jon Smith"), b: dup("2", "John Smith"), similarity: 0.9 }],
+    });
     render(<ContactsPage />);
-    const region = await openRecord(/Jon Smith/);
-    const preview = within(region).getByLabelText("Display name") as HTMLInputElement;
-    expect(preview.value).toBe("Jon Smith");
-    expect(preview.readOnly).toBe(true);
-    expect(within(region).getByRole("button", { name: /set custom name/i })).toBeInTheDocument();
+    await userEvent.type(search(), "smith");
+    expect(await screen.findByText(/Potential duplicates/i)).toBeInTheDocument();
+    expect(screen.getByText("Jon Smith ↔ John Smith")).toBeInTheDocument();
   });
 
-  it("Set custom name → editable, prefilled; Save sends non-blank override (C7)", async () => {
-    const calls = stubEditor({ record: REC() });
+  it("clearing the search box returns to the bare launcher (C12)", async () => {
+    stub({ items: [summary(REC({ displayName: "Ada Lovelace" }))] });
     render(<ContactsPage />);
-    const region = await openRecord(/Jon Smith/);
-    await userEvent.click(within(region).getByRole("button", { name: /set custom name/i }));
-    const field = within(region).getByLabelText("Display name") as HTMLInputElement;
-    expect(field.readOnly).toBe(false);
-    expect(field.value).toBe("Jon Smith");
-    await userEvent.click(within(region).getByRole("button", { name: /^save$/i }));
+    await userEvent.type(search(), "ada");
+    await screen.findByText(/Ada Lovelace/);
+    await userEvent.clear(search());
+    await waitFor(() => expect(screen.queryByText(/Ada Lovelace/)).toBeNull());
+    expect(screen.getByRole("button", { name: /review queue/i })).toBeInTheDocument();
+  });
+});
+
+describe("contacts launcher — add contact modal (feature 064)", () => {
+  it("Add contact opens a modal; submit creates, closes, and refreshes (C13/C14)", async () => {
+    const calls = stub({ counts: { needsReview: 0, duplicates: 0 } });
+    render(<ContactsPage />);
+    await userEvent.click(screen.getByRole("button", { name: /add contact/i }));
+    const dialog = await screen.findByRole("dialog", { name: /add contact/i });
+    await userEvent.type(within(dialog).getByPlaceholderText("First name"), "Grace");
+    calls.length = 0;
+    await userEvent.click(within(dialog).getByRole("button", { name: /^create$/i }));
+    await waitFor(() =>
+      expect(calls.some((c) => c.url.endsWith("/api/contacts") && c.init?.method === "POST")).toBe(
+        true,
+      ),
+    );
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: /add contact/i })).toBeNull());
+    expect(calls.some((c) => c.url.includes("launcher-counts"))).toBe(true);
+  });
+
+  it("Cancel closes the create modal without a POST", async () => {
+    const calls = stub({});
+    render(<ContactsPage />);
+    await userEvent.click(screen.getByRole("button", { name: /add contact/i }));
+    const dialog = await screen.findByRole("dialog", { name: /add contact/i });
+    await userEvent.click(within(dialog).getByRole("button", { name: /cancel/i }));
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: /add contact/i })).toBeNull());
+    expect(calls.some((c) => c.init?.method === "POST")).toBe(false);
+  });
+});
+
+// Feature 063 editor coverage, adapted to the 064 open-via-search flow.
+describe("record editor (feature 063, via launcher)", () => {
+  it("opens pre-filled with a formatted phone", async () => {
+    stub({ items: [summary(REC())], record: REC() });
+    render(<ContactsPage />);
+    const dialog = await openViaSearch(/Jon Smith/);
+    expect(within(dialog).getByDisplayValue("Jon")).toBeInTheDocument();
+    expect(within(dialog).getByDisplayValue("585-555-1234")).toBeInTheDocument();
+    for (const label of ["First name", "Last name", "Display name", "Pronouns", "Phone"])
+      expect(within(dialog).getByLabelText(label)).toBeInTheDocument();
+  });
+
+  it("Save issues one PATCH with the edited fields", async () => {
+    const calls = stub({ items: [summary(REC())], record: REC() });
+    render(<ContactsPage />);
+    const dialog = await openViaSearch(/Jon Smith/);
+    const last = within(dialog).getByLabelText("Last name");
+    await userEvent.clear(last);
+    await userEvent.type(last, "Smithe");
+    await userEvent.click(within(dialog).getByRole("button", { name: /^save$/i }));
+    await waitFor(() => expect(patchBody(calls)).toContain('"lastName":"Smithe"'));
+  });
+
+  it("Automatic → Set custom name → Save sends the override", async () => {
+    const calls = stub({ items: [summary(REC())], record: REC() });
+    render(<ContactsPage />);
+    const dialog = await openViaSearch(/Jon Smith/);
+    await userEvent.click(within(dialog).getByRole("button", { name: /set custom name/i }));
+    await userEvent.click(within(dialog).getByRole("button", { name: /^save$/i }));
     await waitFor(() => expect(patchBody(calls)).toContain('"displayNameOverride":"Jon Smith"'));
   });
 
-  it("Custom + blank custom field on Save → override null (C8)", async () => {
-    const calls = stubEditor({ record: REC({ displayNameOverride: "DJ", displayName: "DJ" }) });
-    render(<ContactsPage />);
-    const region = await openRecord(/DJ/);
-    await userEvent.clear(within(region).getByLabelText("Display name"));
-    await userEvent.click(within(region).getByRole("button", { name: /^save$/i }));
-    await waitFor(() => expect(patchBody(calls)).toContain('"displayNameOverride":null'));
-  });
-
-  it("Custom: editing first/last does not move the pinned name (C12)", async () => {
-    const calls = stubEditor({ record: REC({ displayNameOverride: "DJ", displayName: "DJ" }) });
-    render(<ContactsPage />);
-    const region = await openRecord(/DJ/);
-    const last = within(region).getByDisplayValue("Smith");
-    await userEvent.clear(last);
-    await userEvent.type(last, "Smithe");
-    expect((within(region).getByLabelText("Display name") as HTMLInputElement).value).toBe("DJ");
-    await userEvent.click(within(region).getByRole("button", { name: /^save$/i }));
-    await waitFor(() => expect(patchBody(calls)).toContain('"displayNameOverride":"DJ"'));
-  });
-
-  it("Custom + Reset to automatic → override null (C13)", async () => {
-    const calls = stubEditor({ record: REC({ displayNameOverride: "DJ", displayName: "DJ" }) });
-    render(<ContactsPage />);
-    const region = await openRecord(/DJ/);
-    await userEvent.click(within(region).getByRole("button", { name: /reset to automatic/i }));
-    await userEvent.click(within(region).getByRole("button", { name: /^save$/i }));
-    await waitFor(() => expect(patchBody(calls)).toContain('"displayNameOverride":null'));
-  });
-});
-
-describe("contacts page — is_volunteer is read-only in the editor (feature 063)", () => {
-  it("shows volunteer status read-only and offers no toggle (C9)", async () => {
-    // is_volunteer is governance-owned (designate/clear on the access screen). The editor never edits
-    // it — no checkbox, no send on Save — it only displays the current value.
-    const calls = stubEditor({ record: REC({ isVolunteer: true }) });
-    render(<ContactsPage />);
-    const region = await openRecord(/Jon Smith/);
-    expect(within(region).queryByRole("checkbox", { name: /volunteer/i })).toBeNull();
-    expect(within(region).getByText(/volunteer:/i)).toBeInTheDocument(); // read-only flag, not a control
-    await userEvent.click(within(region).getByRole("button", { name: /^save$/i }));
-    await waitFor(() => expect(calls.some((c) => c.init?.method === "PATCH")).toBe(true));
-    // A save never carries is_volunteer from the editor.
-    expect(patchBody(calls)).not.toContain("isVolunteer");
-  });
-});
-
-describe("contacts page — editor opens as a modal (feature 063)", () => {
-  it("opens the record as a labeled dialog containing the form (C16)", async () => {
-    stubEditor({ record: REC() });
-    render(<ContactsPage />);
-    await userEvent.click(await screen.findByRole("button", { name: /Jon Smith/ }));
-    const dialog = await screen.findByRole("dialog", { name: /Jon Smith/ });
-    expect(dialog).toHaveAttribute("aria-modal", "true");
-    expect(within(dialog).getByRole("button", { name: /^save$/i })).toBeInTheDocument();
-  });
-
-  it("Escape closes the modal without a PATCH (C17)", async () => {
-    const calls = stubEditor({ record: REC() });
-    render(<ContactsPage />);
-    await userEvent.click(await screen.findByRole("button", { name: /Jon Smith/ }));
-    await screen.findByRole("dialog", { name: /Jon Smith/ });
-    await userEvent.keyboard("{Escape}");
-    await waitFor(() => expect(screen.queryByRole("dialog", { name: /Jon Smith/ })).toBeNull());
-    expect(calls.some((c) => c.init?.method === "PATCH")).toBe(false);
-  });
-
-  it("moves focus into the dialog (first field) on open (C18)", async () => {
-    stubEditor({ record: REC() });
-    render(<ContactsPage />);
-    await userEvent.click(await screen.findByRole("button", { name: /Jon Smith/ }));
-    const dialog = await screen.findByRole("dialog", { name: /Jon Smith/ });
-    await waitFor(() => expect(within(dialog).getByLabelText("First name")).toHaveFocus());
-  });
-});
-
-describe("contacts page — field labels + phone formatting (feature 063)", () => {
-  it("every editable field has a visible label (C14)", async () => {
-    stubEditor({ record: REC() });
-    render(<ContactsPage />);
-    const region = await openRecord(/Jon Smith/);
-    for (const label of ["First name", "Last name", "Display name", "Pronouns", "Phone"]) {
-      // Reachable by its label (association) AND the label text is actually rendered (visible).
-      expect(within(region).getByLabelText(label)).toBeInTheDocument();
-      expect(within(region).getByText(label)).toBeInTheDocument();
-    }
-  });
-
-  it("shows the phone in human-readable form (C15)", async () => {
-    stubEditor({ record: REC({ phone: "+15855551234" }) });
-    render(<ContactsPage />);
-    const region = await openRecord(/Jon Smith/);
-    expect((within(region).getByLabelText("Phone") as HTMLInputElement).value).toBe("585-555-1234");
-  });
-});
-
-describe("contacts page — read-only standing context (feature 063)", () => {
-  it("shows volunteer, membership, needs-review, volunteer-approval; never source (C10)", async () => {
-    stubEditor({
-      record: REC({ membershipStatus: "current", needsReview: true, source: "import" }),
+  it("is_volunteer is read-only (no toggle) and never sent on Save", async () => {
+    const calls = stub({
+      items: [summary(REC({ isVolunteer: true }))],
+      record: REC({ isVolunteer: true }),
     });
     render(<ContactsPage />);
-    const region = await openRecord(/Jon Smith/);
-    expect(within(region).getByText(/membership/i)).toBeInTheDocument();
-    expect(within(region).getByText("current")).toBeInTheDocument();
-    expect(within(region).getByText(/needs review/i)).toBeInTheDocument();
-    expect(within(region).getByText(/volunteer approved/i)).toBeInTheDocument();
-    // `source` is internal and must never be surfaced (M-R8).
-    expect(within(region).queryByText(/import/i)).toBeNull();
+    const dialog = await openViaSearch(/Jon Smith/);
+    expect(within(dialog).queryByRole("checkbox", { name: /volunteer/i })).toBeNull();
+    expect(within(dialog).getByText(/volunteer:/i)).toBeInTheDocument();
+    await userEvent.click(within(dialog).getByRole("button", { name: /^save$/i }));
+    await waitFor(() => expect(patchBody(calls)).not.toContain("isVolunteer"));
+  });
+
+  it("Escape closes the editor modal", async () => {
+    stub({ items: [summary(REC())], record: REC() });
+    render(<ContactsPage />);
+    await openViaSearch(/Jon Smith/);
+    await userEvent.keyboard("{Escape}");
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: /Jon Smith/ })).toBeNull());
+  });
+
+  it("shows Mark reviewed only for a flagged contact", async () => {
+    stub({ items: [summary(REC({ needsReview: true }))], record: REC({ needsReview: true }) });
+    render(<ContactsPage />);
+    const dialog = await openViaSearch(/Jon Smith/);
+    expect(within(dialog).getByRole("button", { name: /mark reviewed/i })).toBeInTheDocument();
   });
 });

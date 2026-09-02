@@ -93,3 +93,21 @@ export async function getMergeSuggestions(
     similarity: Number(r.sim),
   }));
 }
+
+/**
+ * Feature 064: the global count of candidate duplicate pairs for the launcher button — the same join and
+ * threshold as `getMergeSuggestions` (no query, no limit), so the count matches the global queue.
+ */
+export async function countMergeSuggestions(db: Db, threshold = 0.4): Promise<number> {
+  const rows = await db.execute<{ n: number }>(sql`
+    SELECT COUNT(*)::int AS n
+    FROM contacts a
+    JOIN contacts b
+      ON a.id < b.id
+     AND a.merged_into_id IS NULL
+     AND b.merged_into_id IS NULL
+     AND a.dedup_normalized % b.dedup_normalized
+    WHERE similarity(a.dedup_normalized, b.dedup_normalized) >= ${threshold}
+  `);
+  return [...rows][0]?.n ?? 0;
+}
