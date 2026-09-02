@@ -62,6 +62,8 @@ export const emailAddSchema = emailCreateSchema;
 
 export const emailPatchSchema = z
   .object({
+    // Feature 066 (M-R13): the address is editable on patch.
+    email: z.string().trim().email().optional(),
     purposes: z.array(emailPurpose).nonempty().optional(),
     consentTopics: z.array(consentTopic).nonempty().optional(),
     status: emailStatus.optional(),
