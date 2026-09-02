@@ -18,6 +18,7 @@
   align-items: center;
   gap: var(--space-3);
   inline-size: 100%;
+  box-sizing: border-box; /* 48px min is the TOTAL height — padding sits inside, not added on top */
   min-block-size: var(--space-7); /* 48px touch target (FR-008) */
   padding: var(--space-3);
   background: var(--surface);

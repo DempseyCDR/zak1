@@ -5,6 +5,7 @@ import { parseBody } from "@/server/lib/parseBody";
 import { contactPatchSchema } from "@/server/validation/contacts";
 import { getContact, patchContact } from "@/server/domain/contacts/contactService";
 import { canReadPii, projectContact, recordPiiDisclosure } from "@/server/auth/pii";
+import { actorCan } from "@/server/auth/can";
 
 export const GET = withAuth<{ id: string }>({ requires: "base" }, async (_req, ctx) => {
   const { id } = await ctx.params;
@@ -21,6 +22,11 @@ export const GET = withAuth<{ id: string }>({ requires: "base" }, async (_req, c
 export const PATCH = withAuth<{ id: string }>({ requires: "contact.write" }, async (req, ctx) => {
   const { id } = await ctx.params;
   const input = await parseBody(req, contactPatchSchema);
+  // `is_volunteer` is the staff-access gate (feature 015). Only a `role.assign` holder may change it;
+  // for anyone else silently drop the field so the rest of the save still applies (feature 063 / M-R7).
+  if (input.isVolunteer !== undefined && !actorCan(ctx.actor, "role.assign")) {
+    delete input.isVolunteer;
+  }
   const contact = await patchContact(db, id, input);
   return NextResponse.json(contact);
 });

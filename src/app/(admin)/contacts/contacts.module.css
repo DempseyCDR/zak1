@@ -122,6 +122,86 @@
   gap: var(--space-3);
 }
 
+/* Feature 063 (FR-020): the record editor as a modal overlay in front of the results lists. */
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: var(--space-4);
+  overflow-y: auto;
+  background: rgba(0, 0, 0, 0.45);
+}
+
+.modalPanel {
+  inline-size: 100%;
+  max-inline-size: 34rem;
+  margin-block: var(--space-5);
+}
+
+/* Feature 063 (FR-018): a labelled editable field — visible label above its control. */
+.field {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.fieldLabel {
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+}
+
+/* Feature 063 (M-R6): the Automatic/Custom display-name control — input + toggle button. */
+.nameControl {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.nameControl .input {
+  flex: 1 1 12rem;
+}
+
+/* Feature 063 (M-R8): read-only yes/no flags collapsed into one wrapping row — a boolean should not
+   cost a full stacked row of vertical space. */
+.flags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+  margin: var(--space-3) 0 0;
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+}
+
+.flag strong {
+  color: var(--text);
+  font-weight: 600;
+}
+
+/* Feature 063 (M-R8): read-only standing context below the editable fields. */
+.context {
+  margin: var(--space-3) 0 0;
+  display: grid;
+  gap: var(--space-3);
+}
+
+.context div {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.context dt {
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+}
+
+.context dd {
+  margin: 0;
+  color: var(--text);
+}
+
 .input {
   composes: touchTarget from "../_components/AdminPage.module.css";
   inline-size: 100%;
