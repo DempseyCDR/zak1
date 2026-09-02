@@ -37,6 +37,9 @@ type EditorRecord = {
 type DupContact = { id: string; displayName: string };
 type DupPair = { a: DupContact; b: DupContact; similarity: number };
 
+// Feature 064: which task is active. `none` = the uncluttered launcher (header + search + buttons only).
+type View = "none" | "search" | "review" | "duplicates";
+
 const PURPOSES = ["personal", "booking", "public_profile", "other"] as const;
 const TOPICS = [
   "contra",
@@ -50,9 +53,14 @@ const TOPICS = [
 
 export default function ContactsPage() {
   const [q, setQ] = useState("");
+  const [view, setView] = useState<View>("none");
   const [items, setItems] = useState<ContactSummary[]>([]);
   const [searchTruncated, setSearchTruncated] = useState(false);
   const [dupPairs, setDupPairs] = useState<DupPair[]>([]);
+  const [counts, setCounts] = useState<{ needsReview: number; duplicates: number }>({
+    needsReview: 0,
+    duplicates: 0,
+  });
   const searchRef = useRef<HTMLInputElement>(null);
   // Feature 063: the opened record editor. `eOverride === ""` means Automatic (no custom name).
   const [record, setRecord] = useState<EditorRecord | null>(null);
@@ -63,36 +71,88 @@ export default function ContactsPage() {
   const [ePhone, setEPhone] = useState("");
   const [saveError, setSaveError] = useState<string | null>(null);
   const firstFieldRef = useRef<HTMLInputElement>(null);
+  // Feature 064: the Add-contact create modal + its form state.
+  const [showCreate, setShowCreate] = useState(false);
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [displayNameOverride, setDisplayNameOverride] = useState("");
   const [pronouns, setPronouns] = useState("");
   const [address, setAddress] = useState("");
   const [phone, setPhone] = useState("");
-  const [purposes, setPurposes] = useState<string[]>(["personal"]); // FR-002a default
-  const [topics, setTopics] = useState<string[]>(["contact_tracing"]); // consent default
+  const [purposes, setPurposes] = useState<string[]>(["personal"]);
+  const [topics, setTopics] = useState<string[]>(["contact_tracing"]);
   const [error, setError] = useState<string | null>(null);
   const [warning, setWarning] = useState<string | null>(null);
 
-  const search = useCallback(async (query: string) => {
+  // Feature 064 (F1): one shared refresh so the button counts stay correct after ANY mutation, whatever
+  // view triggered it.
+  const refreshCounts = useCallback(async () => {
+    const res = await apiFetch("/api/contacts/launcher-counts");
+    if (res.ok) {
+      const c = await res.json();
+      setCounts({ needsReview: c.needsReview ?? 0, duplicates: c.duplicates ?? 0 });
+    }
+  }, []);
+
+  const runSearch = useCallback(async (query: string) => {
     const res = await apiFetch(`/api/contacts?q=${encodeURIComponent(query)}`);
     const data = await res.json();
     setItems(data.items ?? []);
     setSearchTruncated(!!data.truncated);
-    // Feature 062 (M-R4): the potential-duplicates section — query-scoped, or the global queue when empty.
+    // Feature 062 (M-R4): query-scoped duplicate pairs alongside the results (the near-dup heads-up).
     const dres = await apiFetch(`/api/dedup/suggestions?q=${encodeURIComponent(query)}`);
     const ddata = await dres.json();
     setDupPairs(ddata.pairs ?? []);
   }, []);
 
+  // Typing drives the search view; clearing the box with no active task returns to the launcher (FR-007).
   useEffect(() => {
-    void search(q);
-  }, [q, search]);
+    if (q.trim()) {
+      setView("search");
+      void runSearch(q);
+    } else {
+      setView((v) => (v === "search" ? "none" : v));
+      setItems([]);
+      setDupPairs([]);
+    }
+  }, [q, runSearch]);
 
-  // Feature 062 (M-R3): focus-to-search — ready to type on load.
+  // Feature 062 (M-R3): focus-to-search on load. Feature 064: fetch only the counts on mount (no lists).
   useEffect(() => {
     searchRef.current?.focus();
-  }, []);
+    void refreshCounts();
+  }, [refreshCounts]);
+
+  // Feature 063 (FR-020): move focus into the record modal when it opens.
+  useEffect(() => {
+    if (record) firstFieldRef.current?.focus();
+  }, [record]);
+
+  async function openReviewQueue() {
+    setQ("");
+    const res = await apiFetch("/api/contacts?needsReview=1");
+    const data = await res.json();
+    setItems(data.items ?? []);
+    setSearchTruncated(!!data.truncated);
+    setDupPairs([]);
+    setView("review");
+  }
+
+  async function openDuplicates() {
+    setQ("");
+    const res = await apiFetch("/api/dedup/suggestions");
+    const data = await res.json();
+    setDupPairs(data.pairs ?? []);
+    setItems([]);
+    setView("duplicates");
+  }
+
+  // Re-fetch whichever list is showing, so an action's effect (a cleared flag, a merged pair) is visible.
+  const refreshView = useCallback(async () => {
+    if (view === "search") await runSearch(q);
+    else if (view === "review") await openReviewQueue();
+    else if (view === "duplicates") await openDuplicates();
+  }, [view, q, runSearch]);
 
   async function openRecord(id: string) {
     const res = await apiFetch(`/api/contacts/${id}`);
@@ -103,20 +163,15 @@ export default function ContactsPage() {
     setELast(r.lastName ?? "");
     setEOverride(r.displayNameOverride ?? "");
     setEPronouns(r.pronouns ?? "");
-    // Show the human-readable form (FR-019); Save re-canonicalizes via the endpoint's normalizePhone.
+    // Feature 063 (FR-019): show the human-readable phone; Save re-canonicalizes via normalizePhone.
     setEPhone(r.phone ? formatPhone(r.phone) : "");
     setSaveError(null);
   }
 
   function closeRecord() {
     setRecord(null);
-    searchRef.current?.focus(); // return focus to search (FR-020)
+    searchRef.current?.focus();
   }
-
-  // Move focus into the modal when a record opens (FR-020).
-  useEffect(() => {
-    if (record) firstFieldRef.current?.focus();
-  }, [record]);
 
   async function saveRecord(e: React.FormEvent) {
     e.preventDefault();
@@ -126,7 +181,6 @@ export default function ContactsPage() {
       setSaveError("First name is required.");
       return;
     }
-    // Automatic (blank) → override null (reset, never an error, M-R6); non-blank → the pinned name.
     const body: Record<string, unknown> = {
       firstName: eFirst.trim(),
       lastName: eLast.trim() ? eLast.trim() : null,
@@ -134,9 +188,8 @@ export default function ContactsPage() {
       pronouns: ePronouns.trim() ? ePronouns.trim() : null,
       phone: ePhone.trim() ? ePhone.trim() : null,
     };
-    // is_volunteer is NOT edited here (M-R7 / feature 063). It is the staff-access gate whose
-    // designate/clear (with grant-cascade + approval) lives on the access screen; the editor shows it
-    // read-only. The PATCH route also refuses is_volunteer without role.assign as endpoint defense.
+    // is_volunteer is NOT edited here (M-R7); the endpoint guards it. `needs_review` may auto-clear
+    // server-side when the record now has contact data (feature 064 / FR-012).
     const res = await apiFetch(`/api/contacts/${record.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -148,7 +201,18 @@ export default function ContactsPage() {
       return;
     }
     setRecord(null);
-    void search(q);
+    await refreshView(); // reflect an auto-cleared review flag (F2) etc.
+    await refreshCounts(); // F1
+    searchRef.current?.focus();
+  }
+
+  async function markReviewed() {
+    if (!record) return;
+    const res = await apiFetch(`/api/contacts/${record.id}/reviewed`, { method: "POST" });
+    if (!res.ok) return;
+    setRecord(null);
+    await refreshView(); // the contact leaves the review queue (F2)
+    await refreshCounts(); // F1
     searchRef.current?.focus();
   }
 
@@ -159,8 +223,9 @@ export default function ContactsPage() {
       body: JSON.stringify({ canonicalId, mergedId }),
     });
     if (res.ok) {
-      void search(q);
-      searchRef.current?.focus(); // refocus after the action
+      await refreshView(); // the pair leaves the current list
+      await refreshCounts(); // F1 — from search OR duplicates view
+      searchRef.current?.focus();
     }
   }
 
@@ -197,16 +262,23 @@ export default function ContactsPage() {
     setPhone("");
     setPurposes(["personal"]);
     setTopics(["contact_tracing"]);
-    void search(q);
+    setShowCreate(false);
+    await refreshView(); // FR-008
+    await refreshCounts(); // F1 — a no-info contact raises the needs-review count
   }
 
   function toggle(list: string[], value: string, set: (v: string[]) => void) {
     set(list.includes(value) ? list.filter((v) => v !== value) : [...list, value]);
   }
 
+  const showList = view === "search" || view === "review";
+  // Search shows pairs only when there are some (a quiet heads-up); the duplicates task always shows the
+  // section (with an empty state) since that IS the task.
+  const showPairs = view === "duplicates" || (view === "search" && dupPairs.length > 0);
+
   return (
     <AdminPage title="Contacts">
-      {/* Triage mode: search results as a worklist; a row opens the record (FR-006/FR-007). */}
+      {/* Launcher: search + a row of task buttons with live counts. Nothing else until Mel chooses. */}
       <section className={styles.section}>
         <input
           ref={searchRef}
@@ -215,60 +287,84 @@ export default function ContactsPage() {
           value={q}
           onChange={(e) => setQ(e.target.value)}
         />
-        <TriageList
-          items={items}
-          getKey={(c) => c.id}
-          onOpen={(c) => void openRecord(c.id)}
-          renderRow={(c) => (
-            <span className={styles.rowText}>
-              <span className={styles.rowName}>
-                {c.displayName}
-                {c.pronouns ? ` (${c.pronouns})` : ""}
-              </span>
-              <span className={styles.rowMeta}>{c.membershipStatus}</span>
-            </span>
-          )}
-          emptyState={<span className={styles.empty}>No contacts</span>}
-        />
-        {searchTruncated && (
-          <p className={styles.hint}>More matches — refine your search to narrow the list.</p>
-        )}
+        <div className={styles.taskRow}>
+          <button type="button" className={styles.button} onClick={() => setShowCreate(true)}>
+            Add contact
+          </button>
+          <button type="button" className={styles.taskButton} onClick={openReviewQueue}>
+            Review queue ({counts.needsReview})
+          </button>
+          <button type="button" className={styles.taskButton} onClick={openDuplicates}>
+            Review duplicates ({counts.duplicates})
+          </button>
+        </div>
       </section>
 
-      {/* Feature 062 (M-R4): potential duplicates — candidate pairs, each routing to the merge flow. */}
-      {dupPairs.length > 0 && (
+      {/* Single-contact list — the search results or the needs-review queue. Rows open the editor. */}
+      {showList && (
         <section className={styles.section}>
-          <h2 className={styles.h2}>Potential duplicates</h2>
-          <ul className={styles.dupList}>
-            {dupPairs.map((p) => (
-              <li key={`${p.a.id}-${p.b.id}`} className={styles.dupRow}>
-                <span className={styles.dupPair}>
-                  {p.a.displayName} ↔ {p.b.displayName}
+          <TriageList
+            items={items}
+            getKey={(c) => c.id}
+            onOpen={(c) => void openRecord(c.id)}
+            renderRow={(c) => (
+              <span className={styles.rowText}>
+                <span className={styles.rowName}>
+                  {c.displayName}
+                  {c.pronouns ? ` (${c.pronouns})` : ""}
                 </span>
-                <span className={styles.dupActions}>
-                  <button
-                    type="button"
-                    className={styles.dupButton}
-                    onClick={() => merge(p.a.id, p.b.id)}
-                  >
-                    Keep {p.a.displayName}
-                  </button>
-                  <button
-                    type="button"
-                    className={styles.dupButton}
-                    onClick={() => merge(p.b.id, p.a.id)}
-                  >
-                    Keep {p.b.displayName}
-                  </button>
-                </span>
-              </li>
-            ))}
-          </ul>
+                <span className={styles.rowMeta}>{c.membershipStatus}</span>
+              </span>
+            )}
+            emptyState={
+              <span className={styles.empty}>
+                {view === "review" ? "No contacts need review" : "No contacts"}
+              </span>
+            }
+          />
+          {searchTruncated && (
+            <p className={styles.hint}>More matches — refine your search to narrow the list.</p>
+          )}
         </section>
       )}
 
-      {/* Record mode: the opened contact — editable scalar fields (M-R5/M-R6), gated volunteer flag
-          (M-R7), and read-only standing (M-R8). One Save commits all fields; Cancel discards. */}
+      {/* Potential duplicates — query-scoped alongside search, or the global queue via the button. */}
+      {showPairs && (
+        <section className={styles.section}>
+          <h2 className={styles.h2}>Potential duplicates</h2>
+          {dupPairs.length === 0 ? (
+            <p className={styles.empty}>No potential duplicates</p>
+          ) : (
+            <ul className={styles.dupList}>
+              {dupPairs.map((p) => (
+                <li key={`${p.a.id}-${p.b.id}`} className={styles.dupRow}>
+                  <span className={styles.dupPair}>
+                    {p.a.displayName} ↔ {p.b.displayName}
+                  </span>
+                  <span className={styles.dupActions}>
+                    <button
+                      type="button"
+                      className={styles.dupButton}
+                      onClick={() => merge(p.a.id, p.b.id)}
+                    >
+                      Keep {p.a.displayName}
+                    </button>
+                    <button
+                      type="button"
+                      className={styles.dupButton}
+                      onClick={() => merge(p.b.id, p.a.id)}
+                    >
+                      Keep {p.b.displayName}
+                    </button>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      )}
+
+      {/* Record editor modal (feature 063) — opened from a result/queue row. */}
       {record && (
         <div className={styles.backdrop}>
           <div
@@ -283,9 +379,16 @@ export default function ContactsPage() {
             <RecordView
               title={record.displayName}
               actions={
-                <button type="button" className={styles.button} onClick={closeRecord}>
-                  Cancel
-                </button>
+                <>
+                  {record.needsReview && (
+                    <button type="button" className={styles.button} onClick={markReviewed}>
+                      Mark reviewed
+                    </button>
+                  )}
+                  <button type="button" className={styles.button} onClick={closeRecord}>
+                    Cancel
+                  </button>
+                </>
               }
             >
               <form onSubmit={saveRecord} className={styles.form}>
@@ -306,9 +409,6 @@ export default function ContactsPage() {
                     onChange={(e) => setELast(e.target.value)}
                   />
                 </label>
-                {/* Automatic / Custom display name (M-R6). Automatic = blank override: the field is a
-                  read-only live preview of "first last". Custom = a pinned override the editor may edit;
-                  editing first/last does NOT move it. One button toggles between the two. */}
                 {(() => {
                   const isCustom = eOverride.trim() !== "";
                   const autoName = `${eFirst.trim()} ${eLast.trim()}`.trim();
@@ -357,10 +457,6 @@ export default function ContactsPage() {
                 </button>
                 {saveError && <p className={styles.error}>{saveError}</p>}
               </form>
-              {/* Read-only standing (M-R8): materialized/machine-managed context, never hand-edited here.
-                `is_volunteer` is governance-owned (designate/clear on the access screen); `source` is
-                deliberately not shown. Yes/no flags collapse into one wrapping row so a boolean does not
-                cost a full stacked row of height. */}
               <div className={styles.flags}>
                 <span className={styles.flag}>
                   Volunteer: <strong>{record.isVolunteer ? "Yes" : "No"}</strong>
@@ -393,78 +489,103 @@ export default function ContactsPage() {
         </div>
       )}
 
-      <section className={styles.section}>
-        <h2 className={styles.h2}>Add contact</h2>
-        <form onSubmit={createContact} className={styles.form}>
-          <input
-            className={styles.input}
-            placeholder="First name"
-            value={firstName}
-            onChange={(e) => setFirstName(e.target.value)}
-          />
-          <input
-            className={styles.input}
-            placeholder="Last name (optional)"
-            value={lastName}
-            onChange={(e) => setLastName(e.target.value)}
-          />
-          <input
-            className={styles.input}
-            placeholder="Display name override (optional)"
-            value={displayNameOverride}
-            onChange={(e) => setDisplayNameOverride(e.target.value)}
-          />
-          <input
-            className={styles.input}
-            placeholder="Pronouns (optional)"
-            value={pronouns}
-            onChange={(e) => setPronouns(e.target.value)}
-          />
-          <input
-            className={styles.input}
-            placeholder="Email address (optional)"
-            value={address}
-            onChange={(e) => setAddress(e.target.value)}
-          />
-          <input
-            className={styles.input}
-            placeholder="Phone (optional)"
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-          />
-          <fieldset className={styles.fieldset}>
-            <legend>Purposes</legend>
-            {PURPOSES.map((p) => (
-              <label key={p} className={styles.check}>
+      {/* Add-contact modal (feature 064) — the create form, no longer always-visible. */}
+      {showCreate && (
+        <div className={styles.backdrop}>
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label="Add contact"
+            className={styles.modalPanel}
+            onKeyDown={(e) => {
+              if (e.key === "Escape") setShowCreate(false);
+            }}
+          >
+            <RecordView
+              title="Add contact"
+              actions={
+                <button
+                  type="button"
+                  className={styles.button}
+                  onClick={() => setShowCreate(false)}
+                >
+                  Cancel
+                </button>
+              }
+            >
+              <form onSubmit={createContact} className={styles.form}>
                 <input
-                  type="checkbox"
-                  checked={purposes.includes(p)}
-                  onChange={() => toggle(purposes, p, setPurposes)}
-                />{" "}
-                {p}
-              </label>
-            ))}
-          </fieldset>
-          <fieldset className={styles.fieldset}>
-            <legend>Consent topics</legend>
-            {TOPICS.map((t) => (
-              <label key={t} className={styles.check}>
+                  className={styles.input}
+                  placeholder="First name"
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                />
                 <input
-                  type="checkbox"
-                  checked={topics.includes(t)}
-                  onChange={() => toggle(topics, t, setTopics)}
-                />{" "}
-                {t}
-              </label>
-            ))}
-          </fieldset>
-          <button type="submit" className={styles.button}>
-            Create
-          </button>
-          {error && <p className={styles.error}>{error}</p>}
-          {warning && <p className={styles.warning}>{warning}</p>}
-        </form>
-      </section>
+                  className={styles.input}
+                  placeholder="Last name (optional)"
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                />
+                <input
+                  className={styles.input}
+                  placeholder="Display name override (optional)"
+                  value={displayNameOverride}
+                  onChange={(e) => setDisplayNameOverride(e.target.value)}
+                />
+                <input
+                  className={styles.input}
+                  placeholder="Pronouns (optional)"
+                  value={pronouns}
+                  onChange={(e) => setPronouns(e.target.value)}
+                />
+                <input
+                  className={styles.input}
+                  placeholder="Email address (optional)"
+                  value={address}
+                  onChange={(e) => setAddress(e.target.value)}
+                />
+                <input
+                  className={styles.input}
+                  placeholder="Phone (optional)"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                />
+                <fieldset className={styles.fieldset}>
+                  <legend>Purposes</legend>
+                  {PURPOSES.map((p) => (
+                    <label key={p} className={styles.check}>
+                      <input
+                        type="checkbox"
+                        checked={purposes.includes(p)}
+                        onChange={() => toggle(purposes, p, setPurposes)}
+                      />{" "}
+                      {p}
+                    </label>
+                  ))}
+                </fieldset>
+                <fieldset className={styles.fieldset}>
+                  <legend>Consent topics</legend>
+                  {TOPICS.map((t) => (
+                    <label key={t} className={styles.check}>
+                      <input
+                        type="checkbox"
+                        checked={topics.includes(t)}
+                        onChange={() => toggle(topics, t, setTopics)}
+                      />{" "}
+                      {t}
+                    </label>
+                  ))}
+                </fieldset>
+                <button type="submit" className={styles.button}>
+                  Create
+                </button>
+                {error && <p className={styles.error}>{error}</p>}
+                {warning && <p className={styles.warning}>{warning}</p>}
+              </form>
+            </RecordView>
+          </div>
+        </div>
+      )}
     </AdminPage>
   );
 }

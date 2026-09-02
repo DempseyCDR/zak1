@@ -16,6 +16,29 @@
   border-radius: 8px;
 }
 
+/* Feature 064: the launcher task-button row (Add contact / Review queue / Review duplicates). */
+.taskRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-block-start: var(--space-3);
+}
+
+.taskButton {
+  composes: touchTarget from "../_components/AdminPage.module.css";
+  padding-inline: var(--space-4);
+  font: inherit;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.taskButton:hover {
+  border-color: var(--band);
+}
+
 .rowText {
   display: flex;
   flex-wrap: wrap;

@@ -1,4 +1,4 @@
-import { and, desc, eq, isNull, sql } from "drizzle-orm";
+import { and, count, desc, eq, isNull, sql } from "drizzle-orm";
 import type { Db } from "@/server/db/client";
 import { contactEmails, contacts } from "@/server/db/schema";
 import type { ContactRow } from "@/server/db/schema";
@@ -78,6 +78,17 @@ export async function patchContact(
   // not a side effect of editing a contact — so this endpoint no longer touches authority at all.
   const isVolunteer = input.isVolunteer ?? existing.isVolunteer;
 
+  // Feature 064 (FR-012): `needs_review` auto-clears once the record has the required data — a phone or
+  // an active email (the condition whose absence set the flag). Only ever clears; never re-flags.
+  const resultingPhone =
+    input.phone !== undefined ? (input.phone ? normalizePhone(input.phone) : null) : existing.phone;
+  const emailRows = await db.execute<{ n: number }>(
+    sql`SELECT COUNT(*)::int AS n FROM contact_emails
+        WHERE contact_id = ${id} AND status IN ('active', 'transition')`,
+  );
+  const hasContactInfo = !!resultingPhone || ([...emailRows][0]?.n ?? 0) > 0;
+  const needsReview = hasContactInfo ? false : existing.needsReview;
+
   // Recompute the maintained name values when any name field changes (an override edit, or first/last).
   const nameChanged =
     input.firstName !== undefined ||
@@ -114,6 +125,7 @@ export async function patchContact(
         ? { phone: input.phone ? normalizePhone(input.phone) : input.phone } // feature 032
         : {}),
       isVolunteer,
+      needsReview,
       updatedAt: new Date(),
     })
     .where(eq(contacts.id, id))
@@ -228,4 +240,35 @@ export async function searchContacts(
     if (merged.length > limit) break;
   }
   return withTruncation(merged, limit);
+}
+
+/** Feature 064: the needs-review count for the launcher button (active, non-merged, flagged). */
+export async function countNeedsReview(db: Db): Promise<number> {
+  const [row] = await db
+    .select({ n: count() })
+    .from(contacts)
+    .where(and(isNull(contacts.mergedIntoId), eq(contacts.needsReview, true)));
+  return row?.n ?? 0;
+}
+
+/** Feature 064: the needs-review worklist — flagged, non-merged, bounded like search, name-ordered. */
+export async function listNeedsReview(db: Db, limit = 20): Promise<ContactSearchResult> {
+  const rows = await db
+    .select(SEARCH_COLS)
+    .from(contacts)
+    .where(and(isNull(contacts.mergedIntoId), eq(contacts.needsReview, true)))
+    .orderBy(sql`${contacts.lastName} ASC NULLS LAST`, contacts.firstName)
+    .limit(limit + 1);
+  return withTruncation(rows, limit);
+}
+
+/** Feature 064 (FR-013): the manual override — clear `needs_review` regardless of contact data. */
+export async function markReviewed(db: Db, id: string): Promise<ContactRow> {
+  const [row] = await db
+    .update(contacts)
+    .set({ needsReview: false, updatedAt: new Date() })
+    .where(eq(contacts.id, id))
+    .returning();
+  if (!row) throw errors.contactNotFound();
+  return row;
 }
