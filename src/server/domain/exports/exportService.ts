@@ -1,4 +1,4 @@
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, isNull, sql } from "drizzle-orm";
 import type { DbOrTx } from "@/server/db/client";
 import { contactEmails, contacts, memberships, performers } from "@/server/db/schema";
 import { getMailingListDef } from "./mailingLists";
@@ -30,6 +30,7 @@ export async function buildListRows(db: DbOrTx, listId: ListId): Promise<Record<
       .where(
         and(
           eq(contactEmails.status, "active"),
+          isNull(contacts.archivedAt), // feature 065
           sql`${def.consentTopic}::email_consent_topic = ANY(${contactEmails.consentTopics})`,
         ),
       );
@@ -52,6 +53,7 @@ export async function buildListRows(db: DbOrTx, listId: ListId): Promise<Record<
       .where(
         and(
           eq(contactEmails.status, "active"),
+          isNull(contacts.archivedAt), // feature 065
           eq(contacts.listMember, true),
           sql`NOT ('do_not_contact'::email_consent_topic = ANY(${contactEmails.consentTopics}))`,
         ),
@@ -79,6 +81,7 @@ export async function buildListRows(db: DbOrTx, listId: ListId): Promise<Record<
     .where(
       and(
         eq(contactEmails.status, "active"),
+        isNull(contacts.archivedAt), // feature 065
         sql`NOT ('do_not_contact'::email_consent_topic = ANY(${contactEmails.consentTopics}))`,
       ),
     );

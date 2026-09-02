@@ -3,9 +3,10 @@ import { db } from "@/server/db/client";
 import { withAuth } from "@/server/auth/withAuth";
 import { parseBody } from "@/server/lib/parseBody";
 import { contactPatchSchema } from "@/server/validation/contacts";
-import { getContact, patchContact } from "@/server/domain/contacts/contactService";
+import { deleteContact, getContact, patchContact } from "@/server/domain/contacts/contactService";
 import { canReadPii, projectContact, recordPiiDisclosure } from "@/server/auth/pii";
 import { actorCan } from "@/server/auth/can";
+import { errors } from "@/server/lib/apiError";
 
 export const GET = withAuth<{ id: string }>({ requires: "base" }, async (_req, ctx) => {
   const { id } = await ctx.params;
@@ -17,6 +18,18 @@ export const GET = withAuth<{ id: string }>({ requires: "base" }, async (_req, c
     return NextResponse.json(contact);
   }
   return NextResponse.json(projectContact(ctx.actor, contact));
+});
+
+// Feature 065 (M-R11/M-R12): permanent delete. The SAFE path (contact.delete) removes only a bare
+// contact; `?force=1` takes the UNRESTRICTED path, additionally requiring contact.delete.unrestricted.
+export const DELETE = withAuth<{ id: string }>({ requires: "contact.delete" }, async (req, ctx) => {
+  const { id } = await ctx.params;
+  const force = new URL(req.url).searchParams.get("force") === "1";
+  if (force && !actorCan(ctx.actor, "contact.delete.unrestricted")) {
+    throw errors.unauthorized("contact.delete.unrestricted");
+  }
+  await deleteContact(db, id, { unrestricted: force, actor: ctx.staff.contactId });
+  return NextResponse.json({ ok: true });
 });
 
 export const PATCH = withAuth<{ id: string }>({ requires: "contact.write" }, async (req, ctx) => {

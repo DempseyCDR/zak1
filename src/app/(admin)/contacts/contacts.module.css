@@ -273,6 +273,23 @@
   border-color: var(--band-hover);
 }
 
+/* Feature 065: destructive action (delete / force delete). */
+.dangerButton {
+  composes: touchTarget from "../_components/AdminPage.module.css";
+  padding-inline: var(--space-4);
+  font: inherit;
+  color: #fff;
+  background: #b3261e;
+  border: 1px solid #b3261e;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.dangerButton:hover {
+  background: #8f1e18;
+  border-color: #8f1e18;
+}
+
 /* Status messages — semantic error/warning colors (the shared palette carries none). */
 .error {
   color: #b3261e;

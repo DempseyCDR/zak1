@@ -14,7 +14,11 @@ type ContactSummary = {
   membershipStatus: string;
   listMember: boolean;
   pronouns: string | null;
+  archivedAt: string | null;
 };
+
+// Feature 065: which archive/delete controls this viewer may use (from /api/me/capabilities).
+type Caps = { contactWrite: boolean; contactDelete: boolean; contactDeleteUnrestricted: boolean };
 
 // Feature 063 (M-R5..M-R8): the full record behind an opened contact, fed by GET /api/contacts/:id.
 type EditorRecord = {
@@ -31,6 +35,7 @@ type EditorRecord = {
   needsReview: boolean;
   volunteerApprovedAt: string | null;
   volunteerApprovedBy: string | null;
+  archivedAt: string | null;
 };
 
 // Feature 062 (M-R4): a likely-duplicate pair from the dedup engine (shape of MergeSuggestion).
@@ -61,6 +66,14 @@ export default function ContactsPage() {
     needsReview: 0,
     duplicates: 0,
   });
+  const [caps, setCaps] = useState<Caps>({
+    contactWrite: false,
+    contactDelete: false,
+    contactDeleteUnrestricted: false,
+  });
+  const [includeArchived, setIncludeArchived] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false); // second-step guard for the destructive action
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const searchRef = useRef<HTMLInputElement>(null);
   // Feature 063: the opened record editor. `eOverride === ""` means Automatic (no custom name).
   const [record, setRecord] = useState<EditorRecord | null>(null);
@@ -94,8 +107,11 @@ export default function ContactsPage() {
     }
   }, []);
 
-  const runSearch = useCallback(async (query: string) => {
-    const res = await apiFetch(`/api/contacts?q=${encodeURIComponent(query)}`);
+  const runSearch = useCallback(async (query: string, archived: boolean) => {
+    // Feature 065: the "+ archived" toggle includes archived contacts (marked) in the results.
+    const res = await apiFetch(
+      `/api/contacts?q=${encodeURIComponent(query)}${archived ? "&archived=1" : ""}`,
+    );
     const data = await res.json();
     setItems(data.items ?? []);
     setSearchTruncated(!!data.truncated);
@@ -109,18 +125,30 @@ export default function ContactsPage() {
   useEffect(() => {
     if (q.trim()) {
       setView("search");
-      void runSearch(q);
+      void runSearch(q, includeArchived);
     } else {
       setView((v) => (v === "search" ? "none" : v));
       setItems([]);
       setDupPairs([]);
     }
-  }, [q, runSearch]);
+  }, [q, includeArchived, runSearch]);
 
   // Feature 062 (M-R3): focus-to-search on load. Feature 064: fetch only the counts on mount (no lists).
+  // Feature 065: also learn which archive/delete controls to offer.
   useEffect(() => {
     searchRef.current?.focus();
     void refreshCounts();
+    void (async () => {
+      const res = await apiFetch("/api/me/capabilities");
+      if (res.ok) {
+        const c = await res.json();
+        setCaps({
+          contactWrite: !!c.contactWrite,
+          contactDelete: !!c.contactDelete,
+          contactDeleteUnrestricted: !!c.contactDeleteUnrestricted,
+        });
+      }
+    })();
   }, [refreshCounts]);
 
   // Feature 063 (FR-020): move focus into the record modal when it opens.
@@ -149,10 +177,10 @@ export default function ContactsPage() {
 
   // Re-fetch whichever list is showing, so an action's effect (a cleared flag, a merged pair) is visible.
   const refreshView = useCallback(async () => {
-    if (view === "search") await runSearch(q);
+    if (view === "search") await runSearch(q, includeArchived);
     else if (view === "review") await openReviewQueue();
     else if (view === "duplicates") await openDuplicates();
-  }, [view, q, runSearch]);
+  }, [view, q, includeArchived, runSearch]);
 
   async function openRecord(id: string) {
     const res = await apiFetch(`/api/contacts/${id}`);
@@ -166,6 +194,37 @@ export default function ContactsPage() {
     // Feature 063 (FR-019): show the human-readable phone; Save re-canonicalizes via normalizePhone.
     setEPhone(r.phone ? formatPhone(r.phone) : "");
     setSaveError(null);
+    setConfirmDelete(false);
+    setDeleteError(null);
+  }
+
+  // Feature 065: archive / restore / delete, all closing the editor and refreshing the view + counts.
+  async function archiveOrRestore(path: "archive" | "restore") {
+    if (!record) return;
+    const res = await apiFetch(`/api/contacts/${record.id}/${path}`, { method: "POST" });
+    if (!res.ok) return;
+    setRecord(null);
+    await refreshView();
+    await refreshCounts();
+    searchRef.current?.focus();
+  }
+
+  async function deleteRecord(force: boolean) {
+    if (!record) return;
+    setDeleteError(null);
+    const res = await apiFetch(`/api/contacts/${record.id}${force ? "?force=1" : ""}`, {
+      method: "DELETE",
+    });
+    if (!res.ok) {
+      const b = await res.json().catch(() => null);
+      setDeleteError(b?.error?.message ?? "Could not delete contact.");
+      setConfirmDelete(false);
+      return; // refusal (e.g. has references) — the reason is shown; the record stays open
+    }
+    setRecord(null);
+    await refreshView();
+    await refreshCounts();
+    searchRef.current?.focus();
   }
 
   function closeRecord() {
@@ -297,6 +356,15 @@ export default function ContactsPage() {
           <button type="button" className={styles.taskButton} onClick={openDuplicates}>
             Review duplicates ({counts.duplicates})
           </button>
+          {/* Feature 065: compact toggle to include archived contacts in the search results. */}
+          <button
+            type="button"
+            className={styles.taskButton}
+            aria-pressed={includeArchived}
+            onClick={() => setIncludeArchived((v) => !v)}
+          >
+            + archived
+          </button>
         </div>
       </section>
 
@@ -313,7 +381,10 @@ export default function ContactsPage() {
                   {c.displayName}
                   {c.pronouns ? ` (${c.pronouns})` : ""}
                 </span>
-                <span className={styles.rowMeta}>{c.membershipStatus}</span>
+                <span className={styles.rowMeta}>
+                  {c.membershipStatus}
+                  {c.archivedAt ? " · archived" : ""}
+                </span>
               </span>
             )}
             emptyState={
@@ -385,6 +456,43 @@ export default function ContactsPage() {
                       Mark reviewed
                     </button>
                   )}
+                  {/* Feature 065: archive/restore (reversible) and delete (confirmed, gated). */}
+                  {caps.contactWrite &&
+                    (record.archivedAt ? (
+                      <button
+                        type="button"
+                        className={styles.button}
+                        onClick={() => archiveOrRestore("restore")}
+                      >
+                        Restore
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        className={styles.button}
+                        onClick={() => archiveOrRestore("archive")}
+                      >
+                        Archive
+                      </button>
+                    ))}
+                  {caps.contactDelete &&
+                    (confirmDelete ? (
+                      <button
+                        type="button"
+                        className={styles.dangerButton}
+                        onClick={() => deleteRecord(false)}
+                      >
+                        Confirm delete
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        className={styles.dangerButton}
+                        onClick={() => setConfirmDelete(true)}
+                      >
+                        Delete
+                      </button>
+                    ))}
                   <button type="button" className={styles.button} onClick={closeRecord}>
                     Cancel
                   </button>
@@ -484,6 +592,22 @@ export default function ContactsPage() {
                   </dd>
                 </div>
               </dl>
+              {/* Feature 065: a refused safe delete explains why (references) and, for a super-user,
+                  offers the unrestricted override. */}
+              {deleteError && (
+                <div className={styles.error}>
+                  <p>{deleteError}</p>
+                  {caps.contactDeleteUnrestricted && (
+                    <button
+                      type="button"
+                      className={styles.dangerButton}
+                      onClick={() => deleteRecord(true)}
+                    >
+                      Force delete (super-user)
+                    </button>
+                  )}
+                </div>
+              )}
             </RecordView>
           </div>
         </div>

@@ -17,7 +17,9 @@ export const GET = withAuth({ requires: "base" }, async (req) => {
     return NextResponse.json({ items, truncated });
   }
   const q = url.searchParams.get("q") ?? "";
-  const { items, truncated } = await searchContacts(db, q);
+  // Feature 065: the "+ archived" toggle includes archived contacts in the results (marked).
+  const includeArchived = url.searchParams.get("archived") === "1";
+  const { items, truncated } = await searchContacts(db, q, 20, { includeArchived });
   return NextResponse.json({ items, truncated });
 });
 

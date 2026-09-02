@@ -1,7 +1,7 @@
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan
-at specs/064-contacts-launcher/plan.md
+at specs/065-contacts-delete-archive/plan.md
 <!-- SPECKIT END -->
 
 ## Development conventions

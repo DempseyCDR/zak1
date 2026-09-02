@@ -20,6 +20,7 @@ type Rec = {
   needsReview: boolean;
   volunteerApprovedAt: string | null;
   volunteerApprovedBy: string | null;
+  archivedAt: string | null;
 };
 
 const REC = (over: Partial<Rec> = {}): Rec => ({
@@ -36,6 +37,7 @@ const REC = (over: Partial<Rec> = {}): Rec => ({
   needsReview: false,
   volunteerApprovedAt: null,
   volunteerApprovedBy: null,
+  archivedAt: null,
   ...over,
 });
 
@@ -45,6 +47,7 @@ const summary = (r: Rec) => ({
   membershipStatus: r.membershipStatus,
   listMember: r.listMember,
   pronouns: r.pronouns,
+  archivedAt: r.archivedAt,
 });
 const dup = (id: string, name: string) => ({ id, displayName: name });
 
@@ -62,6 +65,8 @@ function stub(opts: {
   pairs?: unknown[];
   record?: Rec;
   counts?: { needsReview: number; duplicates: number };
+  caps?: { contactWrite?: boolean; contactDelete?: boolean; contactDeleteUnrestricted?: boolean };
+  deleteStatus?: number; // 200 ok, or 409 refusal
 }): Call[] {
   const calls: Call[] = [];
   vi.stubGlobal(
@@ -75,9 +80,28 @@ function stub(opts: {
           needsReview: opts.counts?.needsReview ?? 0,
           duplicates: opts.counts?.duplicates ?? 0,
         });
+      if (u.includes("/api/me/capabilities"))
+        return json({
+          contactWrite: opts.caps?.contactWrite ?? false,
+          contactDelete: opts.caps?.contactDelete ?? false,
+          contactDeleteUnrestricted: opts.caps?.contactDeleteUnrestricted ?? false,
+        });
       if (u.includes("/api/dedup/merge")) return json({});
       if (u.includes("/api/dedup/suggestions")) return json({ pairs: opts.pairs ?? [] });
       if (/\/api\/contacts\/[^/?]+\/reviewed$/.test(u)) return json({});
+      if (/\/api\/contacts\/[^/?]+\/(archive|restore)$/.test(u)) return json({});
+      if (method === "DELETE" && /\/api\/contacts\/[^/?]+/.test(u))
+        return (opts.deleteStatus ?? 200) === 200
+          ? json({ ok: true })
+          : json(
+              {
+                error: {
+                  code: "CONTACT_HAS_REFERENCES",
+                  message: "Contact has membership — merge or archive it instead.",
+                },
+              },
+              opts.deleteStatus ?? 409,
+            );
       if (u.includes("needsReview=1")) return json({ items: opts.review ?? [] });
       if (u.includes("/api/contacts?")) return json({ items: opts.items ?? [] });
       if (method === "PATCH" && /\/api\/contacts\/[^/?]+$/.test(u))
@@ -298,5 +322,77 @@ describe("record editor (feature 063, via launcher)", () => {
     render(<ContactsPage />);
     const dialog = await openViaSearch(/Jon Smith/);
     expect(within(dialog).getByRole("button", { name: /mark reviewed/i })).toBeInTheDocument();
+  });
+});
+
+// Feature 065: archive / restore toggle + delete controls, capability-gated.
+describe("contacts launcher — archive & delete (feature 065)", () => {
+  it("marks archived rows and searches with ?archived=1 when the toggle is on (C10)", async () => {
+    const calls = stub({ items: [summary(REC({ archivedAt: "2026-01-01T00:00:00Z" }))] });
+    render(<ContactsPage />);
+    await userEvent.click(screen.getByRole("button", { name: /\+ archived/i }));
+    await userEvent.type(search(), "jon");
+    await waitFor(() =>
+      expect(
+        calls.some((c) => c.url.includes("/api/contacts?") && c.url.includes("archived=1")),
+      ).toBe(true),
+    );
+    expect(await screen.findByText(/· archived/)).toBeInTheDocument(); // the row marker, not the toggle
+  });
+
+  it("editor shows Archive for an active contact when contactWrite (C11)", async () => {
+    stub({ items: [summary(REC())], record: REC(), caps: { contactWrite: true } });
+    render(<ContactsPage />);
+    const dialog = await openViaSearch(/Jon Smith/);
+    expect(within(dialog).getByRole("button", { name: /^archive$/i })).toBeInTheDocument();
+    expect(within(dialog).queryByRole("button", { name: /^restore$/i })).toBeNull();
+  });
+
+  it("editor shows Restore for an archived contact (C11)", async () => {
+    const rec = REC({ archivedAt: "2026-01-01T00:00:00Z" });
+    stub({ items: [summary(rec)], record: rec, caps: { contactWrite: true } });
+    render(<ContactsPage />);
+    const dialog = await openViaSearch(/Jon Smith/);
+    expect(within(dialog).getByRole("button", { name: /^restore$/i })).toBeInTheDocument();
+  });
+
+  it("Delete is gated by contactDelete and requires an explicit confirm (C12)", async () => {
+    const noDelete = stub({ items: [summary(REC())], record: REC(), caps: { contactWrite: true } });
+    const { unmount } = render(<ContactsPage />);
+    let dialog = await openViaSearch(/Jon Smith/);
+    expect(within(dialog).queryByRole("button", { name: /^delete$/i })).toBeNull();
+    unmount();
+    noDelete.length = 0;
+
+    const calls = stub({ items: [summary(REC())], record: REC(), caps: { contactDelete: true } });
+    render(<ContactsPage />);
+    dialog = await openViaSearch(/Jon Smith/);
+    await userEvent.click(within(dialog).getByRole("button", { name: /^delete$/i }));
+    // No DELETE yet — a confirm step is required first.
+    expect(calls.some((c) => c.init?.method === "DELETE")).toBe(false);
+    await userEvent.click(within(dialog).getByRole("button", { name: /confirm delete/i }));
+    await waitFor(() => expect(calls.some((c) => c.init?.method === "DELETE")).toBe(true));
+  });
+
+  it("a refused safe delete shows the reason; a super-user gets a force option (C13)", async () => {
+    const calls = stub({
+      items: [summary(REC())],
+      record: REC(),
+      caps: { contactDelete: true, contactDeleteUnrestricted: true },
+      deleteStatus: 409,
+    });
+    render(<ContactsPage />);
+    const dialog = await openViaSearch(/Jon Smith/);
+    await userEvent.click(within(dialog).getByRole("button", { name: /^delete$/i }));
+    await userEvent.click(within(dialog).getByRole("button", { name: /confirm delete/i }));
+    await waitFor(() => expect(within(dialog).getByText(/merge or archive/i)).toBeInTheDocument());
+    const force = within(dialog).getByRole("button", { name: /force delete/i });
+    calls.length = 0;
+    await userEvent.click(force);
+    await waitFor(() =>
+      expect(calls.some((c) => c.init?.method === "DELETE" && c.url.includes("force=1"))).toBe(
+        true,
+      ),
+    );
   });
 });

@@ -25,6 +25,9 @@ export const contacts = pgTable("contacts", {
   volunteerApprovedAt: timestamp("volunteer_approved_at", { withTimezone: true }),
   volunteerApprovedBy: uuid("volunteer_approved_by"),
   mergedIntoId: uuid("merged_into_id"),
+  // Feature 065 (M-R9): reversible soft-archive marker (mirrors bands.archived_at). Archived ⇔ non-null;
+  // excluded from every active-contact read, independent of merged_into_id.
+  archivedAt: timestamp("archived_at", { withTimezone: true }),
   needsReview: boolean("needs_review").notNull().default(false),
   source: text("source"),
   phone: text("phone"),

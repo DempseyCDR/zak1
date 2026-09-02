@@ -25,6 +25,7 @@ import { auditEvents } from "@/server/db/schema";
 export type AuditEvent = {
   kind:
     | "contact.merge"
+    | "contact.deleted" // feature 065 (M-R11/M-R12): a permanent contact deletion (safe or unrestricted)
     | "membership.status_change"
     | "contact.created"
     | "email.created"

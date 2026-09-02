@@ -38,7 +38,8 @@ export type ApiErrorCode =
   | "BOOKING_EVENT_MISMATCH"
   | "CONTENT_PAGE_NOT_FOUND"
   | "CONTENT_SLUG_TAKEN"
-  | "CAMPAIGN_NOT_FOUND";
+  | "CAMPAIGN_NOT_FOUND"
+  | "CONTACT_HAS_REFERENCES";
 
 export class ApiError extends Error {
   readonly code: ApiErrorCode;
@@ -91,6 +92,18 @@ export const errors = {
   emailDuplicate: () =>
     new ApiError("EMAIL_DUPLICATE", 409, "Email already in use by an active or transition record."),
   contactNotFound: () => new ApiError("CONTACT_NOT_FOUND", 404, "Contact not found."),
+  /**
+   * Feature 065 (M-R11): a SAFE delete refuses when the contact is referenced by any substantive table.
+   * Names the categories so the editor can explain (merge or archive instead). The unrestricted delete
+   * bypasses this.
+   */
+  contactHasReferences: (categories: string[]) =>
+    new ApiError(
+      "CONTACT_HAS_REFERENCES",
+      409,
+      `Contact has ${categories.join(", ")} — merge or archive it instead of deleting.`,
+      categories.join(","),
+    ),
   emailNotFound: () => new ApiError("EMAIL_NOT_FOUND", 404, "Email not found."),
   loginNotPermitted: () =>
     new ApiError(
