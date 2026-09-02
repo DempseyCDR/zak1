@@ -31,6 +31,11 @@ export type Capability =
   | "contact.mailing.write"
   | "contact.pii.read"
   | "dedup.write"
+  // Feature 065 (M-R11/M-R12): permanent contact deletion. `contact.delete` is the SAFE delete (removes
+  // only a bare record); `contact.delete.unrestricted` bypasses the bare-record guard. Distinct catalog
+  // capabilities, not inline `role === super_user` checks.
+  | "contact.delete"
+  | "contact.delete.unrestricted"
   | "membership.write"
   | "export.read"
   | "mailing_list.write"
@@ -166,6 +171,9 @@ export const CAPABILITIES: Catalog = {
     "contact.mailing.write": "global",
     "dedup.write": "global",
     "contact.pii.read": "global",
+    // Feature 065 (M-R11): the mailing-list manager may hard-delete a BARE contact (guarded). The
+    // unrestricted delete stays super_user-only.
+    "contact.delete": "global",
   },
 
   secretary: {
@@ -197,6 +205,8 @@ export const CAPABILITIES: Catalog = {
     "contact.mailing.write": "global",
     "contact.pii.read": "global",
     "dedup.write": "global",
+    "contact.delete": "global",
+    "contact.delete.unrestricted": "global", // feature 065 (M-R12): super_user only
     "membership.write": "global",
     "export.read": "global",
     "mailing_list.write": "global",

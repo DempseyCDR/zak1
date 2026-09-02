@@ -1,9 +1,22 @@
 import { and, count, desc, eq, isNull, sql } from "drizzle-orm";
+import type { AnyPgColumn, PgTable } from "drizzle-orm/pg-core";
 import type { Db } from "@/server/db/client";
-import { contactEmails, contacts } from "@/server/db/schema";
+import {
+  attendance,
+  contactEmails,
+  contacts,
+  gateSales,
+  memberships,
+  membershipCaptures,
+  officers,
+  performers,
+  roleGrants,
+  staffIdentities,
+  venues,
+} from "@/server/db/schema";
 import type { ContactRow } from "@/server/db/schema";
 import { errors } from "@/server/lib/apiError";
-import { writeAudit } from "@/server/lib/audit";
+import { recordAudit, writeAudit } from "@/server/lib/audit";
 import { deriveContactNames, normalizeName } from "./normalize";
 import { normalizePhone } from "./phone";
 import { addEmailInTx } from "./emailService";
@@ -136,10 +149,22 @@ export async function patchContact(
 
 export type ContactSummary = Pick<
   ContactRow,
-  "id" | "displayName" | "membershipStatus" | "listMember" | "pronouns"
+  "id" | "displayName" | "membershipStatus" | "listMember" | "pronouns" | "archivedAt"
 >;
 
 export type ContactSearchResult = { items: ContactSummary[]; truncated: boolean };
+
+/**
+ * Feature 065 (M-R10): "active contact" = non-merged AND non-archived. Applied everywhere a merged
+ * contact is already excluded. `includeArchived` drops ONLY the archived predicate (never the merged
+ * one), for the search's "+ archived" toggle.
+ */
+function activeContact(includeArchived = false) {
+  return and(
+    isNull(contacts.mergedIntoId),
+    includeArchived ? undefined : isNull(contacts.archivedAt),
+  );
+}
 
 /** Below this many primary (substring) matches, we also surface fuzzy "did you mean" matches. */
 const FUZZY_FLOOR = 5;
@@ -150,6 +175,7 @@ const SEARCH_COLS = {
   membershipStatus: contacts.membershipStatus,
   listMember: contacts.listMember,
   pronouns: contacts.pronouns,
+  archivedAt: contacts.archivedAt, // feature 065: lets a result row be marked archived
 };
 
 /** Escape LIKE/ILIKE wildcards in a user needle (Postgres default '\' escape char). */
@@ -175,8 +201,9 @@ export async function searchContacts(
   db: Db,
   q: string,
   limit = 20,
-  opts: { orderBy?: "recent" | "name" } = {},
+  opts: { orderBy?: "recent" | "name"; includeArchived?: boolean } = {},
 ): Promise<ContactSearchResult> {
+  const active = activeContact(opts.includeArchived); // feature 065
   if (!q.trim()) {
     // Browse the roster: alphabetical by last then first name for the door, else most recent.
     const order =
@@ -186,7 +213,7 @@ export async function searchContacts(
     const rows = await db
       .select(SEARCH_COLS)
       .from(contacts)
-      .where(isNull(contacts.mergedIntoId))
+      .where(active)
       .orderBy(...order)
       .limit(limit + 1);
     return withTruncation(rows, limit);
@@ -203,7 +230,7 @@ export async function searchContacts(
     .from(contacts)
     .where(
       and(
-        isNull(contacts.mergedIntoId),
+        active,
         sql`(${contacts.nameNormalized} ILIKE ${infix}
           OR ${contacts.dedupNormalized} ILIKE ${infix}
           OR EXISTS (
@@ -230,7 +257,7 @@ export async function searchContacts(
   const fuzzy = await db
     .select(SEARCH_COLS)
     .from(contacts)
-    .where(and(isNull(contacts.mergedIntoId), sql`${contacts.nameNormalized} % ${needle}`))
+    .where(and(active, sql`${contacts.nameNormalized} % ${needle}`))
     .orderBy(sql`similarity(${contacts.nameNormalized}, ${needle}) DESC`)
     .limit(limit + 1);
   const merged = [...primary];
@@ -242,24 +269,114 @@ export async function searchContacts(
   return withTruncation(merged, limit);
 }
 
-/** Feature 064: the needs-review count for the launcher button (active, non-merged, flagged). */
+/** Feature 064: the needs-review count for the launcher button (active, flagged). */
 export async function countNeedsReview(db: Db): Promise<number> {
   const [row] = await db
     .select({ n: count() })
     .from(contacts)
-    .where(and(isNull(contacts.mergedIntoId), eq(contacts.needsReview, true)));
+    .where(and(activeContact(), eq(contacts.needsReview, true)));
   return row?.n ?? 0;
 }
 
-/** Feature 064: the needs-review worklist — flagged, non-merged, bounded like search, name-ordered. */
+/** Feature 064: the needs-review worklist — flagged, active, bounded like search, name-ordered. */
 export async function listNeedsReview(db: Db, limit = 20): Promise<ContactSearchResult> {
   const rows = await db
     .select(SEARCH_COLS)
     .from(contacts)
-    .where(and(isNull(contacts.mergedIntoId), eq(contacts.needsReview, true)))
+    .where(and(activeContact(), eq(contacts.needsReview, true)))
     .orderBy(sql`${contacts.lastName} ASC NULLS LAST`, contacts.firstName)
     .limit(limit + 1);
   return withTruncation(rows, limit);
+}
+
+/** Feature 065 (M-R9): archive (retire, reversibly) — set archived_at. */
+export async function archiveContact(db: Db, id: string): Promise<ContactRow> {
+  const [row] = await db
+    .update(contacts)
+    .set({ archivedAt: new Date(), updatedAt: new Date() })
+    .where(eq(contacts.id, id))
+    .returning();
+  if (!row) throw errors.contactNotFound();
+  return row;
+}
+
+/** Feature 065 (M-R9): restore (unarchive) — clear archived_at. */
+export async function restoreContact(db: Db, id: string): Promise<ContactRow> {
+  const [row] = await db
+    .update(contacts)
+    .set({ archivedAt: null, updatedAt: new Date() })
+    .where(eq(contacts.id, id))
+    .returning();
+  if (!row) throw errors.contactNotFound();
+  return row;
+}
+
+/**
+ * Feature 065 (M-R11): the substantive tables whose reference blocks a SAFE delete — the SINGLE source
+ * of truth for the guard and its parity test (C15). `contact_emails` (owned, cascades) and audit rows
+ * (a log) are deliberately excluded, so a contact whose only references are its own emails is bare.
+ */
+export const CONTACT_DELETE_BLOCKERS = [
+  { category: "membership", table: memberships, column: memberships.contactId },
+  {
+    category: "membership_capture",
+    table: membershipCaptures,
+    column: membershipCaptures.contactId,
+  },
+  { category: "attendance", table: attendance, column: attendance.contactId },
+  { category: "gate_sale", table: gateSales, column: gateSales.contactId },
+  { category: "performer", table: performers, column: performers.contactId },
+  { category: "officer", table: officers, column: officers.contactId },
+  { category: "role_grant", table: roleGrants, column: roleGrants.contactId },
+  { category: "staff_identity", table: staffIdentities, column: staffIdentities.contactId },
+  { category: "venue_landlord", table: venues, column: venues.landlordContactId },
+] as const;
+
+async function referenced(
+  db: Db,
+  table: PgTable,
+  column: AnyPgColumn,
+  id: string,
+): Promise<boolean> {
+  const rows = await db
+    .select({ x: sql`1` })
+    .from(table)
+    .where(eq(column, id))
+    .limit(1);
+  return rows.length > 0;
+}
+
+/** Feature 065 (M-R11): which substantive categories reference this contact (empty ⇒ bare, safe-delete). */
+export async function contactDeleteBlockers(db: Db, id: string): Promise<string[]> {
+  const present: string[] = [];
+  for (const b of CONTACT_DELETE_BLOCKERS) {
+    if (await referenced(db, b.table, b.column, id)) present.push(b.category);
+  }
+  return present;
+}
+
+/**
+ * Feature 065 (M-R11/M-R12): permanently delete a contact. The SAFE path refuses unless the contact is
+ * bare; the UNRESTRICTED path (super_user) bypasses the guard. Both audit `contact.deleted`.
+ */
+export async function deleteContact(
+  db: Db,
+  id: string,
+  opts: { unrestricted?: boolean; actor?: string | null } = {},
+): Promise<void> {
+  const existing = await db.query.contacts.findFirst({ where: eq(contacts.id, id) });
+  if (!existing) throw errors.contactNotFound();
+  if (!opts.unrestricted) {
+    const blockers = await contactDeleteBlockers(db, id);
+    if (blockers.length > 0) throw errors.contactHasReferences(blockers);
+  }
+  await db.delete(contacts).where(eq(contacts.id, id));
+  // Durable audit row (FR-010): every permanent deletion is recorded, safe or unrestricted.
+  await recordAudit(db, {
+    kind: "contact.deleted",
+    actorContactId: opts.actor ?? null,
+    details: { contactId: id, unrestricted: !!opts.unrestricted },
+  });
 }
 
 /** Feature 064 (FR-013): the manual override — clear `needs_review` regardless of contact data. */

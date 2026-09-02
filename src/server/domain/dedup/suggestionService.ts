@@ -69,6 +69,8 @@ export async function getMergeSuggestions(
       ON a.id < b.id
      AND a.merged_into_id IS NULL
      AND b.merged_into_id IS NULL
+     AND a.archived_at IS NULL
+     AND b.archived_at IS NULL
      AND a.dedup_normalized % b.dedup_normalized
     WHERE similarity(a.dedup_normalized, b.dedup_normalized) >= ${threshold}${qFilter}
     ORDER BY sim DESC
@@ -106,6 +108,8 @@ export async function countMergeSuggestions(db: Db, threshold = 0.4): Promise<nu
       ON a.id < b.id
      AND a.merged_into_id IS NULL
      AND b.merged_into_id IS NULL
+     AND a.archived_at IS NULL
+     AND b.archived_at IS NULL
      AND a.dedup_normalized % b.dedup_normalized
     WHERE similarity(a.dedup_normalized, b.dedup_normalized) >= ${threshold}
   `);

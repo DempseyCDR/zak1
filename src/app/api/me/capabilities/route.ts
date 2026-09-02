@@ -10,5 +10,9 @@ export const GET = withAuth({ requires: "base" }, async (_req, ctx) => {
   return NextResponse.json({
     bookingWrite: actorCan(ctx.actor, "booking.write"),
     eventWrite: actorCan(ctx.actor, "event.write"),
+    // Feature 065: which contact archive/delete controls the editor should offer.
+    contactWrite: actorCan(ctx.actor, "contact.write"),
+    contactDelete: actorCan(ctx.actor, "contact.delete"),
+    contactDeleteUnrestricted: actorCan(ctx.actor, "contact.delete.unrestricted"),
   });
 });

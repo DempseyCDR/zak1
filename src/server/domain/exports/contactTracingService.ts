@@ -1,4 +1,4 @@
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, isNull, sql } from "drizzle-orm";
 import type { Db } from "@/server/db/client";
 import { attendance, contactEmails, contacts, events } from "@/server/db/schema";
 import { errors } from "@/server/lib/apiError";
@@ -34,6 +34,7 @@ export async function buildContactTracingRows(
       and(
         eq(attendance.eventId, eventId),
         eq(contactEmails.status, "active"),
+        isNull(contacts.archivedAt), // feature 065: archived contacts drop out of exports
         sql`'contact_tracing'::email_consent_topic = ANY(${contactEmails.consentTopics})`,
       ),
     );
