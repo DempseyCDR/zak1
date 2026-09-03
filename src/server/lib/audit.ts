@@ -26,6 +26,7 @@ export type AuditEvent = {
   kind:
     | "contact.merge"
     | "contact.deleted" // feature 065 (M-R11/M-R12): a permanent contact deletion (safe or unrestricted)
+    | "email.deleted" // feature 066 (M-R17): a permanent email-row deletion (super-user)
     | "membership.status_change"
     | "contact.created"
     | "email.created"

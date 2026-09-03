@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import AdminPage from "@/app/(admin)/_components/AdminPage";
 import TriageList from "@/app/(admin)/_components/TriageList";
 import RecordView from "@/app/(admin)/_components/RecordView";
+import EmailEditor, { type EmailRow } from "./_components/EmailEditor";
 import { formatPhone } from "@/server/domain/contacts/phone";
 import styles from "./contacts.module.css";
 
@@ -18,7 +19,12 @@ type ContactSummary = {
 };
 
 // Feature 065: which archive/delete controls this viewer may use (from /api/me/capabilities).
-type Caps = { contactWrite: boolean; contactDelete: boolean; contactDeleteUnrestricted: boolean };
+type Caps = {
+  contactWrite: boolean;
+  contactDelete: boolean;
+  contactDeleteUnrestricted: boolean;
+  contactMailingWrite: boolean;
+};
 
 // Feature 063 (M-R5..M-R8): the full record behind an opened contact, fed by GET /api/contacts/:id.
 type EditorRecord = {
@@ -36,6 +42,7 @@ type EditorRecord = {
   volunteerApprovedAt: string | null;
   volunteerApprovedBy: string | null;
   archivedAt: string | null;
+  emails: EmailRow[]; // feature 066
 };
 
 // Feature 062 (M-R4): a likely-duplicate pair from the dedup engine (shape of MergeSuggestion).
@@ -70,6 +77,7 @@ export default function ContactsPage() {
     contactWrite: false,
     contactDelete: false,
     contactDeleteUnrestricted: false,
+    contactMailingWrite: false,
   });
   const [includeArchived, setIncludeArchived] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false); // second-step guard for the destructive action
@@ -146,6 +154,7 @@ export default function ContactsPage() {
           contactWrite: !!c.contactWrite,
           contactDelete: !!c.contactDelete,
           contactDeleteUnrestricted: !!c.contactDeleteUnrestricted,
+          contactMailingWrite: !!c.contactMailingWrite,
         });
       }
     })();
@@ -607,6 +616,16 @@ export default function ContactsPage() {
                     </button>
                   )}
                 </div>
+              )}
+              {/* Feature 066: the contact's emails, editable below the scalar fields. */}
+              {caps.contactMailingWrite && (
+                <EmailEditor
+                  key={record.id}
+                  contactId={record.id}
+                  emails={record.emails ?? []}
+                  canDeleteUnrestricted={caps.contactDeleteUnrestricted}
+                  onChanged={() => openRecord(record.id)}
+                />
               )}
             </RecordView>
           </div>

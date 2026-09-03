@@ -39,28 +39,41 @@ export type ApiErrorCode =
   | "CONTENT_PAGE_NOT_FOUND"
   | "CONTENT_SLUG_TAKEN"
   | "CAMPAIGN_NOT_FOUND"
-  | "CONTACT_HAS_REFERENCES";
+  | "CONTACT_HAS_REFERENCES"
+  | "EMAIL_ACTIVE_ELSEWHERE";
 
 export class ApiError extends Error {
   readonly code: ApiErrorCode;
   readonly status: number;
   /** For UNAUTHORIZED / FIELD_NOT_PERMITTED: the capability or field refused, for the audit trail. */
   readonly detail?: string;
+  /** Structured payload merged into the error body (e.g. feature 066's colliding contact). */
+  readonly data?: Record<string, unknown>;
 
-  constructor(code: ApiErrorCode, status: number, message: string, detail?: string) {
+  constructor(
+    code: ApiErrorCode,
+    status: number,
+    message: string,
+    detail?: string,
+    data?: Record<string, unknown>,
+  ) {
     super(message);
     this.name = "ApiError";
     this.code = code;
     this.status = status;
     this.detail = detail;
+    this.data = data;
   }
 
-  toResponseBody(): { error: { code: ApiErrorCode; message: string; detail?: string } } {
+  toResponseBody(): {
+    error: { code: ApiErrorCode; message: string; detail?: string } & Record<string, unknown>;
+  } {
     return {
       error: {
         code: this.code,
         message: this.message,
         ...(this.detail !== undefined ? { detail: this.detail } : {}),
+        ...(this.data ?? {}),
       },
     };
   }
@@ -91,6 +104,18 @@ export const errors = {
     new ApiError("FIELD_NOT_PERMITTED", 403, `Field not permitted: ${field}.`, field),
   emailDuplicate: () =>
     new ApiError("EMAIL_DUPLICATE", 409, "Email already in use by an active or transition record."),
+  /**
+   * Feature 066 (M-R15.3): the address is already active on ANOTHER contact — a duplicate signal, not a
+   * dead-end error. Carries the other contact so the editor can offer "review as duplicate".
+   */
+  emailActiveElsewhere: (other: { contactId: string; displayName: string }) =>
+    new ApiError(
+      "EMAIL_ACTIVE_ELSEWHERE",
+      409,
+      `Already active on ${other.displayName} — review as duplicate.`,
+      other.contactId,
+      { other },
+    ),
   contactNotFound: () => new ApiError("CONTACT_NOT_FOUND", 404, "Contact not found."),
   /**
    * Feature 065 (M-R11): a SAFE delete refuses when the contact is referenced by any substantive table.

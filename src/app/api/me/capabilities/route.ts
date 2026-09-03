@@ -14,5 +14,7 @@ export const GET = withAuth({ requires: "base" }, async (_req, ctx) => {
     contactWrite: actorCan(ctx.actor, "contact.write"),
     contactDelete: actorCan(ctx.actor, "contact.delete"),
     contactDeleteUnrestricted: actorCan(ctx.actor, "contact.delete.unrestricted"),
+    // Feature 066: whether the editor should offer the email-edit controls.
+    contactMailingWrite: actorCan(ctx.actor, "contact.mailing.write"),
   });
 });

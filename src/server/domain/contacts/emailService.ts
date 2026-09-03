@@ -1,9 +1,9 @@
-import { eq } from "drizzle-orm";
+import { and, eq, inArray, ne, sql } from "drizzle-orm";
 import type { Db } from "@/server/db/client";
 import { contactEmails, contacts } from "@/server/db/schema";
 import type { ContactEmailRow, ContactRow, EmailConsentTopic } from "@/server/db/schema";
 import { errors } from "@/server/lib/apiError";
-import { writeAudit } from "@/server/lib/audit";
+import { recordAudit, writeAudit } from "@/server/lib/audit";
 import { uniqueSet } from "./normalize";
 import type { EmailAddInput, EmailPatchInput } from "@/server/validation/contacts";
 
@@ -59,6 +59,31 @@ export async function addEmailInTx(
   }
 }
 
+/**
+ * Feature 066 (M-R15.3 / F1): a PRE-WRITE lookup — is this address already active/transition on ANOTHER
+ * contact? Used by the standalone `addEmail`/`patchEmail` so a collision becomes a dedup signal without
+ * relying on a post-violation query (which would fail inside `createContact`'s aborted transaction).
+ */
+async function emailActiveElsewhere(
+  db: Db,
+  address: string,
+  excludeContactId: string,
+): Promise<{ contactId: string; displayName: string } | null> {
+  const [hit] = await db
+    .select({ contactId: contactEmails.contactId, displayName: contacts.displayName })
+    .from(contactEmails)
+    .innerJoin(contacts, eq(contacts.id, contactEmails.contactId))
+    .where(
+      and(
+        sql`lower(trim(${contactEmails.email}::text)) = lower(trim(${address}))`,
+        inArray(contactEmails.status, ["active", "transition"]),
+        ne(contactEmails.contactId, excludeContactId),
+      ),
+    )
+    .limit(1);
+  return hit ?? null;
+}
+
 export async function addEmail(
   db: Db,
   contactId: string,
@@ -66,6 +91,8 @@ export async function addEmail(
 ): Promise<ContactEmailRow> {
   const contact = await db.query.contacts.findFirst({ where: eq(contacts.id, contactId) });
   if (!contact) throw errors.contactNotFound();
+  const other = await emailActiveElsewhere(db, input.address, contactId);
+  if (other) throw errors.emailActiveElsewhere(other); // feature 066: dedup signal, not a bare duplicate
   return addEmailInTx(db, contact, input);
 }
 
@@ -85,10 +112,17 @@ export async function patchEmail(
     if (!contact || !isLoginAllowed(contact)) throw errors.loginNotPermitted();
   }
 
+  // Feature 066 (M-R15.3): changing the address into one active on another contact → dedup signal.
+  if (input.email !== undefined) {
+    const other = await emailActiveElsewhere(db, input.email, contactId);
+    if (other) throw errors.emailActiveElsewhere(other);
+  }
+
   try {
     const [row] = await db
       .update(contactEmails)
       .set({
+        ...(input.email !== undefined ? { email: input.email } : {}), // feature 066 (M-R13)
         ...(input.purposes !== undefined ? { purposes: uniqueSet(input.purposes) } : {}),
         ...(input.consentTopics !== undefined
           ? { consentTopics: effectiveConsentTopics(input.consentTopics) }
@@ -107,4 +141,26 @@ export async function patchEmail(
     }
     throw err;
   }
+}
+
+/**
+ * Feature 066 (M-R17): permanently delete an email row (super-user hard delete). The row's history and
+ * telemetry are erased — audited. Soft "remove" is a status=inactive patch, not this.
+ */
+export async function deleteEmail(
+  db: Db,
+  contactId: string,
+  emailId: string,
+  actor: string | null = null,
+): Promise<void> {
+  const existing = await db.query.contactEmails.findFirst({
+    where: eq(contactEmails.id, emailId),
+  });
+  if (!existing || existing.contactId !== contactId) throw errors.emailNotFound();
+  await db.delete(contactEmails).where(eq(contactEmails.id, emailId));
+  await recordAudit(db, {
+    kind: "email.deleted",
+    actorContactId: actor,
+    details: { contactId, emailId },
+  });
 }
