@@ -374,6 +374,26 @@ describe("contacts launcher — archive & delete (feature 065)", () => {
     await waitFor(() => expect(calls.some((c) => c.init?.method === "DELETE")).toBe(true));
   });
 
+  // Feature 067 follow-up: the refusal used to render ~100 lines of JSX below the button, after the
+  // whole read-only context list — so on a scrolling modal Mel clicked Confirm delete and saw nothing.
+  it("shows the refusal ABOVE the record fields, where the action was taken", async () => {
+    stub({
+      items: [summary(REC())],
+      record: REC(),
+      caps: { contactDelete: true },
+      deleteStatus: 409,
+    });
+    render(<ContactsPage />);
+    const dialog = await openViaSearch(/Jon Smith/);
+    await userEvent.click(within(dialog).getByRole("button", { name: /^delete$/i }));
+    await userEvent.click(within(dialog).getByRole("button", { name: /confirm delete/i }));
+
+    const reason = await within(dialog).findByText(/merge or archive/i);
+    const firstField = within(dialog).getByDisplayValue("Jon");
+    // DOCUMENT_POSITION_FOLLOWING === 4: the reason comes before the form fields.
+    expect(reason.compareDocumentPosition(firstField) & 4).toBeTruthy();
+  });
+
   it("a refused safe delete shows the reason; a super-user gets a force option (C13)", async () => {
     const calls = stub({
       items: [summary(REC())],

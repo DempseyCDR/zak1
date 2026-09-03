@@ -1,8 +1,9 @@
-import { and, eq, isNull, sql } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import type { Db } from "@/server/db/client";
-import { attendance, contactEmails, contacts, events } from "@/server/db/schema";
+import { events } from "@/server/db/schema";
 import { errors } from "@/server/lib/apiError";
 import { listEventAttendance } from "@/server/domain/attendance/attendanceService";
+import { resolvedRecipients } from "./recipients";
 
 export type ContactTracingResult = { count: number; rows: Record<string, string>[] };
 
@@ -21,28 +22,29 @@ export async function buildContactTracingRows(
   const { count } = await listEventAttendance(db, eventId);
   if (count === 0) return { count: 0, rows: [] };
 
-  const qualifying = await db
-    .select({
-      email: contactEmails.email,
-      firstName: contacts.firstName,
-      lastName: contacts.lastName,
-    })
-    .from(attendance)
-    .innerJoin(contacts, eq(contacts.id, attendance.contactId))
-    .innerJoin(contactEmails, eq(contactEmails.contactId, contacts.id))
-    .where(
-      and(
-        eq(attendance.eventId, eventId),
-        eq(contactEmails.status, "active"),
-        isNull(contacts.archivedAt), // feature 065: archived contacts drop out of exports
-        sql`'contact_tracing'::email_consent_topic = ANY(${contactEmails.consentTopics})`,
-      ),
-    );
+  // Feature 067: contact tracing is NOT one of the six mailing lists — it is attendance-driven. Because
+  // attendance is a CONTACT-row property, an attending referrer legitimately pulls the household address
+  // in (FR-010a); the owner's `contact_tracing` consent still gates it, and DISTINCT ON reaches the
+  // household exactly once under the owner's name (FR-010). This is the motivating case for the whole
+  // feature: a family gives one address for tracing.
+  const qualifying = await db.execute<{
+    address: string;
+    owner_first_name: string;
+    owner_last_name: string | null;
+  }>(sql`
+    WITH ${resolvedRecipients}
+    SELECT DISTINCT ON (r.address) r.address, r.owner_first_name, r.owner_last_name
+      FROM attendance a
+      JOIN resolved_recipients r ON r.contact_id = a.contact_id
+     WHERE a.event_id = ${eventId}
+       AND 'contact_tracing'::email_consent_topic = ANY(r.consent_topics)
+     ORDER BY r.address, (r.contact_id = r.owner_contact_id) DESC
+  `);
 
-  const rows = qualifying.map((r) => ({
-    email: r.email,
-    first_name: r.firstName,
-    last_name: r.lastName ?? "",
+  const rows = [...qualifying].map((r) => ({
+    email: r.address,
+    first_name: r.owner_first_name,
+    last_name: r.owner_last_name ?? "",
     date: event.eventDate,
   }));
 

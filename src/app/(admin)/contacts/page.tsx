@@ -6,6 +6,7 @@ import AdminPage from "@/app/(admin)/_components/AdminPage";
 import TriageList from "@/app/(admin)/_components/TriageList";
 import RecordView from "@/app/(admin)/_components/RecordView";
 import EmailEditor, { type EmailRow } from "./_components/EmailEditor";
+import MessageRecipient, { type MessageRecipientRow } from "./_components/MessageRecipient";
 import { formatPhone } from "@/server/domain/contacts/phone";
 import styles from "./contacts.module.css";
 
@@ -43,6 +44,9 @@ type EditorRecord = {
   volunteerApprovedBy: string | null;
   archivedAt: string | null;
   emails: EmailRow[]; // feature 066
+  // Feature 067: the household view — where this contact is reached, and who rides its address.
+  messageRecipient?: MessageRecipientRow | null;
+  sharedWith?: { contactId: string; displayName: string }[];
 };
 
 // Feature 062 (M-R4): a likely-duplicate pair from the dedup engine (shape of MergeSuggestion).
@@ -508,6 +512,24 @@ export default function ContactsPage() {
                 </>
               }
             >
+              {/* Feature 065: a refused safe delete explains why (references) and, for a super-user,
+                  offers the unrestricted override. Rendered FIRST, directly under the action row — it
+                  used to sit below the read-only context list, i.e. below the fold on a scrolling
+                  modal, so Mel pressed Confirm delete and appeared to get no response at all. */}
+              {deleteError && (
+                <div className={styles.error}>
+                  <p>{deleteError}</p>
+                  {caps.contactDeleteUnrestricted && (
+                    <button
+                      type="button"
+                      className={styles.dangerButton}
+                      onClick={() => deleteRecord(true)}
+                    >
+                      Force delete (super-user)
+                    </button>
+                  )}
+                </div>
+              )}
               <form onSubmit={saveRecord} className={styles.form}>
                 <label className={styles.field}>
                   <span className={styles.fieldLabel}>First name</span>
@@ -601,22 +623,6 @@ export default function ContactsPage() {
                   </dd>
                 </div>
               </dl>
-              {/* Feature 065: a refused safe delete explains why (references) and, for a super-user,
-                  offers the unrestricted override. */}
-              {deleteError && (
-                <div className={styles.error}>
-                  <p>{deleteError}</p>
-                  {caps.contactDeleteUnrestricted && (
-                    <button
-                      type="button"
-                      className={styles.dangerButton}
-                      onClick={() => deleteRecord(true)}
-                    >
-                      Force delete (super-user)
-                    </button>
-                  )}
-                </div>
-              )}
               {/* Feature 066: the contact's emails, editable below the scalar fields. */}
               {caps.contactMailingWrite && (
                 <EmailEditor
@@ -624,6 +630,17 @@ export default function ContactsPage() {
                   contactId={record.id}
                   emails={record.emails ?? []}
                   canDeleteUnrestricted={caps.contactDeleteUnrestricted}
+                  onChanged={() => openRecord(record.id)}
+                />
+              )}
+              {(record.messageRecipient || (record.sharedWith ?? []).length > 0) && (
+                <MessageRecipient
+                  key={`mr-${record.id}`}
+                  contactId={record.id}
+                  messageRecipient={record.messageRecipient ?? null}
+                  sharedWith={record.sharedWith ?? []}
+                  hasOwnActiveEmail={(record.emails ?? []).some((e) => e.status === "active")}
+                  canWrite={caps.contactMailingWrite}
                   onChanged={() => openRecord(record.id)}
                 />
               )}

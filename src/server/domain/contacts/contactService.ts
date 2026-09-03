@@ -20,10 +20,24 @@ import { recordAudit, writeAudit } from "@/server/lib/audit";
 import { deriveContactNames, normalizeName } from "./normalize";
 import { normalizePhone } from "./phone";
 import { addEmailInTx } from "./emailService";
+import { clearReferencesToOwner } from "./referenceService";
 import type { ContactCreateInput, ContactPatchInput } from "@/server/validation/contacts";
+
+/** Feature 067 (FR-009/FR-016): the shared address this contact rides, if any. */
+export type MessageRecipientView = {
+  emailId: string;
+  /** Contact PII — nulled for an actor without `contact.pii.read` (FR-016). */
+  address: string | null;
+  ownerContactId: string;
+  ownerDisplayName: string;
+};
 
 export type ContactWithEmails = ContactRow & {
   emails: (typeof contactEmails.$inferSelect)[];
+  /** Feature 067: set only when this contact rides someone else's address. */
+  messageRecipient?: MessageRecipientView | null;
+  /** Feature 067 (FR-010c): contacts that ride THIS contact's address. Names/ids only, no PII. */
+  sharedWith?: { contactId: string; displayName: string }[];
 };
 
 export async function createContact(
@@ -75,7 +89,33 @@ export async function getContact(db: Db, id: string): Promise<ContactWithEmails>
   const contact = await db.query.contacts.findFirst({ where: eq(contacts.id, id) });
   if (!contact) throw errors.contactNotFound();
   const emails = await db.select().from(contactEmails).where(eq(contactEmails.contactId, id));
-  return { ...contact, emails };
+
+  // Feature 067: the household view. `messageRecipient` is where THIS contact is reached when it owns
+  // no address; `sharedWith` is who rides this contact's address (FR-010c) — the app is the only place
+  // the roster is visible, since the export file carries only the owner's name.
+  const [owner] = contact.messageRecipientEmailId
+    ? await db
+        .select({
+          emailId: contactEmails.id,
+          address: contactEmails.email,
+          ownerContactId: contacts.id,
+          ownerDisplayName: contacts.displayName,
+        })
+        .from(contactEmails)
+        .innerJoin(contacts, eq(contacts.id, contactEmails.contactId))
+        .where(eq(contactEmails.id, contact.messageRecipientEmailId))
+        .limit(1)
+    : [];
+
+  const sharedWith = emails.length
+    ? await db
+        .select({ contactId: contacts.id, displayName: contacts.displayName })
+        .from(contacts)
+        .innerJoin(contactEmails, eq(contactEmails.id, contacts.messageRecipientEmailId))
+        .where(eq(contactEmails.contactId, id))
+    : [];
+
+  return { ...contact, emails, messageRecipient: owner ?? null, sharedWith };
 }
 
 export async function patchContact(
@@ -332,6 +372,26 @@ export const CONTACT_DELETE_BLOCKERS = [
   { category: "venue_landlord", table: venues, column: venues.landlordContactId },
 ] as const;
 
+/**
+ * Mel reads the refusal, so it must name references in her language — the categories above are table
+ * slugs (`gate_sale`, `staff_identity`, `shared_email`) and mean nothing to her. Category slugs stay the
+ * machine-readable contract in `error.detail`; these are only for the message.
+ */
+const BLOCKER_LABELS: Record<string, string> = {
+  membership: "a membership",
+  membership_capture: "a membership payment",
+  attendance: "check-in history",
+  gate_sale: "door sales",
+  performer: "a performer record",
+  officer: "an officer role",
+  role_grant: "staff role grants",
+  staff_identity: "a staff sign-in",
+  venue_landlord: "a venue landlord record",
+  shared_email: "other contacts reached at this contact's email",
+};
+
+export const blockerLabel = (category: string): string => BLOCKER_LABELS[category] ?? category;
+
 async function referenced(
   db: Db,
   table: PgTable,
@@ -352,6 +412,15 @@ export async function contactDeleteBlockers(db: Db, id: string): Promise<string[
   for (const b of CONTACT_DELETE_BLOCKERS) {
     if (await referenced(db, b.table, b.column, id)) present.push(b.category);
   }
+  // Feature 067: other contacts ride this contact's address, so deleting it would leave a household
+  // unreachable. Not a plain contact_id column, so it cannot ride the generic blocker list.
+  const [riders] = await db
+    .select({ id: contacts.id })
+    .from(contacts)
+    .innerJoin(contactEmails, eq(contactEmails.id, contacts.messageRecipientEmailId))
+    .where(eq(contactEmails.contactId, id))
+    .limit(1);
+  if (riders) present.push("shared_email");
   return present;
 }
 
@@ -368,8 +437,14 @@ export async function deleteContact(
   if (!existing) throw errors.contactNotFound();
   if (!opts.unrestricted) {
     const blockers = await contactDeleteBlockers(db, id);
-    if (blockers.length > 0) throw errors.contactHasReferences(blockers);
+    if (blockers.length > 0) {
+      throw errors.contactHasReferences(blockers.map(blockerLabel), blockers);
+    }
   }
+  // Feature 067 (FR-012): the unrestricted path bypasses the guard above, so referrers must still be
+  // cleared AND flagged before the cascade takes this contact's emails. The FK alone would null their
+  // pointers without a trace.
+  await clearReferencesToOwner(db, id, opts.actor ?? null);
   await db.delete(contacts).where(eq(contacts.id, id));
   // Durable audit row (FR-010): every permanent deletion is recorded, safe or unrestricted.
   await recordAudit(db, {

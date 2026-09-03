@@ -4,6 +4,7 @@ import { contactEmails, contacts } from "@/server/db/schema";
 import type { ContactEmailRow, ContactRow, EmailConsentTopic } from "@/server/db/schema";
 import { errors } from "@/server/lib/apiError";
 import { recordAudit, writeAudit } from "@/server/lib/audit";
+import { clearOwnReference, clearReferencesTo } from "./referenceService";
 import { uniqueSet } from "./normalize";
 import type { EmailAddInput, EmailPatchInput } from "@/server/validation/contacts";
 
@@ -68,9 +69,14 @@ async function emailActiveElsewhere(
   db: Db,
   address: string,
   excludeContactId: string,
-): Promise<{ contactId: string; displayName: string } | null> {
+): Promise<{ contactId: string; displayName: string; emailId: string } | null> {
   const [hit] = await db
-    .select({ contactId: contactEmails.contactId, displayName: contacts.displayName })
+    .select({
+      contactId: contactEmails.contactId,
+      displayName: contacts.displayName,
+      // Feature 067: the client links straight to this row when Mel resolves the collision as a share.
+      emailId: contactEmails.id,
+    })
     .from(contactEmails)
     .innerJoin(contacts, eq(contacts.id, contactEmails.contactId))
     .where(
@@ -93,7 +99,11 @@ export async function addEmail(
   if (!contact) throw errors.contactNotFound();
   const other = await emailActiveElsewhere(db, input.address, contactId);
   if (other) throw errors.emailActiveElsewhere(other); // feature 066: dedup signal, not a bare duplicate
-  return addEmailInTx(db, contact, input);
+  const row = await addEmailInTx(db, contact, input);
+  // Feature 067 (FR-011): this contact now has an address of its own, so it is no longer a referrer.
+  // Silent — gaining an address is an improvement, not something to flag for review.
+  if (row.status === "active") await clearOwnReference(db, contactId);
+  return row;
 }
 
 export async function patchEmail(
@@ -134,6 +144,12 @@ export async function patchEmail(
       .where(eq(contactEmails.id, emailId))
       .returning();
     if (!row) throw errors.emailNotFound();
+    // Feature 067 (FR-012): this address just stopped being reachable, so nobody may still be pointed
+    // at it. Deactivation is not a delete, so the FK cannot help here — and only the service can flag
+    // the referrers for re-capture.
+    if (existing.status === "active" && row.status !== "active") {
+      await clearReferencesTo(db, emailId, "deactivated");
+    }
     return row;
   } catch (err) {
     if (typeof err === "object" && err && (err as { code?: string }).code === UNIQUE_VIOLATION) {
@@ -157,6 +173,9 @@ export async function deleteEmail(
     where: eq(contactEmails.id, emailId),
   });
   if (!existing || existing.contactId !== contactId) throw errors.emailNotFound();
+  // Feature 067 (FR-012): clear referrers FIRST. The FK's ON DELETE SET NULL would null the pointers,
+  // but it cannot flag anyone for re-capture, and after the delete there is nothing left to match on.
+  await clearReferencesTo(db, emailId, "deleted", actor);
   await db.delete(contactEmails).where(eq(contactEmails.id, emailId));
   await recordAudit(db, {
     kind: "email.deleted",

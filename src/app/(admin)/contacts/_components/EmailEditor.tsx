@@ -16,7 +16,9 @@ export type EmailRow = {
   providerSetDate: string | null;
 };
 
-type Collision = { contactId: string; displayName: string };
+// Feature 067: the collision payload now also carries the owner's emailId, so resolving it as a
+// household share needs no second lookup.
+type Collision = { contactId: string; displayName: string; emailId?: string };
 
 const PURPOSES = ["personal", "booking", "public_profile", "other"] as const;
 const TOPICS = [
@@ -59,6 +61,8 @@ export default function EmailEditor({
   const [loginConfirm, setLoginConfirm] = useState<Record<string, boolean>>({});
   const [rowError, setRowError] = useState<Record<string, string | null>>({});
   const [addr, setAddr] = useState("");
+  // Feature 067 (FR-005): the ADD path detects a collision server-side too; it used to be discarded.
+  const [addCollision, setAddCollision] = useState<Collision | null>(null);
 
   function patchDraft(id: string, patch: Partial<EmailRow>) {
     setDrafts((ds) => ds.map((d) => (d.id === id ? { ...d, ...patch } : d)));
@@ -122,6 +126,21 @@ export default function EmailEditor({
     if (res.ok) void onChanged();
   }
 
+  /**
+   * Feature 067 (M-R26): the third resolution — these are different people sharing one household
+   * address. The editing contact rides the owner's email; `retireEmailId` retires the row being edited,
+   * which is the address being replaced (FR-017).
+   */
+  async function linkAsShared(other: Collision, retireEmailId?: string) {
+    if (!other.emailId) return;
+    const res = await apiFetch(`/api/contacts/${contactId}/message-recipient`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ emailId: other.emailId, ...(retireEmailId ? { retireEmailId } : {}) }),
+    });
+    if (res.ok) void onChanged();
+  }
+
   // Collision → review as duplicate: merge in the direction Mel chooses (M-R15.3 / F2).
   async function reviewMerge(canonicalId: string, mergedId: string) {
     const res = await apiFetch("/api/dedup/merge", {
@@ -142,7 +161,13 @@ export default function EmailEditor({
     });
     if (res.ok) {
       setAddr("");
+      setAddCollision(null);
       void onChanged();
+      return;
+    }
+    const body = await res.json().catch(() => null);
+    if (body?.error?.code === "EMAIL_ACTIVE_ELSEWHERE") {
+      setAddCollision(body.error.other ?? null);
     }
   }
 
@@ -254,12 +279,52 @@ export default function EmailEditor({
                   >
                     Keep {collision[d.id]!.displayName}
                   </button>
+                  {collision[d.id]!.emailId && (
+                    <button
+                      type="button"
+                      className={styles.dupButton}
+                      onClick={() => linkAsShared(collision[d.id]!, d.id)}
+                    >
+                      Different people — link as shared
+                    </button>
+                  )}
                 </span>
               </div>
             )}
           </li>
         ))}
       </ul>
+
+      {addCollision && (
+        <div className={styles.error}>
+          <p>Already active on {addCollision.displayName} — same person, or one household email?</p>
+          <span className={styles.dupActions}>
+            <button
+              type="button"
+              className={styles.dupButton}
+              onClick={() => reviewMerge(contactId, addCollision.contactId)}
+            >
+              Keep this contact
+            </button>
+            <button
+              type="button"
+              className={styles.dupButton}
+              onClick={() => reviewMerge(addCollision.contactId, contactId)}
+            >
+              Keep {addCollision.displayName}
+            </button>
+            {addCollision.emailId && (
+              <button
+                type="button"
+                className={styles.dupButton}
+                onClick={() => linkAsShared(addCollision)}
+              >
+                Different people — link as shared
+              </button>
+            )}
+          </span>
+        </div>
+      )}
 
       <form onSubmit={addEmail} className={styles.emailAdd}>
         <input
