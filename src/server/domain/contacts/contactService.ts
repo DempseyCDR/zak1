@@ -2,6 +2,9 @@ import { and, count, desc, eq, isNull, sql } from "drizzle-orm";
 import type { AnyPgColumn, PgTable } from "drizzle-orm/pg-core";
 import type { Db } from "@/server/db/client";
 import {
+  clubSettings,
+  membershipAccounts,
+  membershipMembers,
   attendance,
   contactEmails,
   contacts,
@@ -14,13 +17,16 @@ import {
   staffIdentities,
   venues,
 } from "@/server/db/schema";
-import type { ContactRow } from "@/server/db/schema";
+import type { ContactRow, MembershipLevel, MembershipStatus } from "@/server/db/schema";
 import { errors } from "@/server/lib/apiError";
 import { recordAudit, writeAudit } from "@/server/lib/audit";
 import { deriveContactNames, normalizeName } from "./normalize";
 import { normalizePhone } from "./phone";
 import { addEmailInTx } from "./emailService";
 import { clearReferencesToOwner } from "./referenceService";
+import { contactMembership } from "@/server/domain/membership/membershipStatus";
+import { classifyMembership } from "@/server/domain/membership/classify";
+import { deleteAccountOwnedBy } from "@/server/domain/membership/accountService";
 import type { ContactCreateInput, ContactPatchInput } from "@/server/validation/contacts";
 
 /** Feature 067 (FR-009/FR-016): the shared address this contact rides, if any. */
@@ -38,6 +44,20 @@ export type ContactWithEmails = ContactRow & {
   messageRecipient?: MessageRecipientView | null;
   /** Feature 067 (FR-010c): contacts that ride THIS contact's address. Names/ids only, no PII. */
   sharedWith?: { contactId: string; displayName: string }[];
+  /**
+   * Feature 068 (FR-018/FR-019): the MEMBERSHIP household — who paid, and who the payment covers.
+   * Distinct from `sharedWith`, which is the EMAIL household (FR-020): they overlap often and are not the
+   * same set. Names and ids only, so nothing here needs PII redaction.
+   */
+  membership?: {
+    status: MembershipStatus;
+    expiryDate: string | null;
+    asPayer: {
+      level: MembershipLevel;
+      members: { contactId: string; displayName: string }[];
+    } | null;
+    asMember: { payerContactId: string; payerDisplayName: string } | null;
+  };
 };
 
 export async function createContact(
@@ -115,7 +135,53 @@ export async function getContact(db: Db, id: string): Promise<ContactWithEmails>
         .where(eq(contactEmails.contactId, id))
     : [];
 
-  return { ...contact, emails, messageRecipient: owner ?? null, sharedWith };
+  // Feature 068: the membership household. Status comes from the DERIVATION, never the stored column —
+  // which is a write-refreshed cache and may be a membership-year out of date (FR-015).
+  const derived = await contactMembership(db, id);
+
+  const ownAccount = await db.query.membershipAccounts.findFirst({
+    where: eq(membershipAccounts.payerContactId, id),
+  });
+  const asPayer = ownAccount
+    ? {
+        level: ownAccount.level,
+        members: await db
+          .select({ contactId: contacts.id, displayName: contacts.displayName })
+          .from(membershipMembers)
+          .innerJoin(contacts, eq(contacts.id, membershipMembers.contactId))
+          .where(
+            and(
+              eq(membershipMembers.accountId, ownAccount.id),
+              sql`${membershipMembers.contactId} <> ${id}`,
+            ),
+          ),
+      }
+    : null;
+
+  // Where someone ELSE pays for this contact. A contact can both pay and be covered, so this is
+  // independent of `asPayer` rather than an alternative to it.
+  const [coveredBy] = await db
+    .select({ payerContactId: contacts.id, payerDisplayName: contacts.displayName })
+    .from(membershipMembers)
+    .innerJoin(membershipAccounts, eq(membershipAccounts.id, membershipMembers.accountId))
+    .innerJoin(contacts, eq(contacts.id, membershipAccounts.payerContactId))
+    .where(
+      and(eq(membershipMembers.contactId, id), sql`${membershipAccounts.payerContactId} <> ${id}`),
+    )
+    .limit(1);
+
+  return {
+    ...contact,
+    emails,
+    messageRecipient: owner ?? null,
+    sharedWith,
+    membership: {
+      status: derived.status,
+      expiryDate: derived.expiryDate,
+      asPayer,
+      asMember: coveredBy ?? null,
+    },
+  };
 }
 
 export async function patchContact(
@@ -209,14 +275,44 @@ function activeContact(includeArchived = false) {
 /** Below this many primary (substring) matches, we also surface fuzzy "did you mean" matches. */
 const FUZZY_FLOOR = 5;
 
+/**
+ * Feature 068 (FR-015): search must report the DERIVED membership, not the cached column.
+ *
+ * This is the surface it matters most on — the contacts list and the check-in lookup are the most-used
+ * screens in the app, and re-pointing only the record would have left them showing a status that was true
+ * last membership year. The expiry is fetched in SQL (one round trip, no N+1) and classified in
+ * `deriveSummary` below, because the lapse window is a club setting rather than a SQL constant.
+ */
 const SEARCH_COLS = {
   id: contacts.id,
   displayName: contacts.displayName,
-  membershipStatus: contacts.membershipStatus,
-  listMember: contacts.listMember,
+  membershipStatus: contacts.membershipStatus, // cache; overwritten by deriveSummary
+  listMember: contacts.listMember, // cache; overwritten by deriveSummary
   pronouns: contacts.pronouns,
   archivedAt: contacts.archivedAt, // feature 065: lets a result row be marked archived
+  maxExpiry: sql<string | null>`(
+    SELECT MAX(a.expiry_date) FROM membership_members mm
+      JOIN membership_accounts a ON a.id = mm.account_id
+     WHERE mm.contact_id = contacts.id)`.as("max_expiry"),
 };
+
+/** Replace the cached status/list-member on each search row with the derived truth (FR-015). */
+async function deriveSummaries<T extends { maxExpiry?: string | null }>(
+  db: Db,
+  rows: T[],
+): Promise<T[]> {
+  if (rows.length === 0) return rows;
+  const settings = await db.query.clubSettings.findFirst({ where: eq(clubSettings.id, 1) });
+  return rows.map((r) => {
+    const status = classifyMembership({
+      mostRecentExpiry: r.maxExpiry ?? null,
+      now: new Date(),
+      longLapseCycles: settings?.longLapseCycles ?? 3,
+      cycleDefinition: settings?.cycleDefinition ?? "1 year",
+    });
+    return { ...r, membershipStatus: status, listMember: r.maxExpiry !== null };
+  });
+}
 
 /** Escape LIKE/ILIKE wildcards in a user needle (Postgres default '\' escape char). */
 function escapeLike(s: string): string {
@@ -256,7 +352,7 @@ export async function searchContacts(
       .where(active)
       .orderBy(...order)
       .limit(limit + 1);
-    return withTruncation(rows, limit);
+    return withTruncation(await deriveSummaries(db, rows), limit);
   }
 
   const needle = normalizeName(q);
@@ -289,7 +385,7 @@ export async function searchContacts(
     .limit(limit + 1);
 
   if (primary.length >= FUZZY_FLOOR) {
-    return withTruncation(primary, limit);
+    return withTruncation(await deriveSummaries(db, primary), limit);
   }
 
   // Thin exact results → append trigram-similar names not already present, ranked after the exact set.
@@ -306,7 +402,7 @@ export async function searchContacts(
     merged.push(r);
     if (merged.length > limit) break;
   }
-  return withTruncation(merged, limit);
+  return withTruncation(await deriveSummaries(db, merged), limit);
 }
 
 /** Feature 064: the needs-review count for the launcher button (active, flagged). */
@@ -370,6 +466,13 @@ export const CONTACT_DELETE_BLOCKERS = [
   { category: "role_grant", table: roleGrants, column: roleGrants.contactId },
   { category: "staff_identity", table: staffIdentities, column: staffIdentities.contactId },
   { category: "venue_landlord", table: venues, column: venues.landlordContactId },
+  // Feature 068 (FR-009): a payer's contact cannot be deleted from under their membership account. Unlike
+  // 067's shared_email this IS a plain contact column, so it rides the generic list.
+  {
+    category: "membership_account",
+    table: membershipAccounts,
+    column: membershipAccounts.payerContactId,
+  },
 ] as const;
 
 /**
@@ -388,6 +491,7 @@ const BLOCKER_LABELS: Record<string, string> = {
   staff_identity: "a staff sign-in",
   venue_landlord: "a venue landlord record",
   shared_email: "other contacts reached at this contact's email",
+  membership_account: "a membership account",
 };
 
 export const blockerLabel = (category: string): string => BLOCKER_LABELS[category] ?? category;
@@ -445,6 +549,9 @@ export async function deleteContact(
   // cleared AND flagged before the cascade takes this contact's emails. The FK alone would null their
   // pointers without a trace.
   await clearReferencesToOwner(db, id, opts.actor ?? null);
+  // Feature 068 (FR-009): likewise the membership account. Its FK deliberately REFUSES to be orphaned, so
+  // the deliberate force path clears it explicitly rather than hitting a raw constraint error.
+  await deleteAccountOwnedBy(db, id, opts.actor ?? null);
   await db.delete(contacts).where(eq(contacts.id, id));
   // Durable audit row (FR-010): every permanent deletion is recorded, safe or unrestricted.
   await recordAudit(db, {

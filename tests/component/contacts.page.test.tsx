@@ -394,6 +394,15 @@ describe("contacts launcher — archive & delete (feature 065)", () => {
     expect(reason.compareDocumentPosition(firstField) & 4).toBeTruthy();
   });
 
+  // Feature 068 follow-up: the record shows WHETHER someone is a volunteer, which anyone viewing needs;
+  // the annual approval audit trail is governance detail that does not belong on this screen.
+  it("does not show volunteer-approval detail on the record", async () => {
+    stub({ items: [summary(REC())], record: REC(), caps: { contactWrite: true } });
+    render(<ContactsPage />);
+    const dialog = await openViaSearch(/Jon Smith/);
+    expect(within(dialog).queryByText(/volunteer approved/i)).toBeNull();
+  });
+
   it("a refused safe delete shows the reason; a super-user gets a force option (C13)", async () => {
     const calls = stub({
       items: [summary(REC())],

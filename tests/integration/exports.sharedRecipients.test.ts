@@ -2,9 +2,10 @@ import { beforeAll, beforeEach, afterAll, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
 import { ensureSchema, resetDb, closeDb, db } from "./helpers/db";
 import { contactEmails, contacts, performers } from "@/server/db/schema";
-import { contactRow, makeContactWithEmail } from "./helpers/factories";
+import { contactRow, makeContactWithEmail, makeMembershipAccount } from "./helpers/factories";
 import { buildListRows } from "@/server/domain/exports/exportService";
 import { linkMessageRecipient } from "@/server/domain/contacts/referenceService";
+import { attachMember } from "@/server/domain/membership/accountService";
 
 beforeAll(ensureSchema);
 beforeEach(resetDb);
@@ -23,18 +24,27 @@ describe("mailing-list exports resolve shared references (feature 067)", () => {
       lastName: "Jones",
       email: "shared@jones.com",
       consentTopics: ["contra"],
-      listMember: opts.ownerListMember ?? false,
-      membershipStatus: opts.ownerListMember ? "current" : "never",
     });
-    const [bridget] = await db
-      .insert(contacts)
-      .values({
-        ...contactRow("Bridget Jones"),
-        listMember: opts.referrerListMember ?? false,
-        membershipStatus: opts.referrerListMember ? "current" : "never",
-      })
-      .returning();
+    const [bridget] = await db.insert(contacts).values(contactRow("Bridget Jones")).returning();
     await linkMessageRecipient(db, bridget!.id, { emailId: owner.emailId }, null);
+    // Feature 068: member-list qualification now comes from an ACCOUNT, not `list_member`.
+    if (opts.ownerListMember) {
+      await makeMembershipAccount({
+        payerContactId: owner.contactId,
+        level: "family", // must admit Bridget when she qualifies too (FR-003a)
+        expiryDate: "2099-08-31",
+      });
+    }
+    if (opts.referrerListMember) {
+      if (opts.ownerListMember) {
+        await attachMember(db, owner.contactId, bridget!.id, null);
+      } else {
+        await makeMembershipAccount({
+          payerContactId: bridget!.id,
+          expiryDate: "2099-08-31",
+        });
+      }
+    }
     return { ownerId: owner.contactId, emailId: owner.emailId, referrerId: bridget!.id };
   }
 
@@ -48,7 +58,14 @@ describe("mailing-list exports resolve shared references (feature 067)", () => {
     expect(rows[0]!.first_name).toBe("David");
     expect(rows[0]!.last_name).toBe("Jones");
     expect(Object.keys(rows[0]!).sort()).toEqual(
-      ["email", "first_name", "last_name", "membership_status", "membership_through_year"].sort(),
+      [
+        "email",
+        "first_name",
+        "last_name",
+        "membership_status",
+        "membership_through_year",
+        "membership_level", // feature 068 (FR-013)
+      ].sort(),
     );
   });
 

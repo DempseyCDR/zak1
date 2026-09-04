@@ -16,5 +16,8 @@ export const GET = withAuth({ requires: "base" }, async (_req, ctx) => {
     contactDeleteUnrestricted: actorCan(ctx.actor, "contact.delete.unrestricted"),
     // Feature 066: whether the editor should offer the email-edit controls.
     contactMailingWrite: actorCan(ctx.actor, "contact.mailing.write"),
+    // Feature 068 (FR-017): the record shows the membership household to everyone, but only the
+    // FS/Treasurer/Super-user may change it.
+    membershipWrite: actorCan(ctx.actor, "membership.write"),
   });
 });

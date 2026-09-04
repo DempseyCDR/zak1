@@ -111,6 +111,7 @@ describe("contact delete (feature 065)", () => {
         "attendance",
         "gate_sale",
         "membership",
+        "membership_account",
         "membership_capture",
         "officer",
         "performer",

@@ -1,8 +1,8 @@
 import { beforeAll, beforeEach, afterAll, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
 import { ensureSchema, resetDb, closeDb, db } from "./helpers/db";
-import { contacts, memberships, payers, statusChangeAudit } from "@/server/db/schema";
-import { contactRow } from "./helpers/factories";
+import { contacts, statusChangeAudit } from "@/server/db/schema";
+import { contactRow, makeMembershipAccount } from "./helpers/factories";
 import { refreshAllStatuses } from "@/server/domain/membership/membershipService";
 
 // FR-009, SC-002: daily refresh transitions expired memberships and is idempotent.
@@ -12,15 +12,10 @@ describe("refreshAllStatuses (daily job)", () => {
   afterAll(closeDb);
 
   async function seedExpiredMembershipContact(expiry: string) {
-    // Insert membership directly (bypassing recompute) so the contact starts 'never'.
+    // Feature 068: seed the ACCOUNT directly (bypassing recompute) so the cached status starts 'never'
+    // and the backfill has something real to correct.
     const [contact] = await db.insert(contacts).values(contactRow("Lapsed Person")).returning();
-    const [payer] = await db
-      .insert(payers)
-      .values({ name: "Payer", contactId: contact!.id })
-      .returning();
-    await db
-      .insert(memberships)
-      .values({ contactId: contact!.id, payerId: payer!.id, expiryDate: expiry });
+    await makeMembershipAccount({ payerContactId: contact!.id, expiryDate: expiry });
     return contact!.id;
   }
 

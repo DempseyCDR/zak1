@@ -1,26 +1,17 @@
-import { eq, sql } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import type { Db, DbOrTx } from "@/server/db/client";
-import { clubSettings, contacts, memberships, payers, statusChangeAudit } from "@/server/db/schema";
-import type { MembershipRow, MembershipStatus, PayerRow } from "@/server/db/schema";
+import { contacts, statusChangeAudit } from "@/server/db/schema";
+import type { MembershipStatus } from "@/server/db/schema";
 import { errors } from "@/server/lib/apiError";
 import { writeAudit } from "@/server/lib/audit";
-import { classifyMembership, isListMember } from "./classify";
-import type { MembershipCreateInput } from "@/server/validation/memberships";
-
-async function getSettings(
-  db: DbOrTx,
-): Promise<{ longLapseCycles: number; cycleDefinition: string }> {
-  const row = await db.query.clubSettings.findFirst({ where: eq(clubSettings.id, 1) });
-  return {
-    longLapseCycles: row?.longLapseCycles ?? 3,
-    cycleDefinition: row?.cycleDefinition ?? "1 year",
-  };
-}
+import { contactMembership } from "./membershipStatus";
 
 /**
- * Recompute and materialize a contact's membership status. Writes a
- * status-change audit row only when the status actually changes (idempotent).
- * Returns the resulting status.
+ * Recompute and materialize a contact's membership status. Writes a status-change audit row only when the
+ * status actually changes (idempotent). Returns the resulting status.
+ *
+ * Feature 068: the stored columns are now a CACHE — status is derived where it is read (FR-015). This
+ * keeps the cache honest on write and is what the one-off backfill below drives.
  */
 export async function recomputeContactStatus(
   db: DbOrTx,
@@ -28,30 +19,22 @@ export async function recomputeContactStatus(
   reason: "membership_change" | "daily_job",
   actor: string | null = null,
 ): Promise<{ status: MembershipStatus; changed: boolean }> {
-  const settings = await getSettings(db);
-
-  const [latest] = await db
-    .select({ expiry: sql<string | null>`max(${memberships.expiryDate})` })
-    .from(memberships)
-    .where(eq(memberships.contactId, contactId));
-
   const contact = await db.query.contacts.findFirst({ where: eq(contacts.id, contactId) });
   if (!contact) throw errors.contactNotFound();
 
-  const newStatus = classifyMembership({
-    mostRecentExpiry: latest?.expiry ?? null,
-    now: new Date(),
-    longLapseCycles: settings.longLapseCycles,
-    cycleDefinition: settings.cycleDefinition,
-  });
-
+  // Derived from the ACCOUNTS covering this contact (FR-010), never from per-person membership rows.
+  // `list_member` follows ATTACHMENT (FR-011) rather than `isListMember(status)`, which encoded the
+  // superseded "has any membership history" rule — that is why someone who lapsed years ago and someone
+  // covered today were indistinguishable.
+  const derived = await contactMembership(db, contactId);
+  const newStatus = derived.status;
   const changed = newStatus !== contact.membershipStatus;
 
   await db
     .update(contacts)
     .set({
       membershipStatus: newStatus,
-      listMember: isListMember(newStatus),
+      listMember: derived.isMember,
       statusRecomputedAt: new Date(),
       updatedAt: new Date(),
     })
@@ -75,63 +58,6 @@ export async function recomputeContactStatus(
   return { status: newStatus, changed };
 }
 
-export async function createPayer(
-  db: DbOrTx,
-  input: { name: string; contactId?: string | null },
-): Promise<PayerRow> {
-  const [row] = await db
-    .insert(payers)
-    .values({ name: input.name, contactId: input.contactId ?? null })
-    .returning();
-  if (!row) throw new Error("payer insert failed");
-  return row;
-}
-
-/**
- * The payer to attribute a dues payment to: reuse the contact's existing payer, or create one. A
- * door/online dues payment implies a payer (the member or a party paying on their behalf); this keeps the
- * shared membership path from tripping over `memberships.payer_id` being NOT NULL (analyze G1).
- */
-export async function ensurePayerForContact(
-  db: DbOrTx,
-  contactId: string,
-  name: string,
-): Promise<PayerRow> {
-  const existing = await db.query.payers.findFirst({ where: eq(payers.contactId, contactId) });
-  return existing ?? createPayer(db, { name, contactId });
-}
-
-/**
- * Create a membership and recompute the contact's status, atomically.
- *
- * Feature 019 (FR-015): accepts `DbOrTx`. Handed a plain `Db` this opens a real transaction (admin/API
- * path, unchanged behaviour). Handed a `Tx` — the door flow calling from inside `putGateSales` (FR-001) —
- * `.transaction()` opens a SAVEPOINT that participates in the caller's transaction, so the membership
- * commits or rolls back together with the gate sale. Either way the insert + status recompute + audit are
- * one atomic unit, and both acquisition channels share this single path.
- */
-export async function createMembership(
-  db: DbOrTx,
-  input: MembershipCreateInput,
-  actor: string | null = null,
-): Promise<MembershipRow> {
-  return db.transaction(async (tx) => {
-    const [row] = await tx
-      .insert(memberships)
-      .values({
-        contactId: input.contactId,
-        payerId: input.payerId,
-        expiryDate: input.expiryDate,
-        sourceGateSaleId: input.sourceGateSaleId ?? null,
-        sourceNotificationId: input.sourceNotificationId ?? null,
-      })
-      .returning();
-    if (!row) throw new Error("membership insert failed");
-    await recomputeContactStatus(tx, input.contactId, "membership_change", actor);
-    return row;
-  });
-}
-
 export type MembershipStatusView = {
   status: MembershipStatus;
   listMember: boolean;
@@ -144,14 +70,22 @@ export async function getMembershipStatus(
 ): Promise<MembershipStatusView> {
   const contact = await db.query.contacts.findFirst({ where: eq(contacts.id, contactId) });
   if (!contact) throw errors.contactNotFound();
+  // Feature 068 (FR-015): a read surface, so it DERIVES rather than reporting the cached column.
+  const derived = await contactMembership(db, contactId);
   return {
-    status: contact.membershipStatus,
-    listMember: contact.listMember,
+    status: derived.status,
+    listMember: derived.isMember,
     recomputedAt: contact.statusRecomputedAt ? contact.statusRecomputedAt.toISOString() : null,
   };
 }
 
-/** Recompute every contact's status (daily job). Returns scanned/changed counts. */
+/**
+ * Feature 068 (FR-015a): the ONE-OFF correction.
+ *
+ * Status is derived where it is read, so this is not a scheduled job — the club runs no scheduler, and
+ * nothing depends on this having been run recently. It exists to bring the stored CACHE into line after a
+ * boundary has passed (118 memberships went stale on 1 September 2026) and after the account migration.
+ */
 export async function refreshAllStatuses(db: Db): Promise<{ scanned: number; changed: number }> {
   const ids = await db.select({ id: contacts.id }).from(contacts);
   let changed = 0;

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { membershipLevelEnum } from "@/server/db/schema/enums";
 
 export const eventGroupCreateSchema = z.object({
   name: z.string().trim().min(1),
@@ -62,10 +63,21 @@ export const gateSalesPutSchema = z.object({
           contactId: z.string().uuid().optional(),
           // Feature 031 (P5-R4): optional free-text comment for the anonymous-sales section.
           note: z.string().optional(),
+          // Feature 068 (FR-003/FR-005): what the payer BOUGHT. Independent of `amount` — tiers change and
+          // cheques bundle donations — so it is chosen, never inferred.
+          membershipLevel: z.enum(membershipLevelEnum.enumValues).optional(),
         })
         .refine((s) => !NAMED_CATEGORIES.has(s.category) || !!s.contactId, {
           message: "donation, future_event, and membership lines require a contactId",
           path: ["contactId"],
+        })
+        .refine((s) => s.category !== "membership" || !!s.membershipLevel, {
+          message: "membership lines require a membershipLevel",
+          path: ["membershipLevel"],
+        })
+        .refine((s) => s.category === "membership" || !s.membershipLevel, {
+          message: "membershipLevel applies only to membership lines",
+          path: ["membershipLevel"],
         }),
     )
     .default([]),
@@ -99,3 +111,6 @@ export type RecurringEventsInput = z.infer<typeof recurringEventsSchema>;
 export type DoorRecordCreateInput = z.infer<typeof doorRecordCreateSchema>;
 export type DoorRecordPatchInput = z.infer<typeof doorRecordPatchSchema>;
 export type GateSalesPutInput = z.infer<typeof gateSalesPutSchema>;
+
+/** Feature 068: alias used by tests and callers that read the gate-sale line contract. */
+export const gateSalesSchema = gateSalesPutSchema;

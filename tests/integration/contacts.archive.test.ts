@@ -2,7 +2,7 @@ import { beforeAll, beforeEach, afterAll, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
 import { ensureSchema, resetDb, closeDb, db } from "./helpers/db";
 import { contacts } from "@/server/db/schema";
-import { contactRow, makeContactWithEmail } from "./helpers/factories";
+import { contactRow, makeContactWithEmail, makeMembershipAccount } from "./helpers/factories";
 import {
   archiveContact,
   countNeedsReview,
@@ -64,14 +64,14 @@ describe("archive hides from active reads (feature 065)", () => {
   });
 
   it("archived contact is excluded from mailing-list exports (C1)", async () => {
+    // Feature 068: membership follows ATTACHMENT to an account (FR-011), not the cached list_member flag.
     const { contactId } = await makeContactWithEmail({
       firstName: "Mem",
       lastName: "Ber",
       email: "member@example.com",
-      listMember: true,
-      membershipStatus: "current",
       consentTopics: ["contra"],
     });
+    await makeMembershipAccount({ payerContactId: contactId, expiryDate: "2099-08-31" });
     const present = await buildListRows(db, "member");
     expect(present.some((r) => r.email === "member@example.com")).toBe(true);
 

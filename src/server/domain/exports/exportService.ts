@@ -2,6 +2,8 @@ import { sql } from "drizzle-orm";
 import type { DbOrTx } from "@/server/db/client";
 import { getMailingListDef } from "./mailingLists";
 import { resolvedRecipients } from "./recipients";
+import { contactCoverage } from "@/server/domain/membership/membershipStatus";
+import { classifyMembership } from "@/server/domain/membership/classify";
 import { throughYear } from "./throughYear";
 import type { ListId } from "@/server/validation/exports";
 
@@ -51,27 +53,42 @@ export async function buildListRows(db: DbOrTx, listId: ListId): Promise<Record<
   }
 
   if (listId === "member") {
+    // Feature 068: the member list is built from ATTACHMENT (FR-011), not from `contacts.list_member` —
+    // which encoded "has any membership history" and could not distinguish a household covered today from
+    // someone who lapsed years ago. A LAPSED member is deliberately still listed (FR-012): they are exactly
+    // who the renewal reminder is for. Status is DERIVED here (FR-015), so a year rollover needs no
+    // refresh, and `membership_level` is the PAYER'S level — blank for a member who pays for nothing.
     const rows = await db.execute<
-      RecipientRow & { membership_status: string; max_expiry: string | null }
+      RecipientRow & {
+        membership_status: string;
+        max_expiry: string | null;
+        membership_level: string | null;
+      }
     >(sql`
-      WITH ${resolvedRecipients}
+      WITH ${resolvedRecipients}, ${contactCoverage}
       SELECT DISTINCT ON (r.address)
              r.address, r.owner_first_name, r.owner_last_name,
-             c.membership_status,
-             (SELECT MAX(m.expiry_date) FROM memberships m WHERE m.contact_id = c.id) AS max_expiry
+             cov.max_expiry,
+             cov.paid_level AS membership_level
         FROM resolved_recipients r
         JOIN contacts c ON c.id = r.contact_id
-       WHERE c.list_member = TRUE
+        JOIN contact_coverage cov ON cov.contact_id = c.id
+       WHERE cov.is_member
          AND NOT ('do_not_contact'::email_consent_topic = ANY(r.consent_topics))
-       -- Prefer the owner's own qualifying row so an unshared export is byte-identical to before.
        ORDER BY r.address, (r.contact_id = r.owner_contact_id) DESC, c.id
     `);
     return [...rows].map((r) => {
       const year = throughYear(r.max_expiry);
       return {
         ...baseRow(r.address, r.owner_first_name, r.owner_last_name),
-        membership_status: r.membership_status,
+        membership_status: classifyMembership({
+          mostRecentExpiry: r.max_expiry,
+          now: new Date(),
+          longLapseCycles: 3,
+          cycleDefinition: "1 year",
+        }),
         membership_through_year: year === null ? "" : String(year),
+        membership_level: r.membership_level ?? "",
       };
     });
   }

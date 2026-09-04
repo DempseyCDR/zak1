@@ -1,25 +1,13 @@
 import { eq, getTableColumns, sql } from "drizzle-orm";
 import type { Db, DbOrTx } from "@/server/db/client";
-import {
-  clubSettings,
-  contacts,
-  doorRecordAudit,
-  doorRecords,
-  events,
-  gateSales,
-  memberships,
-} from "@/server/db/schema";
+import { contacts, doorRecordAudit, doorRecords, events, gateSales } from "@/server/db/schema";
 import type { DoorRecordRow, GateSaleRow } from "@/server/db/schema";
 import { errors } from "@/server/lib/apiError";
 import { assertEventScope } from "@/server/auth/can";
 import type { Actor } from "@/server/auth/actor";
 import { writeAudit } from "@/server/lib/audit";
 import { dollarsToCents, centsToDollars } from "@/server/lib/money";
-import {
-  createMembership,
-  ensurePayerForContact,
-} from "@/server/domain/membership/membershipService";
-import { grantedMembershipExpiry } from "@/server/domain/membership/membershipTerm";
+import { recordDuesPayment } from "@/server/domain/membership/accountService";
 import { resolveParameterCentsOrNull } from "@/server/domain/parameters/seriesParameterService";
 import { depositCents, posFeeCents } from "./calc";
 import type { DoorRecordPatchInput, GateSalesPutInput } from "@/server/validation/door";
@@ -241,7 +229,8 @@ export async function putGateSales(
           paymentMethod: s.paymentMethod,
           amountCents: dollarsToCents(s.amount),
           contactId: s.contactId ?? null,
-          note: s.note ?? null, // feature 031: the anonymous-sales comment (null on named lines)
+          note: s.note ?? null, // feature 031: the anonymous-sales comment
+          membershipLevel: s.membershipLevel ?? null, // feature 068 (FR-005): what was bought (null on named lines)
         })),
       )
       .returning();
@@ -275,28 +264,20 @@ async function enrollDoorMemberships(
 
   const event = await tx.query.events.findFirst({ where: eq(events.id, eventId) });
   if (!event) throw errors.eventNotFound();
-  const settingsRow = await tx.query.clubSettings.findFirst({ where: eq(clubSettings.id, 1) });
-  const boundary = settingsRow?.membershipYearEnd ?? "08-31";
-  const targetExpiry = grantedMembershipExpiry(event.eventDate, boundary);
-
   const enrolled: DoorEnrollment[] = [];
   for (const sale of named) {
     const contactId = sale.contactId!;
-    // Renewal no-op: already covered to/past the target boundary → record money, create no membership.
-    const rows = await tx
-      .select({ maxExpiry: sql<string | null>`max(${memberships.expiryDate})` })
-      .from(memberships)
-      .where(eq(memberships.contactId, contactId));
-    const maxExpiry = rows[0]?.maxExpiry ?? null;
-    if (maxExpiry && maxExpiry >= targetExpiry) continue;
-
     const contact = await tx.query.contacts.findFirst({ where: eq(contacts.id, contactId) });
-    const payer = await ensurePayerForContact(tx, contactId, contact?.displayName ?? "Member");
-    await createMembership(
-      tx,
-      { contactId, payerId: payer.id, expiryDate: targetExpiry, sourceGateSaleId: sale.id },
+    // Feature 068: dues open or renew the payer's DURABLE account. The renewal no-op lives inside
+    // `recordDuesPayment` (a payment never pulls coverage backwards), which is also what keeps the
+    // replace-all gate save idempotent — gate-sale ids were never stable enough to key on.
+    const account = await recordDuesPayment(
+      tx as unknown as Db,
+      contactId,
+      { level: sale.membershipLevel ?? "individual", paymentDate: event.eventDate },
       actorId,
     );
+    const targetExpiry = account.expiryDate;
     writeAudit({
       kind: "membership.door_enrollment",
       actor: actorId,

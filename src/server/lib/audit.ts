@@ -32,6 +32,11 @@ export type AuditEvent = {
     | "contact.reference.unlinked"
     | "contact.reference.cleared" // target deactivated/deleted → pointer cleared + needs_review (FR-012)
     | "membership.status_change"
+    // Feature 068: the membership account lifecycle.
+    | "membership.payment_recorded"
+    | "membership.level_changed"
+    | "membership.member_attached"
+    | "membership.member_detached"
     | "contact.created"
     | "email.created"
     | "door_record.created"

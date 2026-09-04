@@ -1,7 +1,7 @@
 import { integer, jsonb, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 import { contacts } from "./contacts";
 import { events } from "./events";
-import { gateCategoryEnum, paymentMethodEnum } from "./enums";
+import { gateCategoryEnum, membershipLevelEnum, paymentMethodEnum } from "./enums";
 
 export const doorRecords = pgTable("door_records", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -42,6 +42,9 @@ export const gateSales = pgTable("gate_sales", {
   // Feature 031 (P5-R4): free-text comment for the anonymous-sales section ("3 CDs, 2 shirts"). Carried on
   // the anonymous line(s); null on named lines. Transient denomination counts are NOT stored (Q8).
   note: text("note"),
+  // Feature 068 (FR-003/FR-005): the level the FS recorded on a dues line — what the payer BOUGHT.
+  // Independent of amount_cents: tiers change and cheques bundle donations. Null on other categories.
+  membershipLevel: membershipLevelEnum("membership_level"),
 });
 
 export const doorRecordAudit = pgTable("door_record_audit", {
