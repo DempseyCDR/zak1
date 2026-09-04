@@ -44,8 +44,19 @@ export async function recordPiiDisclosure(
   });
 }
 
-/** A contact carrying the two PII fields this feature protects. */
-type WithPii = { phone: string | null; emails: unknown[] };
+/**
+ * A contact carrying the PII fields this projection protects.
+ *
+ * ⚠️ This is a DENYLIST: `projectContact` spreads the contact and knocks out the fields named below, so
+ * any NEW field carrying an address or phone number is exposed by default and must be added here.
+ * Feature 067 added `messageRecipient`, whose `address` is another contact's email — the very thing
+ * `emails: []` exists to withhold (feature 067, FR-016).
+ */
+type WithPii = {
+  phone: string | null;
+  emails: unknown[];
+  messageRecipient?: { address: string | null } | null;
+};
 
 /**
  * Strip PII from a contact unless the actor may read it (FR-016).
@@ -53,8 +64,19 @@ type WithPii = { phone: string | null; emails: unknown[] };
  * Returns the same shape with `phone` nulled and `emails` emptied when denied, so clients keep a stable
  * contract — the fields are absent-of-value, not absent-of-key. The caller is responsible for the
  * disclosure audit when it returns unprojected PII (`recordPiiDisclosure`).
+ *
+ * Feature 067: the shared address is nulled the same way, but the OWNER'S NAME is kept — a base
+ * volunteer still sees "reached via David Jones", which is comprehensible without disclosing anything
+ * they could not already read. `sharedWith` needs no redaction: ids and display names only.
  */
 export function projectContact<T extends WithPii>(actor: Actor | undefined, contact: T): T {
   if (canReadPii(actor)) return contact;
-  return { ...contact, phone: null, emails: [] };
+  return {
+    ...contact,
+    phone: null,
+    emails: [],
+    ...(contact.messageRecipient
+      ? { messageRecipient: { ...contact.messageRecipient, address: null } }
+      : {}),
+  };
 }

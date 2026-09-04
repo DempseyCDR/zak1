@@ -28,6 +28,10 @@ export const contacts = pgTable("contacts", {
   // Feature 065 (M-R9): reversible soft-archive marker (mirrors bands.archived_at). Archived ⇔ non-null;
   // excluded from every active-contact read, independent of merged_into_id.
   archivedAt: timestamp("archived_at", { withTimezone: true }),
+  // Feature 067 (M-R23): shared/family email pointer. A contact with no owned address may RIDE another
+  // contact's owned email as its message recipient. On `contacts` — not `contact_emails` — so active-email
+  // uniqueness, sign-in, and is_login stay owner-only by construction (M-R24/M-R25).
+  messageRecipientEmailId: uuid("message_recipient_email_id"),
   needsReview: boolean("needs_review").notNull().default(false),
   source: text("source"),
   phone: text("phone"),

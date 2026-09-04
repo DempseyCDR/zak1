@@ -27,6 +27,10 @@ export type AuditEvent = {
     | "contact.merge"
     | "contact.deleted" // feature 065 (M-R11/M-R12): a permanent contact deletion (safe or unrestricted)
     | "email.deleted" // feature 066 (M-R17): a permanent email-row deletion (super-user)
+    // Feature 067 (M-R23): shared/family email reference lifecycle.
+    | "contact.reference.linked"
+    | "contact.reference.unlinked"
+    | "contact.reference.cleared" // target deactivated/deleted → pointer cleared + needs_review (FR-012)
     | "membership.status_change"
     | "contact.created"
     | "email.created"

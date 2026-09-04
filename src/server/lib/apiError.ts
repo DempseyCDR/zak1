@@ -1,6 +1,10 @@
 /** Consistent API error shape: { error: { code, message } }. */
 export type ApiErrorCode =
   | "EMAIL_DUPLICATE"
+  // Feature 067 (M-R23): shared/family email reference guards.
+  | "REFERENCE_SELF"
+  | "REFERENCE_TARGET_NOT_ACTIVE"
+  | "REFERRER_OWNS_EMAIL"
   | "CONTACT_NOT_FOUND"
   | "EMAIL_NOT_FOUND"
   | "LOGIN_NOT_PERMITTED"
@@ -108,7 +112,7 @@ export const errors = {
    * Feature 066 (M-R15.3): the address is already active on ANOTHER contact — a duplicate signal, not a
    * dead-end error. Carries the other contact so the editor can offer "review as duplicate".
    */
-  emailActiveElsewhere: (other: { contactId: string; displayName: string }) =>
+  emailActiveElsewhere: (other: { contactId: string; displayName: string; emailId?: string }) =>
     new ApiError(
       "EMAIL_ACTIVE_ELSEWHERE",
       409,
@@ -116,17 +120,36 @@ export const errors = {
       other.contactId,
       { other },
     ),
+  /**
+   * Feature 067 (FR-003/FR-014/FR-017): shared-email reference guards. A reference is a pointer to
+   * ANOTHER contact's active owned email; a contact that still has a working address of its own is not
+   * a referrer (the address-edit path retires the edited row first, so it links cleanly).
+   */
+  referenceSelf: () =>
+    new ApiError("REFERENCE_SELF", 422, "That email belongs to this contact — nothing to share."),
+  referenceTargetNotActive: () =>
+    new ApiError(
+      "REFERENCE_TARGET_NOT_ACTIVE",
+      422,
+      "That address is not active, so it cannot be shared.",
+    ),
+  referrerOwnsEmail: () =>
+    new ApiError(
+      "REFERRER_OWNS_EMAIL",
+      409,
+      "This contact has an active email of its own — retire it first to share someone else's.",
+    ),
   contactNotFound: () => new ApiError("CONTACT_NOT_FOUND", 404, "Contact not found."),
   /**
    * Feature 065 (M-R11): a SAFE delete refuses when the contact is referenced by any substantive table.
    * Names the categories so the editor can explain (merge or archive instead). The unrestricted delete
    * bypasses this.
    */
-  contactHasReferences: (categories: string[]) =>
+  contactHasReferences: (labels: string[], categories: string[] = labels) =>
     new ApiError(
       "CONTACT_HAS_REFERENCES",
       409,
-      `Contact has ${categories.join(", ")} — merge or archive it instead of deleting.`,
+      `Contact has ${labels.join(", ")} — merge or archive it instead of deleting.`,
       categories.join(","),
     ),
   emailNotFound: () => new ApiError("EMAIL_NOT_FOUND", 404, "Email not found."),

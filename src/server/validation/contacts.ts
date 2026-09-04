@@ -72,7 +72,18 @@ export const emailPatchSchema = z
   .passthrough()
   .superRefine(noProviderFields);
 
+/**
+ * Feature 067 (FR-002/FR-017): link a shared-email reference. `retireEmailId` names one of THIS
+ * contact's own rows to set inactive first — the address-edit collision path, where the row being
+ * edited is the address being replaced.
+ */
+export const messageRecipientSchema = z.object({
+  emailId: z.string().uuid(),
+  retireEmailId: z.string().uuid().optional(),
+});
+
 export type ContactCreateInput = z.infer<typeof contactCreateSchema>;
 export type ContactPatchInput = z.infer<typeof contactPatchSchema>;
 export type EmailAddInput = z.infer<typeof emailAddSchema>;
 export type EmailPatchInput = z.infer<typeof emailPatchSchema>;
+export type MessageRecipientInput = z.infer<typeof messageRecipientSchema>;

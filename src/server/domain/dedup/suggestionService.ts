@@ -7,6 +7,11 @@ function escapeLike(s: string): string {
   return s.replace(/[\\%_]/g, (c) => `\\${c}`);
 }
 
+// Feature 067 (FR-018): a pair already linked as a SHARED HOUSEHOLD is suppressed in both directions.
+// Suggestions pair on NAME similarity, never on email, so a household that shares a surname would
+// otherwise re-surface on every pass through the queue. Derived from the pointer itself — no dismissal
+// record and no new table. Narrower than, and unrelated to, the general "not a duplicate" flag (M-R18):
+// a same-surname pair that is NOT linked (Lydia and Richard Dempsey) keeps being suggested (FR-019).
 // Feature 033 (P5-R7): each candidate also carries phone (canonical, feature 032) + ACTIVE emails, so the
 // reviewer can tell a real duplicate from a coincidental same-name match.
 export type MergeSuggestionContact = {
@@ -72,6 +77,11 @@ export async function getMergeSuggestions(
      AND a.archived_at IS NULL
      AND b.archived_at IS NULL
      AND a.dedup_normalized % b.dedup_normalized
+     AND NOT EXISTS (
+           SELECT 1 FROM contact_emails ce
+            WHERE (ce.id = a.message_recipient_email_id AND ce.contact_id = b.id)
+               OR (ce.id = b.message_recipient_email_id AND ce.contact_id = a.id)
+         )
     WHERE similarity(a.dedup_normalized, b.dedup_normalized) >= ${threshold}${qFilter}
     ORDER BY sim DESC
     LIMIT ${limit}
@@ -111,6 +121,11 @@ export async function countMergeSuggestions(db: Db, threshold = 0.4): Promise<nu
      AND a.archived_at IS NULL
      AND b.archived_at IS NULL
      AND a.dedup_normalized % b.dedup_normalized
+     AND NOT EXISTS (
+           SELECT 1 FROM contact_emails ce
+            WHERE (ce.id = a.message_recipient_email_id AND ce.contact_id = b.id)
+               OR (ce.id = b.message_recipient_email_id AND ce.contact_id = a.id)
+         )
     WHERE similarity(a.dedup_normalized, b.dedup_normalized) >= ${threshold}
   `);
   return [...rows][0]?.n ?? 0;

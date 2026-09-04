@@ -2,7 +2,7 @@ import { beforeAll, beforeEach, afterAll, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
 import { ensureSchema, resetDb, closeDb, db } from "./helpers/db";
 import { contacts, roleGrants, performers, auditEvents } from "@/server/db/schema";
-import { contactRow } from "./helpers/factories";
+import { contactRow, makeContactWithEmail } from "./helpers/factories";
 import { makeActor } from "./helpers/factories";
 import { jsonReq, jsonReqAs, ctx } from "./helpers/http";
 import { CONTACT_DELETE_BLOCKERS } from "@/server/domain/contacts/contactService";
@@ -143,5 +143,26 @@ describe("contact delete (feature 065)", () => {
     );
     expect(res.status).toBe(403);
     expect(await db.query.contacts.findFirst({ where: eq(contacts.id, id) })).toBeTruthy();
+  });
+
+  // Feature 067 follow-up: the categories are DB slugs (`gate_sale`, `staff_identity`, `shared_email`).
+  // Mel reads this message, so it must name the references in her language.
+  it("names the blocking references in human wording, not table slugs", async () => {
+    const { contactId } = await makeContactWithEmail({
+      firstName: "Perf",
+      lastName: "Ormer",
+      email: "perf@example.com",
+    });
+    await db.insert(performers).values({ displayName: "Perf Ormer", contactId });
+
+    const res = await DELETE_CONTACT(
+      jsonReq("DELETE", `/api/contacts/${contactId}`),
+      ctx({ id: contactId }),
+    );
+    expect(res.status).toBe(409);
+    const body = await res.json();
+    expect(body.error.code).toBe("CONTACT_HAS_REFERENCES");
+    expect(body.error.message).toMatch(/performer record/i);
+    expect(body.error.message).not.toMatch(/\bgate_sale\b|\bstaff_identity\b/);
   });
 });

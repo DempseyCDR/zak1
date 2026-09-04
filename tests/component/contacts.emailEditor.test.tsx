@@ -26,14 +26,17 @@ const json = (body: unknown, status = 200) => ({
   json: async () => body,
 });
 
-function stub(opts: { collision?: { contactId: string; displayName: string } } = {}): Call[] {
+function stub(
+  opts: { collision?: { contactId: string; displayName: string; emailId?: string } } = {},
+): Call[] {
   const calls: Call[] = [];
   vi.stubGlobal(
     "fetch",
     vi.fn(async (url: string, init?: RequestInit) => {
       calls.push({ url: String(url), init });
       const method = init?.method ?? "GET";
-      if (method === "PATCH" && opts.collision)
+      // Feature 067: the collision is raised on BOTH write paths — editing a row and adding one.
+      if ((method === "PATCH" || method === "POST") && opts.collision)
         return json({ error: { code: "EMAIL_ACTIVE_ELSEWHERE", other: opts.collision } }, 409);
       return json({ ok: true });
     }),
@@ -194,5 +197,41 @@ describe("EmailEditor — telemetry read-only (feature 066)", () => {
     render1({ providerLastOpen: new Date(Date.now() - 90 * 86_400_000).toISOString() });
     const hint = row().getByText(/opened .*ago/i);
     expect(hint.tagName).toBe("P"); // read-only text, not an input
+  });
+});
+
+// Feature 067 (M-R26 / FR-005): a same-address collision is not automatically a merge candidate — the
+// household case resolves by linking the editing contact to the owner's address instead.
+describe("EmailEditor — collision offers link as shared (feature 067)", () => {
+  const collision = { contactId: "c2", displayName: "Jane Other", emailId: "e-other" };
+
+  it("links as shared, retiring the row being edited (FR-017)", async () => {
+    const calls = stub({ collision });
+    render1();
+    await userEvent.click(row().getByRole("button", { name: /save email/i }));
+    await waitFor(() =>
+      expect(row().getByText(/already active on Jane Other/i)).toBeInTheDocument(),
+    );
+
+    await userEvent.click(row().getByRole("button", { name: /different people|link as shared/i }));
+    await waitFor(() => {
+      const put = calls.find(
+        (c) => c.url.includes("/api/contacts/c1/message-recipient") && c.init?.method === "PUT",
+      );
+      expect(put).toBeTruthy();
+      // The owner's email is adopted; the edited row is retired in the same call (FR-017).
+      expect(String(put!.init?.body)).toContain('"emailId":"e-other"');
+      expect(String(put!.init?.body)).toContain('"retireEmailId":"e1"');
+    });
+  });
+
+  it("a colliding ADD surfaces the named collision instead of failing silently (FR-005)", async () => {
+    stub({ collision });
+    render1();
+    await userEvent.type(screen.getByPlaceholderText(/add email address/i), "shared@jones.com");
+    await userEvent.click(screen.getByRole("button", { name: /^add email$/i }));
+    await waitFor(() =>
+      expect(screen.getByText(/already active on Jane Other/i)).toBeInTheDocument(),
+    );
   });
 });
