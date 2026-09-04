@@ -8,12 +8,7 @@ import {
 } from "@/server/db/schema";
 import type { MembershipCaptureRow } from "@/server/db/schema";
 import { writeAudit } from "@/server/lib/audit";
-import {
-  createMembership,
-  ensurePayerForContact,
-} from "@/server/domain/membership/membershipService";
-import { grantedMembershipExpiry } from "@/server/domain/membership/membershipTerm";
-import { clubSettings } from "@/server/db/schema";
+import { recordDuesPayment } from "@/server/domain/membership/accountService";
 import type { ExtractedNotification } from "@/server/validation/paypal";
 
 /**
@@ -174,16 +169,15 @@ export async function linkParkedNotification(
     if (!notif) throw new Error("notification not found");
     const contact = await tx.query.contacts.findFirst({ where: eq(contacts.id, contactId) });
     if (!contact) throw new Error("contact not found");
-    const payer = await ensurePayerForContact(tx, contactId, contact.displayName ?? "Member");
-    await createMembership(
-      tx,
-      {
-        contactId,
-        payerId: payer.id,
-        expiryDate: await targetExpiry(tx),
-        sourceNotificationId: notif.id,
-      },
-      actor,
+    // Feature 068: dues open or renew the payer's ACCOUNT. This path is REACHABLE TODAY — it is the
+    // parked-payment link on /payments — unlike the dormant webhook enrolment below.
+    await recordDuesPayment(
+      tx as unknown as Db,
+      contactId,
+      { level: "individual", paymentDate: new Date().toISOString().slice(0, 10) },
+      // `actor` here is free text from the legacy x-actor header, not a contact id, so it cannot be the
+      // durable audit actor. The linking action itself is still attributed below via writeAudit.
+      null,
     );
     await tx
       .update(paypalNotifications)
@@ -197,15 +191,6 @@ export async function linkParkedNotification(
   });
 }
 
-/** Resolve the membership year-end boundary from club settings (fallback '08-31'), for online enrollment. */
-async function targetExpiry(tx: DbOrTx): Promise<string> {
-  const settingsRow = await tx.query.clubSettings.findFirst({ where: eq(clubSettings.id, 1) });
-  return grantedMembershipExpiry(
-    new Date().toISOString().slice(0, 10),
-    settingsRow?.membershipYearEnd ?? "08-31",
-  );
-}
-
 /**
  * Create/renew the membership for a matched capture (already known to carry a contact), tied to its
  * notification, via the shared creation path (FR-012 — same routine as the door flow).
@@ -216,22 +201,17 @@ async function enrollFromCapture(
   notificationId: string,
   actor: string | null,
 ): Promise<void> {
-  const contact = await tx.query.contacts.findFirst({ where: eq(contacts.id, capture.contactId) });
-  const payer = await ensurePayerForContact(
-    tx,
+  // Feature 068: the account model. This path is DORMANT — the webhook has never delivered, because the
+  // app is not deployed and PayPal has no address to POST to — but it must keep compiling and behaving.
+  // Replay protection is unchanged: `paypal_notifications.provider_event_id` is UNIQUE and checked before
+  // anything is created, which is what the retired per-membership source index was a second belt on.
+  await recordDuesPayment(
+    tx as unknown as Db,
     capture.contactId,
-    contact?.displayName ?? capture.name,
+    { level: "individual", paymentDate: new Date().toISOString().slice(0, 10) },
+    null, // see above: the legacy free-text actor is not a contact id
   );
-  await createMembership(
-    tx,
-    {
-      contactId: capture.contactId,
-      payerId: payer.id,
-      expiryDate: await targetExpiry(tx),
-      sourceNotificationId: notificationId,
-    },
-    actor,
-  );
+  void notificationId;
   writeAudit({
     kind: "membership.online_enrollment",
     actor,

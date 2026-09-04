@@ -383,3 +383,16 @@
   padding-inline-start: var(--space-4);
   color: var(--text-muted);
 }
+
+/* Feature 068: the membership household. Deliberately distinct from .sharedSection (the EMAIL household)
+   — the two overlap often but are different facts, and must not read as one panel (FR-020). */
+.membershipSection {
+  margin: var(--space-4) 0 0;
+  border-block-start: 1px solid var(--hairline);
+  border-inline-start: 3px solid var(--accent, #7a5c3e);
+  padding-block-start: var(--space-3);
+  padding-inline-start: var(--space-3);
+  display: grid;
+  gap: var(--space-2);
+  justify-items: start;
+}

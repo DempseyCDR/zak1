@@ -4,9 +4,9 @@ import {
   auditEvents,
   contactEmails,
   contacts,
-  memberships,
   mergeAudit,
-  payers,
+  membershipAccounts,
+  membershipMembers,
   performers,
   roleGrants,
 } from "@/server/db/schema";
@@ -195,33 +195,56 @@ async function applyLoad(tx: Tx, input: LoadInput, dryRun: boolean): Promise<Loa
     if (pc.needsReview) counts.needsReview++;
   }
 
-  // --- Payers + memberships (FR-009/FR-020), then status recompute (FR-010). ---
-  const payerKeyToId = new Map<string, string>();
-  for (const pp of plannedPayers) {
-    const contactId = pp.contactDedupKey ? (dedupToId.get(pp.contactDedupKey) ?? null) : null;
-    const [row] = await tx
-      .insert(payers)
-      .values({ name: pp.name, contactId })
-      .returning({ id: payers.id });
-    if (!row) throw new Error("payer insert failed");
-    payerKeyToId.set(pp.key, row.id);
-  }
-
+  // --- Membership accounts (FR-009/FR-020), then status recompute (FR-010). ---
+  //
+  // Feature 068: the workbook's Payer sheet was ALWAYS account-shaped — one payer covering N members at a
+  // shared level and expiry — so the planning stage below already produces exactly what an account is.
+  // Only the storage changed: one account per payer group with its members attached, rather than a row per
+  // person with the level and expiry copied across the household. Left on the legacy tables, a re-run of
+  // this load would import members that nothing reads.
+  const payerKeyToAccountId = new Map<string, string>();
   const affected = new Set<string>();
+
   for (const pm of plannedMemberships) {
     const contactId = dedupToId.get(pm.contactDedupKey);
-    const payerId = payerKeyToId.get(pm.payerKey);
-    if (!contactId || !payerId) continue;
-    await tx.insert(memberships).values({
-      contactId,
-      payerId,
-      expiryDate: pm.expiry,
-      level: pm.level,
-    });
+    if (!contactId) continue;
+
+    let accountId = payerKeyToAccountId.get(pm.payerKey);
+    if (!accountId) {
+      const planned = plannedPayers.find((pp) => pp.key === pm.payerKey);
+      // The payer→contact link is the member whose dedup key matches the Payer Name (FR-020); where the
+      // sheet names someone not in the roster, the account is owned by this first covered member so it is
+      // never left ownerless (FR-009).
+      const ownerId =
+        (planned?.contactDedupKey ? dedupToId.get(planned.contactDedupKey) : undefined) ??
+        contactId;
+
+      const existing = await tx.query.membershipAccounts.findFirst({
+        where: eq(membershipAccounts.payerContactId, ownerId),
+      });
+      const [row] = existing
+        ? [existing]
+        : await tx
+            .insert(membershipAccounts)
+            .values({ payerContactId: ownerId, level: pm.level, expiryDate: pm.expiry })
+            .returning();
+      if (!row) throw new Error("membership account insert failed");
+      accountId = row.id;
+      payerKeyToAccountId.set(pm.payerKey, accountId);
+
+      await tx
+        .insert(membershipMembers)
+        .values({ accountId, contactId: ownerId })
+        .onConflictDoNothing();
+      affected.add(ownerId);
+    }
+
+    await tx.insert(membershipMembers).values({ accountId, contactId }).onConflictDoNothing();
     counts.membershipsCreated++;
     counts.membershipsByLevel[pm.level]++;
     affected.add(contactId);
   }
+
   for (const id of affected) {
     await recomputeContactStatus(tx, id, "membership_change", "contact_load");
   }

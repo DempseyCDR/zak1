@@ -7,6 +7,7 @@ import TriageList from "@/app/(admin)/_components/TriageList";
 import RecordView from "@/app/(admin)/_components/RecordView";
 import EmailEditor, { type EmailRow } from "./_components/EmailEditor";
 import MessageRecipient, { type MessageRecipientRow } from "./_components/MessageRecipient";
+import MembershipAccount, { type MembershipBlock } from "./_components/MembershipAccount";
 import { formatPhone } from "@/server/domain/contacts/phone";
 import styles from "./contacts.module.css";
 
@@ -25,6 +26,7 @@ type Caps = {
   contactDelete: boolean;
   contactDeleteUnrestricted: boolean;
   contactMailingWrite: boolean;
+  membershipWrite: boolean; // feature 068 (FR-017): FS/Treasurer/Super-user
 };
 
 // Feature 063 (M-R5..M-R8): the full record behind an opened contact, fed by GET /api/contacts/:id.
@@ -40,13 +42,13 @@ type EditorRecord = {
   membershipStatus: string;
   listMember: boolean;
   needsReview: boolean;
-  volunteerApprovedAt: string | null;
-  volunteerApprovedBy: string | null;
   archivedAt: string | null;
   emails: EmailRow[]; // feature 066
   // Feature 067: the household view — where this contact is reached, and who rides its address.
   messageRecipient?: MessageRecipientRow | null;
   sharedWith?: { contactId: string; displayName: string }[];
+  // Feature 068: the MEMBERSHIP household — distinct from the email household above (FR-020).
+  membership?: MembershipBlock;
 };
 
 // Feature 062 (M-R4): a likely-duplicate pair from the dedup engine (shape of MergeSuggestion).
@@ -82,6 +84,7 @@ export default function ContactsPage() {
     contactDelete: false,
     contactDeleteUnrestricted: false,
     contactMailingWrite: false,
+    membershipWrite: false,
   });
   const [includeArchived, setIncludeArchived] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false); // second-step guard for the destructive action
@@ -159,6 +162,7 @@ export default function ContactsPage() {
           contactDelete: !!c.contactDelete,
           contactDeleteUnrestricted: !!c.contactDeleteUnrestricted,
           contactMailingWrite: !!c.contactMailingWrite,
+          membershipWrite: !!c.membershipWrite,
         });
       }
     })();
@@ -612,16 +616,6 @@ export default function ContactsPage() {
                   <dt>Membership</dt>
                   <dd>{record.membershipStatus}</dd>
                 </div>
-                <div>
-                  <dt>Volunteer approved</dt>
-                  <dd>
-                    {record.volunteerApprovedAt
-                      ? `${record.volunteerApprovedAt}${
-                          record.volunteerApprovedBy ? ` (by ${record.volunteerApprovedBy})` : ""
-                        }`
-                      : "—"}
-                  </dd>
-                </div>
               </dl>
               {/* Feature 066: the contact's emails, editable below the scalar fields. */}
               {caps.contactMailingWrite && (
@@ -630,6 +624,18 @@ export default function ContactsPage() {
                   contactId={record.id}
                   emails={record.emails ?? []}
                   canDeleteUnrestricted={caps.contactDeleteUnrestricted}
+                  onChanged={() => openRecord(record.id)}
+                />
+              )}
+              {/* Feature 068 (FR-018/FR-019/FR-020): the MEMBERSHIP household. Rendered as its own block,
+                  labelled and styled apart from the shared-email block below — they overlap often and are
+                  different facts. Write controls need membership authority (FR-017), which Mel lacks. */}
+              {record.membership && (
+                <MembershipAccount
+                  key={`ma-${record.id}`}
+                  contactId={record.id}
+                  membership={record.membership}
+                  canWrite={caps.membershipWrite}
                   onChanged={() => openRecord(record.id)}
                 />
               )}

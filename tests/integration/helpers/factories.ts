@@ -5,6 +5,8 @@ import { createPerformer } from "@/server/domain/performers/performerService";
 import { createDoorRecord, putGateSales } from "@/server/domain/door/doorRecordService";
 import { deriveContactNames } from "@/server/domain/contacts/normalize";
 import {
+  membershipAccounts,
+  membershipMembers,
   bands,
   contactEmails,
   contacts,
@@ -12,7 +14,7 @@ import {
   roleGrants,
   staffIdentities,
 } from "@/server/db/schema";
-import type { BandRow, EventRow, PerformerRow, Role } from "@/server/db/schema";
+import type { BandRow, EventRow, PerformerRow, Role, MembershipLevel } from "@/server/db/schema";
 import { createSession } from "@/server/auth/session";
 import type { GateCategory, PaymentMethod } from "@/server/db/schema";
 import type { EmailConsentTopic, EmailStatus, MembershipStatus } from "@/server/db/schema";
@@ -217,4 +219,33 @@ export async function makeActor(opts: {
 /** A volunteer holding NO grants: the bare Organizer base. The lapsed short-term volunteer. */
 export async function makeBaseActor(email: string): Promise<{ contactId: string; token: string }> {
   return makeActor({ email, firstName: "Base", lastName: "Only" });
+}
+
+/**
+ * Feature 068: give a contact a membership ACCOUNT with a chosen expiry.
+ *
+ * Membership now follows ATTACHMENT (FR-011), not `contacts.list_member` — so a test that wants a member
+ * must create the account rather than setting the cached columns. `expiryDate` is supplied directly (not
+ * derived from a payment date) so tests can pin a year for the through-year column.
+ */
+export async function makeMembershipAccount(opts: {
+  payerContactId: string;
+  level?: MembershipLevel;
+  expiryDate: string;
+  members?: string[];
+}): Promise<{ accountId: string }> {
+  const [account] = await db
+    .insert(membershipAccounts)
+    .values({
+      payerContactId: opts.payerContactId,
+      level: opts.level ?? "individual",
+      expiryDate: opts.expiryDate,
+    })
+    .returning();
+  if (!account) throw new Error("account insert failed");
+  const contactIds = [opts.payerContactId, ...(opts.members ?? [])];
+  await db
+    .insert(membershipMembers)
+    .values(contactIds.map((contactId) => ({ accountId: account.id, contactId })));
+  return { accountId: account.id };
 }

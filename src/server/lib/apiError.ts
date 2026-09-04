@@ -1,6 +1,11 @@
 /** Consistent API error shape: { error: { code, message } }. */
 export type ApiErrorCode =
   | "EMAIL_DUPLICATE"
+  // Feature 068 (M-R/FR-003a, FR-009): membership account guards.
+  | "LEVEL_CAPACITY_EXCEEDED"
+  | "LEVEL_ADMITS_NO_MEMBERS"
+  | "PAYER_NOT_DETACHABLE"
+  | "ACCOUNT_NOT_FOUND"
   // Feature 067 (M-R23): shared/family email reference guards.
   | "REFERENCE_SELF"
   | "REFERENCE_TARGET_NOT_ACTIVE"
@@ -139,6 +144,33 @@ export const errors = {
       409,
       "This contact has an active email of its own — retire it first to share someone else's.",
     ),
+  /**
+   * Feature 068: the level is the payer's and caps who the account may cover (FR-003a). A refusal names
+   * the PEOPLE who would be displaced — a count would leave the FS guessing who to remove.
+   */
+  levelCapacityExceeded: (level: string, displaced: string[]) =>
+    new ApiError(
+      "LEVEL_CAPACITY_EXCEEDED",
+      422,
+      `A ${level} membership covers only the payer — ${displaced.join(", ")} would no longer be covered. Remove them first.`,
+      level,
+      { displaced },
+    ),
+  levelAdmitsNoMembers: (level: string) =>
+    new ApiError(
+      "LEVEL_ADMITS_NO_MEMBERS",
+      409,
+      `A ${level} membership covers only the payer, so no one else can be added to it.`,
+      level,
+    ),
+  payerNotDetachable: () =>
+    new ApiError(
+      "PAYER_NOT_DETACHABLE",
+      409,
+      "The payer owns this membership and cannot be removed from it.",
+    ),
+  accountNotFound: () =>
+    new ApiError("ACCOUNT_NOT_FOUND", 404, "This contact has no membership account."),
   contactNotFound: () => new ApiError("CONTACT_NOT_FOUND", 404, "Contact not found."),
   /**
    * Feature 065 (M-R11): a SAFE delete refuses when the contact is referenced by any substantive table.

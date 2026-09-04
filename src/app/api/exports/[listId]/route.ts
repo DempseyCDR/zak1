@@ -9,7 +9,17 @@ import { recordExportRun } from "@/server/domain/exports/exportAuditService";
 import { rowsToCsv } from "@/server/domain/exports/csv";
 
 const COLUMNS: Record<string, string[]> = {
-  member: ["email", "first_name", "last_name", "membership_status", "membership_through_year"],
+  // Feature 068 (FR-013): `membership_level` is the PAYER'S level, for segmenting a send by what the
+  // household bought. `rowsToCsv` projects ONLY these keys, so a value added in exportService never
+  // reaches the file unless it is named here too.
+  member: [
+    "email",
+    "first_name",
+    "last_name",
+    "membership_status",
+    "membership_through_year",
+    "membership_level",
+  ],
 };
 const DEFAULT_COLUMNS = ["email", "first_name", "last_name"];
 

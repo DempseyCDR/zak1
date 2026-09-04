@@ -2,7 +2,7 @@ import { beforeAll, beforeEach, afterAll, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
 import { ensureSchema, resetDb, closeDb, db } from "./helpers/db";
 import { icontactCsv, memberCsv, payerCsv } from "./helpers/contactLoadCsv";
-import { contactEmails, contacts, memberships, payers } from "@/server/db/schema";
+import { contactEmails, contacts, membershipAccounts, membershipMembers } from "@/server/db/schema";
 import { parseIcontact } from "@/server/domain/contactLoad/parseIcontact";
 import { parseMemberSheet } from "@/server/domain/contactLoad/parseMemberSheet";
 import { parsePayerSheet } from "@/server/domain/contactLoad/parsePayerSheet";
@@ -25,9 +25,18 @@ async function contactByEmail(email: string) {
   const [c] = await db.select().from(contacts).where(eq(contacts.id, e!.contactId));
   return c!;
 }
-async function membershipFor(contactId: string) {
-  const [m] = await db.select().from(memberships).where(eq(memberships.contactId, contactId));
-  return m!;
+/** Feature 068: the ACCOUNT covering a contact — one per household, not one row per person. */
+async function accountCovering(contactId: string) {
+  const [row] = await db
+    .select({
+      level: membershipAccounts.level,
+      expiryDate: membershipAccounts.expiryDate,
+      payerContactId: membershipAccounts.payerContactId,
+    })
+    .from(membershipMembers)
+    .innerJoin(membershipAccounts, eq(membershipAccounts.id, membershipMembers.accountId))
+    .where(eq(membershipMembers.contactId, contactId));
+  return row;
 }
 
 describe("contact load — memberships & level (US3)", () => {
@@ -52,24 +61,25 @@ describe("contact load — memberships & level (US3)", () => {
     const charles = await contactByEmail("charles@x.com");
     const tim = await contactByEmail("tim@x.com");
 
-    // Family payer shared across two members, same expiry + level.
-    expect(await membershipFor(alene.id)).toMatchObject({
+    // Family payer shared across two members: ONE account covering both, at one level and expiry.
+    expect(await accountCovering(alene.id)).toMatchObject({
       level: "family",
       expiryDate: "2030-09-01",
     });
-    expect(await membershipFor(charles.id)).toMatchObject({
+    expect(await accountCovering(charles.id)).toMatchObject({
       level: "family",
       expiryDate: "2030-09-01",
     });
-    expect(await membershipFor(tim.id)).toMatchObject({ level: "individual" });
+    expect(await accountCovering(tim.id)).toMatchObject({ level: "individual" });
+    // Two members, one household → one account, not two.
+    expect(await db.select().from(membershipAccounts)).toHaveLength(2);
 
     // Status recomputed from expiry (future → current; long-past → not current).
     expect(alene.membershipStatus).toBe("current");
     expect(tim.membershipStatus).not.toBe("current");
 
-    // Payer→contact link = the paying member (FR-020): "Alene Boyar" matches Alene's dedup key.
-    const [aBoyar] = await db.select().from(payers).where(eq(payers.name, "Alene Boyar"));
-    expect(aBoyar!.contactId).toBe(alene.id);
+    // The account is OWNED by the paying member (FR-020/FR-001): "Alene Boyar" matches Alene's dedup key.
+    expect((await accountCovering(charles.id))!.payerContactId).toBe(alene.id);
 
     expect(counts.membershipsByLevel).toMatchObject({ family: 2, individual: 1 });
   });
@@ -80,8 +90,7 @@ describe("contact load — memberships & level (US3)", () => {
       [{ id: "N Exp", name: "No Expiry", expires: "", level: "Individual" }],
     );
     const c = await contactByEmail("noexp@x.com");
-    const rows = await db.select().from(memberships).where(eq(memberships.contactId, c.id));
-    expect(rows).toHaveLength(0);
+    expect(await accountCovering(c.id)).toBeUndefined();
     expect(c.membershipStatus).toBe("never");
   });
 });

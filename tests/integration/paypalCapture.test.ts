@@ -11,10 +11,9 @@ import {
 import { extractNotification, type PaypalWebhook } from "@/server/validation/paypal";
 import {
   contacts,
-  memberships,
+  membershipAccounts,
   membershipCaptures,
   paypalNotifications,
-  payers,
 } from "@/server/db/schema";
 
 // A fixture PAYMENT.CAPTURE.COMPLETED payload (Constitution v1.2.0 third-party boundary — no PayPal call).
@@ -45,15 +44,20 @@ describe("online membership (capture + webhook)", () => {
 
     const outcome = await process(payload("evt-1", "rita@ex.com"), true);
     expect(outcome).toBe("matched");
-    const mem = await db.query.memberships.findFirst({
-      where: eq(memberships.contactId, contactId),
+    const mem = await db.query.membershipAccounts.findFirst({
+      where: eq(membershipAccounts.payerContactId, contactId),
     });
     expect(mem).toBeDefined();
     const contact = await db.query.contacts.findFirst({ where: eq(contacts.id, contactId) });
     expect(contact?.membershipStatus).toBe("current");
     // A payer was created for the member (payer_id NOT NULL — analyze G1).
     expect(
-      (await db.select().from(payers).where(eq(payers.contactId, contactId))).length,
+      (
+        await db
+          .select()
+          .from(membershipAccounts)
+          .where(eq(membershipAccounts.payerContactId, contactId))
+      ).length,
     ).toBeGreaterThanOrEqual(1);
   });
 
@@ -65,7 +69,9 @@ describe("online membership (capture + webhook)", () => {
     await createCapture(db, { name: "Case Cara", email: "cara@ex.com" });
     expect(await process(payload("evt-2", "CARA@EX.COM"), true)).toBe("matched");
     expect(
-      await db.query.memberships.findFirst({ where: eq(memberships.contactId, contactId) }),
+      await db.query.membershipAccounts.findFirst({
+        where: eq(membershipAccounts.payerContactId, contactId),
+      }),
     ).toBeDefined();
   });
 
@@ -77,7 +83,10 @@ describe("online membership (capture + webhook)", () => {
     await createCapture(db, { name: "Dupe Dan", email: "dan@ex.com" });
     expect(await process(payload("evt-dupe", "dan@ex.com"), true)).toBe("matched");
     expect(await process(payload("evt-dupe", "dan@ex.com"), true)).toBe("duplicate");
-    const mems = await db.select().from(memberships).where(eq(memberships.contactId, contactId));
+    const mems = await db
+      .select()
+      .from(membershipAccounts)
+      .where(eq(membershipAccounts.payerContactId, contactId));
     expect(mems).toHaveLength(1);
   });
 
@@ -86,7 +95,7 @@ describe("online membership (capture + webhook)", () => {
     await createCapture(db, { name: "No Trust", email: "no@ex.com" });
     expect(await process(payload("evt-bad", "no@ex.com"), false)).toBe("rejected");
     expect(await db.select().from(paypalNotifications)).toHaveLength(0);
-    expect(await db.select().from(memberships)).toHaveLength(0);
+    expect(await db.select().from(membershipAccounts)).toHaveLength(0);
   });
 
   it("parks a verified-but-unmatched notification, never dropping it", async () => {
@@ -94,7 +103,7 @@ describe("online membership (capture + webhook)", () => {
     expect(outcome).toBe("parked");
     const parked = await listParkedNotifications(db);
     expect(parked).toHaveLength(1);
-    expect(await db.select().from(memberships)).toHaveLength(0);
+    expect(await db.select().from(membershipAccounts)).toHaveLength(0);
   });
 
   it("an admin can link a parked notification to a contact → membership identical to auto-matched", async () => {
@@ -106,10 +115,13 @@ describe("online membership (capture + webhook)", () => {
     await process(payload("evt-late", "linda-paypal@ex.com"), true);
     const [parked] = await listParkedNotifications(db);
     await linkParkedNotification(db, parked!.id, contactId, "admin");
-    const mem = await db.query.memberships.findFirst({
-      where: eq(memberships.contactId, contactId),
+    const mem = await db.query.membershipAccounts.findFirst({
+      where: eq(membershipAccounts.payerContactId, contactId),
     });
-    expect(mem?.sourceNotificationId).toBe(parked!.id);
+    // Feature 068: a DURABLE account cannot carry a key per payment, so the per-membership provenance
+    // column is gone. Replay protection is unchanged and lives where it always really did —
+    // `paypal_notifications.provider_event_id` is UNIQUE and checked before anything is created.
+    expect(mem).toBeDefined();
     const notif = await db.query.paypalNotifications.findFirst({
       where: eq(paypalNotifications.id, parked!.id),
     });
