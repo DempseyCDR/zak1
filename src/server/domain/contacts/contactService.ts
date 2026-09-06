@@ -261,6 +261,36 @@ export type ContactSummary = Pick<
 export type ContactSearchResult = { items: ContactSummary[]; truncated: boolean };
 
 /**
+ * Feature 069 (FR-001a). A needs-review row carries more than a search row does, because clearing the
+ * flag is a JUDGEMENT that the record is complete enough — so the row must show what that rests on:
+ * who the contact is, how they can be reached, and how old the record is.
+ */
+export type NeedsReviewRow = ContactSummary & {
+  phone: string | null;
+  emails: string[];
+  createdAt: string;
+  updatedAt: string;
+  /** FR-005: derived from the fields above — see `deriveSafeToClear`. */
+  safeToClear: boolean;
+};
+
+export type NeedsReviewResult = { items: NeedsReviewRow[]; truncated: boolean };
+
+/**
+ * FR-005/FR-006, the needs-review half of the same rule the duplicates queue applies to a pair: the row
+ * offers its one action exactly when the row already carries the decision. A record with a name and no
+ * way to reach anyone cannot be judged complete from a list — there is nothing on the row to judge — so
+ * it offers "open to resolve" instead. Derived from the projected fields, so it cannot outlive them.
+ *
+ * Exported because PII projection happens at the route (feature 016): a volunteer without
+ * `contact.pii.read` is handed rows with the phone and emails stripped, and must therefore be told the
+ * row is NOT resolvable in place — the flag describes what THIS reader can see, which is what FR-005 says.
+ */
+export function deriveSafeToClear(row: { phone: string | null; emails: string[] }): boolean {
+  return row.emails.length > 0 || !!row.phone;
+}
+
+/**
  * Feature 065 (M-R10): "active contact" = non-merged AND non-archived. Applied everywhere a merged
  * contact is already excluded. `includeArchived` drops ONLY the archived predicate (never the merged
  * one), for the search's "+ archived" toggle.
@@ -415,14 +445,36 @@ export async function countNeedsReview(db: Db): Promise<number> {
 }
 
 /** Feature 064: the needs-review worklist — flagged, active, bounded like search, name-ordered. */
-export async function listNeedsReview(db: Db, limit = 20): Promise<ContactSearchResult> {
+export async function listNeedsReview(db: Db, limit = 20): Promise<NeedsReviewResult> {
   const rows = await db
-    .select(SEARCH_COLS)
+    .select({
+      ...SEARCH_COLS,
+      // Feature 069 (FR-001a): the facts the "is this complete?" judgement actually rests on.
+      phone: contacts.phone,
+      createdAt: contacts.createdAt,
+      updatedAt: contacts.updatedAt,
+      emails: sql<string[]>`ARRAY(
+        SELECT ce.email::text FROM contact_emails ce
+         WHERE ce.contact_id = contacts.id AND ce.status = 'active'
+         ORDER BY ce.is_login DESC, ce.created_at)`.as("emails"),
+    })
     .from(contacts)
     .where(and(activeContact(), eq(contacts.needsReview, true)))
     .orderBy(sql`${contacts.lastName} ASC NULLS LAST`, contacts.firstName)
     .limit(limit + 1);
-  return withTruncation(rows, limit);
+
+  // Derive standing the way every other list does — the column is a cache, and a review queue showing a
+  // stale one would have Mel judging a record against a fact that is not true.
+  const derived = await deriveSummaries(db, rows);
+  const items = derived.map((r) => ({
+    ...r,
+    emails: r.emails ?? [],
+    createdAt: String(r.createdAt),
+    updatedAt: String(r.updatedAt),
+    safeToClear: deriveSafeToClear({ phone: r.phone, emails: r.emails ?? [] }),
+  }));
+  const truncated = items.length > limit;
+  return { items: truncated ? items.slice(0, limit) : items, truncated };
 }
 
 /** Feature 065 (M-R9): archive (retire, reversibly) — set archived_at. */

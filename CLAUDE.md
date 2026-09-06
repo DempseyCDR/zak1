@@ -1,7 +1,7 @@
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan
-at specs/068-membership-accounts/plan.md
+at specs/069-triage-worklists/plan.md
 <!-- SPECKIT END -->
 
 ## Development conventions

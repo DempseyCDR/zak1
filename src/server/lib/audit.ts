@@ -25,6 +25,11 @@ import { auditEvents } from "@/server/db/schema";
 export type AuditEvent = {
   kind:
     | "contact.merge"
+    // Feature 069 (M-R18/M-R21): triage decisions.
+    | "dedup.pair_rejected"
+    | "dedup.pair_unrejected"
+    | "dedup.merge_held"
+    | "dedup.merge_resolved"
     | "contact.deleted" // feature 065 (M-R11/M-R12): a permanent contact deletion (safe or unrestricted)
     | "email.deleted" // feature 066 (M-R17): a permanent email-row deletion (super-user)
     // Feature 067 (M-R23): shared/family email reference lifecycle.

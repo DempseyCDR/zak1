@@ -49,6 +49,15 @@ export const statusChangeAudit = pgTable("status_change_audit", {
 
 export type StatusChangeAuditRow = typeof statusChangeAudit.$inferSelect;
 
+/**
+ * An append-only record that a merge happened.
+ *
+ * ⚠️ `relinked_counts` is exactly that — COUNTS ("contact_emails": 2), not identifiers. This table can
+ * tell you a merge occurred, when, by whom, and how much moved; it CANNOT tell you what moved, so it is
+ * not sufficient to reverse one. Recording the moved row ids is the prerequisite for an unmerge, and is
+ * written up as a follow-up on feature 069 — it changes this table's shape, so it belongs in its own
+ * feature rather than being bolted on.
+ */
 export const mergeAudit = pgTable("merge_audit", {
   id: uuid("id").primaryKey().defaultRandom(),
   canonicalId: uuid("canonical_id")

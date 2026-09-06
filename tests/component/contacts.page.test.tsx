@@ -49,7 +49,29 @@ const summary = (r: Rec) => ({
   pronouns: r.pronouns,
   archivedAt: r.archivedAt,
 });
-const dup = (id: string, name: string) => ({ id, displayName: name });
+// Feature 069: the row projects what the decision depends on (FR-001), so a pair fixture carries it.
+const dup = (id: string, name: string) => ({
+  id,
+  displayName: name,
+  membershipStatus: "never",
+  membershipLevel: null,
+  phone: null,
+  emails: [] as string[],
+  createdAt: "2026-01-01T00:00:00.000Z",
+  updatedAt: "2026-01-01T00:00:00.000Z",
+  hasLogin: false,
+  hasUnshownAddress: false,
+  messageRecipient: null,
+});
+const pair = (a: string, b: string, ids: [string, string]) => ({
+  a: dup(ids[0], a),
+  b: dup(ids[1], b),
+  similarity: 0.9,
+  sharedHousehold: { email: false, account: false },
+  rejected: null,
+  safeToReject: true,
+  safeToMerge: true,
+});
 
 type Call = { url: string; init?: RequestInit };
 const json = (body: unknown, status = 200) => ({
@@ -183,12 +205,12 @@ describe("contacts launcher — review queue (feature 064)", () => {
 describe("contacts launcher — duplicates view (feature 064)", () => {
   it("tapping Review duplicates shows the global pairs; merge removes it + refreshes counts (C11/C14)", async () => {
     const calls = stub({
-      pairs: [{ a: dup("a1", "Jon Smith"), b: dup("b1", "John Smith"), similarity: 0.9 }],
+      pairs: [pair("Jon Smith", "John Smith", ["a1", "b1"])],
       counts: { needsReview: 0, duplicates: 1 },
     });
     render(<ContactsPage />);
     await userEvent.click(screen.getByRole("button", { name: /review duplicates/i }));
-    await screen.findByText("Jon Smith ↔ John Smith");
+    await screen.findByRole("listitem", { name: /Jon Smith and John Smith/i });
     calls.length = 0;
     await userEvent.click(screen.getByRole("button", { name: /keep jon smith/i }));
     await waitFor(() =>
@@ -216,12 +238,12 @@ describe("contacts launcher — search hybrid + exclusivity (feature 064)", () =
   it("typing shows single results with query-scoped pairs alongside (C12)", async () => {
     stub({
       items: [summary(REC({ id: "1", displayName: "Jon Smith" }))],
-      pairs: [{ a: dup("1", "Jon Smith"), b: dup("2", "John Smith"), similarity: 0.9 }],
+      pairs: [pair("Jon Smith", "John Smith", ["1", "2"])],
     });
     render(<ContactsPage />);
     await userEvent.type(search(), "smith");
     expect(await screen.findByText(/Potential duplicates/i)).toBeInTheDocument();
-    expect(screen.getByText("Jon Smith ↔ John Smith")).toBeInTheDocument();
+    expect(screen.getByRole("listitem", { name: /Jon Smith and John Smith/i })).toBeInTheDocument();
   });
 
   it("clearing the search box returns to the bare launcher (C12)", async () => {
@@ -423,5 +445,150 @@ describe("contacts launcher — archive & delete (feature 065)", () => {
         true,
       ),
     );
+  });
+});
+
+/**
+ * Feature 069 (FR-001a / FR-005 / FR-007). The review queue's rows carry what "is this complete?" rests
+ * on, and offer their one action only when they do. A sparse record — the very thing that lands in this
+ * queue — has nothing on the row to judge, so it sends Mel to the record instead.
+ */
+describe("contacts review queue — rows show and adapt (feature 069)", () => {
+  const reviewRow = (over: Partial<Record<string, unknown>> = {}) => ({
+    id: "r1",
+    displayName: "Dana Ash",
+    membershipStatus: "never",
+    listMember: false,
+    pronouns: null,
+    archivedAt: null,
+    phone: "+15855550100",
+    emails: ["dana@example.com"],
+    createdAt: "2019-04-02T00:00:00.000Z",
+    updatedAt: "2026-08-14T00:00:00.000Z",
+    safeToClear: true,
+    ...over,
+  });
+
+  const openReview = async (user: ReturnType<typeof userEvent.setup>) =>
+    user.click(await screen.findByRole("button", { name: /review queue/i }));
+
+  it("shows how the contact is reached and how old the record is", async () => {
+    stub({ review: [reviewRow()], counts: { needsReview: 1, duplicates: 0 } });
+    const user = userEvent.setup();
+    render(<ContactsPage />);
+    await openReview(user);
+    expect(await screen.findByText(/dana@example\.com/)).toBeInTheDocument();
+    expect(screen.getByText(/555.*0100/)).toBeInTheDocument();
+    expect(screen.getByText(/2019-04-02/)).toBeInTheDocument();
+  });
+
+  it("offers Clear on a complete row and Open to resolve on a sparse one", async () => {
+    stub({
+      review: [
+        reviewRow(),
+        reviewRow({
+          id: "r2",
+          displayName: "Nameonly",
+          phone: null,
+          emails: [],
+          safeToClear: false,
+        }),
+      ],
+      counts: { needsReview: 2, duplicates: 0 },
+    });
+    const user = userEvent.setup();
+    render(<ContactsPage />);
+    await openReview(user);
+
+    const complete = await screen.findByRole("listitem", { name: /Dana Ash/i });
+    expect(within(complete).getByRole("button", { name: /^clear$/i })).toBeInTheDocument();
+
+    const sparse = screen.getByRole("listitem", { name: /Nameonly/i });
+    expect(within(sparse).getByRole("button", { name: /open to resolve/i })).toBeInTheDocument();
+    expect(within(sparse).queryByRole("button", { name: /^clear$/i })).toBeNull();
+  });
+
+  it("clears a complete row in place without opening it", async () => {
+    const calls = stub({ review: [reviewRow()], counts: { needsReview: 1, duplicates: 0 } });
+    const user = userEvent.setup();
+    render(<ContactsPage />);
+    await openReview(user);
+    await user.click(await screen.findByRole("button", { name: /^clear$/i }));
+    expect(calls.some((c) => /\/api\/contacts\/r1\/reviewed$/.test(c.url))).toBe(true);
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+});
+
+/**
+ * Feature 069 (FR-014). The needs-review queue renders two kinds of task. A held merge is not a flagged
+ * contact: it names both contacts and why it stopped, and — for the sign-in case — says plainly that it
+ * is waiting on someone else, so Mel is not left tapping an action she cannot complete (FR-013).
+ */
+describe("held merges in the review queue (feature 069)", () => {
+  const HELD = (over: Partial<Record<string, unknown>> = {}) => ({
+    id: "h1",
+    reason: "two_logins",
+    canonicalId: "c-terry",
+    canonicalDisplayName: "Terry Vale",
+    mergedId: "c-terri",
+    mergedDisplayName: "Terri Vale",
+    ...over,
+  });
+
+  function stubWithHeld(held: unknown[], roleAssign: boolean) {
+    const calls: Call[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string, init?: RequestInit) => {
+        const u = String(url);
+        calls.push({ url: u, init });
+        if (u.includes("/api/contacts/launcher-counts"))
+          return json({ needsReview: 1, duplicates: 0 });
+        if (u.includes("/api/me/capabilities")) return json({ contactWrite: true, roleAssign });
+        if (u.includes("/api/dedup/held")) return json({ held });
+        if (u.includes("needsReview=1")) return json({ items: [] });
+        return json({ items: [] });
+      }),
+    );
+    return calls;
+  }
+
+  const openReview = async (user: ReturnType<typeof userEvent.setup>) =>
+    user.click(await screen.findByRole("button", { name: /review queue/i }));
+
+  it("names both contacts and the reason it stopped", async () => {
+    stubWithHeld([HELD()], true);
+    const user = userEvent.setup();
+    render(<ContactsPage />);
+    await openReview(user);
+
+    const row = await screen.findByRole("listitem", {
+      name: /held merge: Terry Vale and Terri Vale/i,
+    });
+    expect(within(row).getByText(/both contacts sign in/i)).toBeInTheDocument();
+  });
+
+  it("offers the resolution only to whoever may make it (FR-013)", async () => {
+    stubWithHeld([HELD()], false);
+    const user = userEvent.setup();
+    render(<ContactsPage />);
+    await openReview(user);
+
+    const row = await screen.findByRole("listitem", { name: /held merge/i });
+    expect(within(row).queryByRole("button", { name: /resolve/i })).toBeNull();
+    expect(within(row).getByText(/waiting on an officer/i)).toBeInTheDocument();
+  });
+
+  it("lets a dedup worker resolve a two-account hold", async () => {
+    stubWithHeld([HELD({ id: "h2", reason: "two_accounts" })], false);
+    const user = userEvent.setup();
+    render(<ContactsPage />);
+    await openReview(user);
+
+    const row = await screen.findByRole("listitem", { name: /held merge/i });
+    expect(
+      within(row).getByText(/both contacts pay for a membership account/i),
+    ).toBeInTheDocument();
+    expect(within(row).getByRole("button", { name: /resolve/i })).toBeInTheDocument();
   });
 });
