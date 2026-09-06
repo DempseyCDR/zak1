@@ -10,12 +10,21 @@ export default function TriageList<T>({
   getKey,
   renderRow,
   onOpen,
+  rowActions,
+  rowLabel,
   emptyState,
 }: {
   items: readonly T[];
   getKey: (item: T) => string;
   renderRow: (item: T) => ReactNode;
   onOpen?: (item: T) => void;
+  /**
+   * Feature 069 (FR-005): the row's one resolution, beside the open-the-record body. Still presentation
+   * only — the consumer supplies the control and owns what it does.
+   */
+  rowActions?: (item: T) => ReactNode;
+  /** Names the row for assistive tech, so an action can be found within the row it belongs to. */
+  rowLabel?: (item: T) => string;
   emptyState: ReactNode;
 }) {
   if (items.length === 0) {
@@ -24,7 +33,7 @@ export default function TriageList<T>({
   return (
     <ul className={styles.list}>
       {items.map((item) => (
-        <li key={getKey(item)} className={styles.row}>
+        <li key={getKey(item)} className={styles.row} aria-label={rowLabel?.(item)}>
           {onOpen ? (
             <button type="button" className={styles.open} onClick={() => onOpen(item)}>
               {renderRow(item)}
@@ -32,6 +41,7 @@ export default function TriageList<T>({
           ) : (
             <div className={styles.rowContent}>{renderRow(item)}</div>
           )}
+          {rowActions && <span className={styles.rowActions}>{rowActions(item)}</span>}
         </li>
       ))}
     </ul>

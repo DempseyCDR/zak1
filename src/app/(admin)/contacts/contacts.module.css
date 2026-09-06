@@ -396,3 +396,105 @@
   gap: var(--space-2);
   justify-items: start;
 }
+
+/* Feature 069 (FR-001): the duplicates row carries both records side by side, so the decision is made
+   from the row rather than from two opened records. */
+.dupBody {
+  flex: 1 1 24rem;
+  min-width: 0;
+}
+
+.dupSides {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  gap: var(--space-3);
+}
+
+.dupSide {
+  min-width: 0;
+}
+
+.dupName {
+  font-weight: 600;
+}
+
+.dupFacts {
+  margin: var(--space-1) 0 0;
+  font-size: var(--fs-sm);
+}
+
+.dupFacts > div {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.dupFacts dt {
+  color: var(--text-muted);
+  flex: 0 0 6.5rem;
+}
+
+.dupFacts dd {
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.dupHousehold,
+.dupRejected {
+  margin: var(--space-2) 0 0;
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+}
+
+/* FR-007: opening either record, from the row itself. Quieter than the resolutions beside it. */
+.dupOpen {
+  margin-top: var(--space-1);
+  padding: 0;
+  font: inherit;
+  font-size: var(--fs-sm);
+  color: var(--band);
+  background: none;
+  border: none;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* Feature 069 (FR-008/FR-015a): the comparison a pair opens. Merge is one of three answers, and the only
+   one that retires a contact — so it does not look like a peer of the two reversible ones. */
+.plainList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.mergeNote {
+  margin: var(--space-3) 0;
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+}
+
+.destructiveButton {
+  composes: dupButton;
+  color: #b3261e;
+  border-color: #b3261e;
+}
+
+.destructiveButton:hover {
+  color: #8f1e18;
+  border-color: #8f1e18;
+}
+
+.confirmRegion {
+  margin-top: var(--space-3);
+  padding: var(--space-3);
+  border: 1px solid var(--hairline);
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+/* Feature 069 (FR-014): a held merge in the review queue — a different kind of task from a flagged
+   contact, and marked as one so it does not read as ordinary clean-up. */
+.heldRow {
+  composes: dupRow;
+  border-left: 3px solid var(--band);
+}

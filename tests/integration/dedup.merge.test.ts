@@ -33,8 +33,11 @@ describe("POST /api/dedup/merge", () => {
     const res = await MERGE(jsonReq("POST", "/api/dedup/merge", { canonicalId, mergedId }), ctx());
     expect(res.status).toBe(200);
     const body = await res.json();
+    // Feature 069: the response is a discriminated OUTCOME — a merge that cannot complete is `held`
+    // rather than a thrown unique-violation, so a completed one says so explicitly.
+    expect(body.outcome).toBe("completed");
     expect(body.canonicalId).toBe(canonicalId);
-    expect(body.relinkedCounts.contact_emails).toBe(2);
+    expect(body.moved.contact_emails).toBe(2);
 
     // merged contact soft-retired
     const merged = await db.query.contacts.findFirst({ where: eq(contacts.id, mergedId) });

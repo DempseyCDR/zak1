@@ -19,5 +19,8 @@ export const GET = withAuth({ requires: "base" }, async (_req, ctx) => {
     // Feature 068 (FR-017): the record shows the membership household to everyone, but only the
     // FS/Treasurer/Super-user may change it.
     membershipWrite: actorCan(ctx.actor, "membership.write"),
+    // Feature 069 (FR-012/FR-013): a merge held because both contacts sign in is resolved by choosing
+    // which identity survives — a role decision, so the queue shows that action only to its holder.
+    roleAssign: actorCan(ctx.actor, "role.assign"),
   });
 });

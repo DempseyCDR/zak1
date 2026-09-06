@@ -8,6 +8,8 @@ import RecordView from "@/app/(admin)/_components/RecordView";
 import EmailEditor, { type EmailRow } from "./_components/EmailEditor";
 import MessageRecipient, { type MessageRecipientRow } from "./_components/MessageRecipient";
 import MembershipAccount, { type MembershipBlock } from "./_components/MembershipAccount";
+import DuplicatePair, { type DupPair } from "./_components/DuplicatePair";
+import MergeCompare from "./_components/MergeCompare";
 import { formatPhone } from "@/server/domain/contacts/phone";
 import styles from "./contacts.module.css";
 
@@ -18,15 +20,33 @@ type ContactSummary = {
   listMember: boolean;
   pronouns: string | null;
   archivedAt: string | null;
+  // Feature 069 (FR-001a): needs-review rows only — what the "is this complete?" judgement rests on,
+  // plus the server's verdict on whether the row carries that judgement (FR-005).
+  phone?: string | null;
+  emails?: string[];
+  createdAt?: string;
+  updatedAt?: string;
+  safeToClear?: boolean;
 };
 
 // Feature 065: which archive/delete controls this viewer may use (from /api/me/capabilities).
+// Feature 069 (FR-014): a merge held because it cannot complete without a decision (M-R21).
+type HeldMerge = {
+  id: string;
+  reason: "two_logins" | "two_accounts";
+  canonicalId: string;
+  canonicalDisplayName: string;
+  mergedId: string;
+  mergedDisplayName: string;
+};
+
 type Caps = {
   contactWrite: boolean;
   contactDelete: boolean;
   contactDeleteUnrestricted: boolean;
   contactMailingWrite: boolean;
   membershipWrite: boolean; // feature 068 (FR-017): FS/Treasurer/Super-user
+  roleAssign: boolean; // feature 069 (FR-012): may choose which sign-in identity survives
 };
 
 // Feature 063 (M-R5..M-R8): the full record behind an opened contact, fed by GET /api/contacts/:id.
@@ -52,8 +72,7 @@ type EditorRecord = {
 };
 
 // Feature 062 (M-R4): a likely-duplicate pair from the dedup engine (shape of MergeSuggestion).
-type DupContact = { id: string; displayName: string };
-type DupPair = { a: DupContact; b: DupContact; similarity: number };
+// Feature 069: the row's shape moved to DuplicatePair, which is what renders it.
 
 // Feature 064: which task is active. `none` = the uncluttered launcher (header + search + buttons only).
 type View = "none" | "search" | "review" | "duplicates";
@@ -75,6 +94,19 @@ export default function ContactsPage() {
   const [items, setItems] = useState<ContactSummary[]>([]);
   const [searchTruncated, setSearchTruncated] = useState(false);
   const [dupPairs, setDupPairs] = useState<DupPair[]>([]);
+  // Feature 069 (FR-004a): rejected pairs are revealable from the queue itself — where their absence
+  // would be noticed — rather than only from somewhere Mel would have to know to look.
+  const [showRejected, setShowRejected] = useState(false);
+  // Feature 069 (FR-008): the pair a comparison is open on. The row answers what it can; this answers
+  // the rest, and is where the retired /dedup page's link-as-shared now lives (FR-015b).
+  const [comparing, setComparing] = useState<DupPair | null>(null);
+  // How many pairs a rejection is hiding from the CURRENT list (FR-004a) — so the queue can say so
+  // rather than silently omitting them, including when it would otherwise render as simply empty.
+  const [suppressed, setSuppressed] = useState(0);
+  const [dupTruncated, setDupTruncated] = useState(false);
+  // Feature 069 (FR-014): the review queue renders TWO kinds of task. A held merge is not a flagged
+  // contact — it is a question about a pair that someone has to answer, and often not this someone.
+  const [held, setHeld] = useState<HeldMerge[]>([]);
   const [counts, setCounts] = useState<{ needsReview: number; duplicates: number }>({
     needsReview: 0,
     duplicates: 0,
@@ -85,6 +117,7 @@ export default function ContactsPage() {
     contactDeleteUnrestricted: false,
     contactMailingWrite: false,
     membershipWrite: false,
+    roleAssign: false,
   });
   const [includeArchived, setIncludeArchived] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false); // second-step guard for the destructive action
@@ -122,7 +155,7 @@ export default function ContactsPage() {
     }
   }, []);
 
-  const runSearch = useCallback(async (query: string, archived: boolean) => {
+  const runSearch = useCallback(async (query: string, archived: boolean, withRejected = false) => {
     // Feature 065: the "+ archived" toggle includes archived contacts (marked) in the results.
     const res = await apiFetch(
       `/api/contacts?q=${encodeURIComponent(query)}${archived ? "&archived=1" : ""}`,
@@ -131,9 +164,15 @@ export default function ContactsPage() {
     setItems(data.items ?? []);
     setSearchTruncated(!!data.truncated);
     // Feature 062 (M-R4): query-scoped duplicate pairs alongside the results (the near-dup heads-up).
-    const dres = await apiFetch(`/api/dedup/suggestions?q=${encodeURIComponent(query)}`);
+    // Feature 069: the scoped list is the same queue, narrowed — so a rejection hides pairs here too, and
+    // the reveal has to work here too (FR-004a).
+    const dres = await apiFetch(
+      `/api/dedup/suggestions?q=${encodeURIComponent(query)}${withRejected ? "&includeRejected=1" : ""}`,
+    );
     const ddata = await dres.json();
     setDupPairs(ddata.pairs ?? []);
+    setSuppressed(ddata.suppressed ?? 0);
+    setDupTruncated(!!ddata.truncated);
   }, []);
 
   // Typing drives the search view; clearing the box with no active task returns to the launcher (FR-007).
@@ -163,6 +202,7 @@ export default function ContactsPage() {
           contactDeleteUnrestricted: !!c.contactDeleteUnrestricted,
           contactMailingWrite: !!c.contactMailingWrite,
           membershipWrite: !!c.membershipWrite,
+          roleAssign: !!c.roleAssign,
         });
       }
     })();
@@ -180,24 +220,30 @@ export default function ContactsPage() {
     setItems(data.items ?? []);
     setSearchTruncated(!!data.truncated);
     setDupPairs([]);
+    // Held merges ride the same queue (FR-014). `dedup.write` gates the read, so a volunteer without it
+    // simply sees the flagged contacts — not an error.
+    const hres = await apiFetch("/api/dedup/held");
+    setHeld(hres.ok ? ((await hres.json()).held ?? []) : []);
     setView("review");
   }
 
-  async function openDuplicates() {
+  async function openDuplicates(withRejected = showRejected) {
     setQ("");
-    const res = await apiFetch("/api/dedup/suggestions");
+    const res = await apiFetch(`/api/dedup/suggestions${withRejected ? "?includeRejected=1" : ""}`);
     const data = await res.json();
     setDupPairs(data.pairs ?? []);
+    setSuppressed(data.suppressed ?? 0);
+    setDupTruncated(!!data.truncated);
     setItems([]);
     setView("duplicates");
   }
 
   // Re-fetch whichever list is showing, so an action's effect (a cleared flag, a merged pair) is visible.
   const refreshView = useCallback(async () => {
-    if (view === "search") await runSearch(q, includeArchived);
+    if (view === "search") await runSearch(q, includeArchived, showRejected);
     else if (view === "review") await openReviewQueue();
     else if (view === "duplicates") await openDuplicates();
-  }, [view, q, includeArchived, runSearch]);
+  }, [view, q, includeArchived, showRejected, runSearch]);
 
   async function openRecord(id: string) {
     const res = await apiFetch(`/api/contacts/${id}`);
@@ -292,7 +338,17 @@ export default function ContactsPage() {
     searchRef.current?.focus();
   }
 
+  // Feature 069 (FR-005): the same action `markReviewed` performs from inside the record, taken from the
+  // row — offered only when the server says the row already shows what the judgement rests on.
+  async function clearReview(id: string) {
+    const res = await apiFetch(`/api/contacts/${id}/reviewed`, { method: "POST" });
+    if (!res.ok) return;
+    await refreshView();
+    await refreshCounts();
+  }
+
   async function merge(canonicalId: string, mergedId: string) {
+    setComparing(null);
     const res = await apiFetch("/api/dedup/merge", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -303,6 +359,28 @@ export default function ContactsPage() {
       await refreshCounts(); // F1 — from search OR duplicates view
       searchRef.current?.focus();
     }
+  }
+
+  // Feature 069 (M-R18). "Not duplicates" is a decision, not a dismissal: it is recorded with the two
+  // names as they stand, and lapses on its own when either changes (FR-003a) — so the pair returns if the
+  // reason it was rejected stops holding.
+  async function rejectPair(contactAId: string, contactBId: string, undo = false) {
+    const res = await apiFetch("/api/dedup/rejections", {
+      method: undo ? "DELETE" : "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ contactAId, contactBId }),
+    });
+    if (!res.ok) return;
+    await refreshView();
+    await refreshCounts();
+  }
+
+  async function toggleRejected() {
+    const next = !showRejected;
+    setShowRejected(next);
+    // The reveal belongs to whichever list is on screen — the scoped one is the same queue, narrowed.
+    if (view === "search") await runSearch(q, includeArchived, next);
+    else await openDuplicates(next);
   }
 
   async function createContact(e: React.FormEvent) {
@@ -350,7 +428,8 @@ export default function ContactsPage() {
   const showList = view === "search" || view === "review";
   // Search shows pairs only when there are some (a quiet heads-up); the duplicates task always shows the
   // section (with an empty state) since that IS the task.
-  const showPairs = view === "duplicates" || (view === "search" && dupPairs.length > 0);
+  const showPairs =
+    view === "duplicates" || (view === "search" && (dupPairs.length > 0 || suppressed > 0));
 
   return (
     <AdminPage title="Contacts">
@@ -370,7 +449,14 @@ export default function ContactsPage() {
           <button type="button" className={styles.taskButton} onClick={openReviewQueue}>
             Review queue ({counts.needsReview})
           </button>
-          <button type="button" className={styles.taskButton} onClick={openDuplicates}>
+          <button
+            type="button"
+            className={styles.taskButton}
+            onClick={() => {
+              setShowRejected(false);
+              void openDuplicates(false);
+            }}
+          >
             Review duplicates ({counts.duplicates})
           </button>
           {/* Feature 065: compact toggle to include archived contacts in the search results. */}
@@ -391,6 +477,7 @@ export default function ContactsPage() {
           <TriageList
             items={items}
             getKey={(c) => c.id}
+            rowLabel={(c) => c.displayName}
             onOpen={(c) => void openRecord(c.id)}
             renderRow={(c) => (
               <span className={styles.rowText}>
@@ -402,14 +489,81 @@ export default function ContactsPage() {
                   {c.membershipStatus}
                   {c.archivedAt ? " · archived" : ""}
                 </span>
+                {/* Feature 069 (FR-001a): the review queue shows what the decision depends on. */}
+                {view === "review" && (
+                  <span className={styles.rowMeta}>
+                    {c.emails?.length ? c.emails.join(", ") : "no email"} ·{" "}
+                    {c.phone ? formatPhone(c.phone) : "no phone"} · created{" "}
+                    {(c.createdAt ?? "").slice(0, 10)}
+                  </span>
+                )}
               </span>
             )}
+            rowActions={
+              view === "review"
+                ? (c) =>
+                    c.safeToClear ? (
+                      <button
+                        type="button"
+                        className={styles.dupButton}
+                        onClick={() => void clearReview(c.id)}
+                      >
+                        Clear
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        className={styles.dupButton}
+                        onClick={() => void openRecord(c.id)}
+                      >
+                        Open to resolve
+                      </button>
+                    )
+                : undefined
+            }
             emptyState={
               <span className={styles.empty}>
                 {view === "review" ? "No contacts need review" : "No contacts"}
               </span>
             }
           />
+          {/* Feature 069 (FR-014): held merges, visibly NOT ordinary clean-up. Mel can see one, and can
+              see it is not hers to finish — the resolve action appears only for whoever may act. */}
+          {view === "review" && held.length > 0 && (
+            <ul className={styles.dupList}>
+              {held.map((h) => (
+                <li
+                  key={h.id}
+                  className={styles.heldRow}
+                  aria-label={`Held merge: ${h.canonicalDisplayName} and ${h.mergedDisplayName}`}
+                >
+                  <div className={styles.dupBody}>
+                    <div className={styles.dupName}>
+                      Merge held — {h.canonicalDisplayName} and {h.mergedDisplayName}
+                    </div>
+                    <p className={styles.dupHousehold}>
+                      {h.reason === "two_logins"
+                        ? "Both contacts sign in. Someone who can assign roles must choose which sign-in survives before these can be merged."
+                        : "Both contacts pay for a membership account. One account must be chosen before these can be merged."}
+                    </p>
+                  </div>
+                  <span className={styles.dupActions}>
+                    {(h.reason === "two_logins" ? caps.roleAssign : true) ? (
+                      <button
+                        type="button"
+                        className={styles.dupButton}
+                        onClick={() => void openRecord(h.canonicalId)}
+                      >
+                        Resolve
+                      </button>
+                    ) : (
+                      <em className={styles.dupHousehold}>Waiting on an officer</em>
+                    )}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
           {searchTruncated && (
             <p className={styles.hint}>More matches — refine your search to narrow the list.</p>
           )}
@@ -420,36 +574,48 @@ export default function ContactsPage() {
       {showPairs && (
         <section className={styles.section}>
           <h2 className={styles.h2}>Potential duplicates</h2>
+          {(suppressed > 0 || showRejected) && (
+            <button type="button" className={styles.dupButton} onClick={toggleRejected}>
+              {showRejected ? "Hide rejected" : `Show rejected (${suppressed})`}
+            </button>
+          )}
+          {dupTruncated && (
+            <p className={styles.empty}>
+              Showing the {dupPairs.length} closest matches — narrow with a search to see the rest.
+            </p>
+          )}
           {dupPairs.length === 0 ? (
             <p className={styles.empty}>No potential duplicates</p>
           ) : (
             <ul className={styles.dupList}>
               {dupPairs.map((p) => (
-                <li key={`${p.a.id}-${p.b.id}`} className={styles.dupRow}>
-                  <span className={styles.dupPair}>
-                    {p.a.displayName} ↔ {p.b.displayName}
-                  </span>
-                  <span className={styles.dupActions}>
-                    <button
-                      type="button"
-                      className={styles.dupButton}
-                      onClick={() => merge(p.a.id, p.b.id)}
-                    >
-                      Keep {p.a.displayName}
-                    </button>
-                    <button
-                      type="button"
-                      className={styles.dupButton}
-                      onClick={() => merge(p.b.id, p.a.id)}
-                    >
-                      Keep {p.b.displayName}
-                    </button>
-                  </span>
-                </li>
+                <DuplicatePair
+                  key={`${p.a.id}-${p.b.id}`}
+                  pair={p}
+                  onReject={() => rejectPair(p.a.id, p.b.id)}
+                  onUndoReject={() => rejectPair(p.a.id, p.b.id, true)}
+                  onOpen={(id) => void openRecord(id)}
+                  onCompare={() => setComparing(p)}
+                  onMerge={(canonicalId, mergedId) => void merge(canonicalId, mergedId)}
+                />
               ))}
             </ul>
           )}
         </section>
+      )}
+
+      {/* Feature 069 (FR-008): the comparison a pair opens — the three answers to one question. */}
+      {comparing && (
+        <MergeCompare
+          pair={comparing}
+          onClose={() => setComparing(null)}
+          onMerged={(canonicalId, mergedId) => merge(canonicalId, mergedId)}
+          onRejected={async () => {
+            const p = comparing;
+            setComparing(null);
+            await rejectPair(p.a.id, p.b.id);
+          }}
+        />
       )}
 
       {/* Record editor modal (feature 063) — opened from a result/queue row. */}

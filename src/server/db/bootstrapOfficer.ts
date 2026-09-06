@@ -67,7 +67,7 @@ export async function bootstrapOfficer(opts: BootstrapOptions): Promise<Bootstra
       if (distinct.length > 1) {
         throw new Error(
           `bootstrap: ambiguous — ${email} is on ${distinct.length} contacts. ` +
-            `Resolve the duplicate (see /dedup) or re-run with --contact-id <uuid>.`,
+            `Resolve the duplicate (Contacts → Review duplicates) or re-run with --contact-id <uuid>.`,
         );
       }
       contactId = distinct[0]!;

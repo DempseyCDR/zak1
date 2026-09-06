@@ -1,6 +1,9 @@
 /** Consistent API error shape: { error: { code, message } }. */
 export type ApiErrorCode =
   | "EMAIL_DUPLICATE"
+  // Feature 069 (M-R21): a merge held for a decision the survivor cannot make for itself.
+  | "HELD_MERGE_NOT_FOUND"
+  | "HELD_MERGE_REASON_MISMATCH"
   // Feature 068 (M-R/FR-003a, FR-009): membership account guards.
   | "LEVEL_CAPACITY_EXCEEDED"
   | "LEVEL_ADMITS_NO_MEMBERS"
@@ -171,6 +174,16 @@ export const errors = {
     ),
   accountNotFound: () =>
     new ApiError("ACCOUNT_NOT_FOUND", 404, "This contact has no membership account."),
+  heldMergeNotFound: () =>
+    new ApiError("HELD_MERGE_NOT_FOUND", 404, "That held merge no longer exists."),
+  /** The choice offered must match what actually collided — a login cannot resolve an account clash. */
+  heldMergeReasonMismatch: (reason: string) =>
+    new ApiError(
+      "HELD_MERGE_REASON_MISMATCH",
+      422,
+      `This merge is held because of ${reason === "two_logins" ? "two staff sign-ins" : "two membership accounts"}; the choice offered does not resolve that.`,
+      reason,
+    ),
   contactNotFound: () => new ApiError("CONTACT_NOT_FOUND", 404, "Contact not found."),
   /**
    * Feature 065 (M-R11): a SAFE delete refuses when the contact is referenced by any substantive table.
