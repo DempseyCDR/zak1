@@ -4,7 +4,7 @@ import { ensureSchema, resetDb, closeDb } from "./helpers/db";
 import { ctx } from "./helpers/http";
 import { db } from "@/server/db/client";
 import { contacts, staffIdentities } from "@/server/db/schema";
-import { makeVolunteerContact } from "./helpers/factories";
+import { contactRow, makeVolunteerContact } from "./helpers/factories";
 import { createSession, SESSION_COOKIE } from "@/server/auth/session";
 import { GET as LIST_EVENTS } from "@/app/api/events/route";
 import { GET as LIST_CONTACTS } from "@/app/api/contacts/route";
@@ -71,6 +71,46 @@ describe("API protection (FR-004)", () => {
 
     // Same cookie, same unexpired session row — refused on the very next request.
     expect((await LIST_EVENTS(req("/api/events", token), ctx())).status).toBe(401);
+  });
+
+  /**
+   * Feature 071. `readSession` checked `is_volunteer` but nothing else about the contact, so a volunteer
+   * who was MERGED AWAY or ARCHIVED kept working: their session row is unexpired, their `staff_identities`
+   * row still resolves their Google sign-in, and their `role_grants` still sit on the retired shell.
+   *
+   * Both markers already mean "this contact is not an active record" everywhere else — `activeContact()`
+   * excludes them from every read — so the session path was the one place they did not apply. Latent when
+   * found (no merged contact held an identity), but 3 merged contacts still carried `is_volunteer = true`,
+   * so the one check that existed had already stopped catching them.
+   */
+  it("locks out a live session when the contact is MERGED away", async () => {
+    const { token, contactId } = await signedInToken();
+    expect((await LIST_EVENTS(req("/api/events", token), ctx())).status).toBe(200);
+
+    const [survivor] = await db.insert(contacts).values(contactRow("Survivor Contact")).returning();
+    await db.update(contacts).set({ mergedIntoId: survivor!.id }).where(eq(contacts.id, contactId));
+
+    expect((await LIST_EVENTS(req("/api/events", token), ctx())).status).toBe(401);
+  });
+
+  it("locks out a live session when the contact is ARCHIVED", async () => {
+    const { token, contactId } = await signedInToken();
+    expect((await LIST_EVENTS(req("/api/events", token), ctx())).status).toBe(200);
+
+    await db.update(contacts).set({ archivedAt: new Date() }).where(eq(contacts.id, contactId));
+
+    expect((await LIST_EVENTS(req("/api/events", token), ctx())).status).toBe(401);
+  });
+
+  it("refuses a merged contact indistinguishably from having no session at all", async () => {
+    const { token, contactId } = await signedInToken();
+    const [survivor] = await db.insert(contacts).values(contactRow("Survivor Two")).returning();
+    await db.update(contacts).set({ mergedIntoId: survivor!.id }).where(eq(contacts.id, contactId));
+
+    const retired = await LIST_EVENTS(req("/api/events", token), ctx());
+    const anonymous = await LIST_EVENTS(req("/api/events"), ctx());
+    expect(retired.status).toBe(anonymous.status);
+    expect(await retired.json()).toEqual(await anonymous.json());
   });
 
   it("does not reveal WHY access was refused", async () => {
