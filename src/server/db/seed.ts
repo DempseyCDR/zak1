@@ -8,8 +8,8 @@ import {
   doorRecords,
   eventGroups,
   events,
-  memberships,
-  payers,
+  membershipAccounts,
+  membershipMembers,
   performers,
   series,
   seriesParameters,
@@ -52,7 +52,7 @@ const LAST = [
 ];
 
 async function main() {
-  await sql`TRUNCATE mailing_list_exports, misc_expenses, series_parameters, series_parameter_audit, venue_rents, venue_rent_audit, band_members, bands, door_record_audit, gate_sales, door_records, attendance, quarterly_attendance_counts, events, event_groups, venues, merge_audit, status_change_audit, memberships, payers, contact_emails, contacts RESTART IDENTITY CASCADE`;
+  await sql`TRUNCATE mailing_list_exports, misc_expenses, series_parameters, series_parameter_audit, venue_rents, venue_rent_audit, band_members, bands, door_record_audit, gate_sales, door_records, attendance, quarterly_attendance_counts, events, event_groups, venues, merge_audit, status_change_audit, membership_members, membership_accounts, contact_emails, contacts RESTART IDENTITY CASCADE`;
 
   // Series (config) — idempotent.
   await db
@@ -90,11 +90,13 @@ async function main() {
   // ~152 members with future expiry.
   const memberIds = ids.slice(0, 152);
   for (const id of memberIds) {
-    const [payer] = await db.insert(payers).values({ name: "Self", contactId: id }).returning();
-    await db
-      .insert(memberships)
-      .values({ contactId: id, payerId: payer!.id, expiryDate: "2030-12-31" });
-    await recomputeContactStatus(db, id, "membership_change", "seed");
+    // Feature 068: each seeded member pays for their own individual account and is attached to it.
+    const [account] = await db
+      .insert(membershipAccounts)
+      .values({ payerContactId: id, level: "individual", expiryDate: "2030-12-31" })
+      .returning();
+    await db.insert(membershipMembers).values({ accountId: account!.id, contactId: id });
+    await recomputeContactStatus(db, id, "membership_change", null);
   }
 
   // A sample venue (feature 007) for the public site.
