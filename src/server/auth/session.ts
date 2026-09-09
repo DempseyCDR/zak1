@@ -64,6 +64,8 @@ export async function readSession(db: Db, token: string | undefined): Promise<Cu
       contactId: contacts.id,
       displayName: contacts.displayName,
       isVolunteer: contacts.isVolunteer,
+      mergedIntoId: contacts.mergedIntoId,
+      archivedAt: contacts.archivedAt,
     })
     .from(staffSessions)
     .innerJoin(staffIdentities, eq(staffIdentities.id, staffSessions.staffIdentityId))
@@ -75,6 +77,12 @@ export async function readSession(db: Db, token: string | undefined): Promise<Cu
   if (!row) return null;
   // Access withdrawn since sign-in: refuse immediately (FR-011).
   if (!row.isVolunteer) return null;
+  // Feature 071: the contact is no longer an ACTIVE record — merged away (065/069) or archived (065).
+  // `activeContact()` excludes both from every other read, and a merge does not currently relink
+  // `staff_identities` / `role_grants`, so without this the retired shell keeps its session AND its
+  // grants. Checked here rather than at sign-in so a live session dies on the very next request, the
+  // same way withdrawn volunteer access already does.
+  if (row.mergedIntoId !== null || row.archivedAt !== null) return null;
 
   const now = new Date();
   await db
