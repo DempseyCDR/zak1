@@ -1,12 +1,12 @@
 # zak1 — Data Model
 
 _Point-in-time snapshot of the complete database schema, derived from the Drizzle schema
-(`src/server/db/schema/`) and the hand-authored SQL migrations (`src/server/db/migrations/0001`–`0040`).
-Current as of migration `0040_campaigns.sql`._
+(`src/server/db/schema/`) and the hand-authored SQL migrations (`src/server/db/migrations/0001`–`0045`).
+Current as of migration `0045_drop_legacy_memberships.sql`._
 
 This is the single source-of-truth catalog for the CDR (Country Dancers of Rochester) platform's
-Postgres schema across all implemented features (001–057, incl. Phase 4 payments/booking, Phase 5,
-and Phase 7 public-site work).
+Postgres schema across all implemented features (001–069, incl. Phase 4 payments/booking, Phase 5,
+Phase 7 public-site work, and the Phase 8 contact-maintenance run 059–069).
 
 ## Conventions (apply everywhere unless noted)
 
@@ -30,14 +30,18 @@ and Phase 7 public-site work).
 
 - **Dropped tables**: `rate_parameters`, `rate_parameter_audit`, `series_expense_parameters` (folded
   into `series_parameters`, migration 0012); `non_dance_income` (0031 — replaced by `gate_sales`
-  categories/notes); `account_mapping` (0032 — QBO mapping is now series-only).
+  categories/notes); `account_mapping` (0032 — QBO mapping is now series-only); **`memberships` and
+  `payers`** (0045 — replaced by `membership_accounts` / `membership_members` in feature 068; see
+  §1 below).
 - **Dropped columns**: `contacts.volunteer_roles` (0021 — moved to `role_grants`);
   `bookings.check_number` (0026 — moved to `performer_payments`).
 - **Retired enum**: `event_group_kind` → `event_groups.kind` is now free-text (0010/0015).
 - **New tables**: `role_grants`, `audit_events`, `staff_identities`, `staff_sessions`,
   `venue_rents` (+audit), `performer_payments` (+`payment_bookings`), `membership_captures`,
   `paypal_notifications`, `content_pages`, `admission_prices`, `officers`, `announcements`,
-  `campaigns`.
+  `campaigns`, `membership_accounts`, `membership_members` (068), `dedup_rejections`, `held_merges` (069).
+- **New columns on `contacts`**: `archived_at` (065, reversible soft archive),
+  `message_recipient_email_id` (067, the shared/family-email pointer).
 
 ## Entity-Relationship Diagram
 
@@ -45,9 +49,12 @@ and Phase 7 public-site work).
 erDiagram
     contacts ||--o{ contact_emails : has
     contacts ||--o| contacts : "merged_into"
-    contacts ||--o{ memberships : "is subject of"
-    contacts ||--o{ payers : "may be"
-    payers ||--o{ memberships : "pays for"
+    contacts ||--o| membership_accounts : "pays for"
+    contacts ||--o{ membership_members : "is covered by"
+    membership_accounts ||--o{ membership_members : "covers"
+    contacts ||--o| contact_emails : "reached via (shared)"
+    contacts ||--o{ dedup_rejections : "not a duplicate of"
+    contacts ||--o{ held_merges : "merge held on"
     contacts ||--o{ status_change_audit : logs
     contacts ||--o{ merge_audit : "canonical/merged"
     contacts ||--o| performers : "may back"
@@ -106,7 +113,7 @@ deletion._
 | `email_purpose` | personal, booking, public_profile, other | `contact_emails.purposes[]` |
 | `email_status` | active, transition, inactive | `contact_emails.status` |
 | `membership_status` | current, lapsed, long_lapsed, never | `contacts.membership_status`, `status_change_audit` |
-| `membership_level` | individual, family, supporter, student | `memberships.level` (feature 044) |
+| `membership_level` | individual, family, supporter, student | `membership_accounts.level` (feature 044; moved off `memberships` in 068) |
 | `email_consent_topic` | contra, english, openband, special_events, jane_austen_ball, contact_tracing, do_not_contact | `contact_emails.consent_topics[]` |
 | `gate_category` | admission, merchandise, donation, future_event, membership, gift_card, misc_sales | `gate_sales.category` |
 | `payment_method` | cash, card | `gate_sales.payment_method` |
@@ -119,12 +126,13 @@ deletion._
 | `notification_status` | matched, parked, resolved | `paypal_notifications.status` (feature 019) |
 | `role` | door_attendant, booker, financial_secretary, treasurer, vice_president, webmaster, mailing_list_manager, secretary, president, super_user | `role_grants.role` (feature 016) |
 | `mailing_list_id` | contra, english, openband, specialevents, performer, member, contact_tracing | `mailing_list_exports.list_id` |
+| `held_merge_reason` | two_logins, two_accounts | `held_merges.reason` (feature 069) |
 
 _The `event_group_kind` enum was retired — `event_groups.kind` is now free text._
 
 ---
 
-## 1. Contacts & Membership (features 001, 012, 019, 044)
+## 1. Contacts & Membership (features 001, 012, 019, 044, 065, 067, 068, 069)
 
 ### `contacts`
 
@@ -147,16 +155,25 @@ The person directory — the hub most other data links to. Names are structured 
 | volunteer_approved_at | timestamptz NULL | feature 016 annual President/VP review. **Advisory** — never on the session path |
 | volunteer_approved_by | uuid NULL | who approved |
 | merged_into_id | uuid NULL → contacts(id) | self-FK; non-null means this row was merged away |
+| archived_at | timestamptz NULL | feature 065 (M-R9): reversible soft archive, independent of `merged_into_id` |
+| message_recipient_email_id | uuid NULL → contact_emails(id) | feature 067 (M-R23): the household address this contact **rides**. On `contacts`, not `contact_emails`, so active-email uniqueness, sign-in and `is_login` stay owner-only by construction |
 | needs_review | boolean NOT NULL default false | door-created / no-contact-info contacts flagged for admin |
 | source | text NULL | e.g. `door`, `performer` |
 | phone | text NULL | optional (contact may give phone instead of email) |
 | created_at, updated_at | timestamptz | |
 
 - **Indexes**: `contacts_name_trgm` (GIN on `name_normalized`), `contacts_dedup_trgm` (GIN on
-  `dedup_normalized`); partial `contacts_active` on `id WHERE merged_into_id IS NULL`.
-- **Domain rules**: `membership_status`/`list_member` are **materialized**. Dedup **merges are soft** —
-  the merged row stays with `merged_into_id` set; active queries filter `merged_into_id IS NULL`.
+  `dedup_normalized`); partial `contacts_active` on `id WHERE merged_into_id IS NULL AND archived_at IS
+  NULL` (feature 065 extended the predicate).
+- **Domain rules**: `membership_status`/`list_member` are a write-refreshed **cache**, not the source of
+  truth — membership is derived from account attachment (see `membership_members`). Dedup **merges are
+  soft** — the merged row stays with `merged_into_id` set; **"active contact" = non-merged AND
+  non-archived** (feature 065), applied by `activeContact()` everywhere.
   `volunteer_roles` was **dropped in 0021** (roles moved to `role_grants` — an array cannot carry scope).
+- **Reachability** (feature 067): a contact is reached at its **own** active email when it has one,
+  otherwise at the address `message_recipient_email_id` points to. Own always wins over the reference, so
+  the record display and the mailing-list exports can never disagree about where mail goes — see
+  `resolvedRecipients`.
 
 ### `contact_emails`
 
@@ -180,37 +197,44 @@ Multiple emails per contact, each with its own purposes/consent.
 - **Domain rules**: `contact_tracing` is the default consent topic. `do_not_contact` is exclusive —
   the service collapses `consent_topics` to `{do_not_contact}` when set, making mailing-list exclusion free.
 
-### `payers`
+### `membership_accounts` (feature 068)
 
-Who paid for a membership (may differ from the member; may be an unlinked ad-hoc name).
-
-| Column | Type | Notes |
-|---|---|---|
-| id | uuid PK | |
-| contact_id | uuid NULL → contacts(id) ON DELETE SET NULL | optional linkage |
-| name | text NOT NULL | |
-| created_at | timestamptz | |
-
-### `memberships`
-
-One row per membership term; the contact's status is derived from the greatest expiry.
+**What a household buys.** Membership is an account, not a row per person: one payer owns it, and the
+level and validity belong to the account. Replaced the pre-068 `memberships` / `payers` pair, dropped in
+migration 0045.
 
 | Column | Type | Notes |
 |---|---|---|
 | id | uuid PK | |
+| payer_contact_id | uuid NOT NULL → contacts(id) | **no ON DELETE** — the database refuses to leave an account ownerless; the app returns a clean 409 first |
+| level | membership_level NOT NULL default `individual` | the **payer's** attribute; `individual`/`student` admit the payer alone |
+| expiry_date | date NULL | moved forward by a further payment; never duplicated |
+| last_payment_date | date NULL | |
+| created_at / updated_at | timestamptz | |
+
+- **Indexes**: UNIQUE `membership_accounts_payer` on `(payer_contact_id)` — one account per payer. This
+  is the collision behind a `two_accounts` **held merge** (069): merging two payers cannot silently pick
+  a surviving account.
+- **Domain rule**: the level is chosen by the Financial Secretary when recording dues (tiers change, and
+  members add donations, so it is entered rather than derived from the amount).
+
+### `membership_members` (feature 068)
+
+Who an account covers. The payer is attached to their own account like anyone else.
+
+| Column | Type | Notes |
+|---|---|---|
+| account_id | uuid NOT NULL → membership_accounts(id) ON DELETE CASCADE | |
 | contact_id | uuid NOT NULL → contacts(id) ON DELETE CASCADE | |
-| payer_id | uuid NOT NULL → payers(id) | |
-| expiry_date | date NOT NULL | |
-| level | membership_level NOT NULL default `individual` | feature 044 tier; backfilled for pre-load rows (0033) |
-| source_gate_sale_id | uuid NULL | feature 019 provenance: door channel |
-| source_notification_id | uuid NULL | feature 019 provenance: online channel |
-| created_at | timestamptz | |
+| attached_at | timestamptz NOT NULL default `now()` | |
 
-- **Indexes**: `memberships_contact`, `memberships_contact_expiry` `(contact_id, expiry_date DESC)`;
-  partial UNIQUE `memberships_source_gate_sale` and `memberships_source_notification` (feature 019,
-  0024) — make the door gate-save and PayPal-webhook channels **idempotent** (a re-save/replay collides
-  instead of duplicating).
-- **Domain rule**: status classified from `max(expiry_date)` vs. `club_settings.long_lapse_cycles` × cycle.
+- **PK**: composite `(account_id, contact_id)`. A merge that would attach the survivor twice drops the
+  losing row rather than colliding (069).
+- **Domain rules**: membership follows **attachment**, not `contacts.list_member`. Status is derived by
+  `contactMembership()` / the `contactCoverage` CTE from the covering account's expiry;
+  `contacts.membership_status` and `list_member` are a write-refreshed **cache**, not the source of truth.
+- ⚠️ `contact_id` CASCADES, so the safe-delete guard must block a covered contact explicitly — see
+  `CONTACT_DELETE_BLOCKERS`, category `membership`.
 
 ### `club_settings`
 
@@ -252,6 +276,54 @@ Append-only record of contact dedup merges.
 | created_at | timestamptz | |
 
 - **Indexes**: `merge_audit_canonical`, `merge_audit_merged`.
+- ⚠️ `relinked_counts` records **counts, not identifiers**, so this table says a merge happened but not
+  what moved. There is **no unmerge**: clearing `contacts.merged_into_id` restores the contact row, but
+  the re-pointed emails and memberships cannot be told apart from the survivor's own. Recovering from a
+  mistaken merge means restoring the database. Written up as a follow-up in
+  `specs/069-triage-worklists/tasks.md`.
+
+### `dedup_rejections` (feature 069)
+
+"These are not duplicates." Recorded **with the two names as they stood**, so the judgement lapses on its
+own when either contact is renamed — a property of the data, correct through every rename path, rather
+than a flag some later edit must remember to clear.
+
+| Column | Type | Notes |
+|---|---|---|
+| id | uuid PK | |
+| contact_a_id | uuid NOT NULL → contacts(id) ON DELETE CASCADE | |
+| contact_b_id | uuid NOT NULL → contacts(id) ON DELETE CASCADE | |
+| a_dedup_normalized | text NOT NULL | the name **at the time of the judgement** |
+| b_dedup_normalized | text NOT NULL | |
+| rejected_by | uuid NULL → contacts(id) | |
+| rejected_at | timestamptz NOT NULL default `now()` | |
+
+- **Constraints**: `CHECK (contact_a_id < contact_b_id)` and UNIQUE `dedup_rejections_pair` — one
+  unordered pair, one row, matching the `a.id < b.id` half-pair rule the suggestion query uses.
+- **Domain rule**: the suggestion query LEFT JOINs on the pair **and both stored names**; a rename simply
+  stops matching, returning the pair to the queue with no write anywhere.
+
+### `held_merges` (feature 069)
+
+A merge that cannot complete without a decision nobody has made. **A hold changes nothing** — both
+collisions are detected before the transaction opens, so only this row is written.
+
+| Column | Type | Notes |
+|---|---|---|
+| id | uuid PK | |
+| canonical_id | uuid NOT NULL → contacts(id) ON DELETE CASCADE | |
+| merged_id | uuid NOT NULL → contacts(id) ON DELETE CASCADE | |
+| reason | held_merge_reason NOT NULL | `two_logins` \| `two_accounts` |
+| attempted_by | uuid NULL → contacts(id) | |
+| attempted_at | timestamptz NOT NULL default `now()` | |
+| resolved_at | timestamptz NULL | non-null once applied **or** auto-closed |
+
+- **Indexes**: partial UNIQUE `held_merges_pair_open` on `(canonical_id, merged_id) WHERE resolved_at IS
+  NULL` — retrying a blocked merge reuses the standing hold instead of piling up duplicates.
+- **Domain rules**: the authority follows the **reason** — `role.assign` to choose a surviving sign-in
+  (governance), `dedup.write` to choose a surviving account. A hold is **auto-closed on read** when its
+  cause disappears (either contact merged away or archived, or the colliding thing gone), so no other
+  write path has to remember this table exists.
 
 ---
 

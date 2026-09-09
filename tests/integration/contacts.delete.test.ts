@@ -1,8 +1,14 @@
 import { beforeAll, beforeEach, afterAll, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
 import { ensureSchema, resetDb, closeDb, db } from "./helpers/db";
-import { contacts, roleGrants, performers, auditEvents } from "@/server/db/schema";
-import { contactRow, makeContactWithEmail } from "./helpers/factories";
+import {
+  contacts,
+  membershipMembers,
+  roleGrants,
+  performers,
+  auditEvents,
+} from "@/server/db/schema";
+import { contactRow, makeContactWithEmail, makeMembershipAccount } from "./helpers/factories";
 import { makeActor } from "./helpers/factories";
 import { jsonReq, jsonReqAs, ctx } from "./helpers/http";
 import { CONTACT_DELETE_BLOCKERS } from "@/server/domain/contacts/contactService";
@@ -120,6 +126,41 @@ describe("contact delete (feature 065)", () => {
         "venue_landlord",
       ].sort(),
     );
+  });
+
+  /**
+   * Feature 070. The `membership` blocker pointed at the RETIRED `memberships` table, which nothing has
+   * written since 068's cutover — so a household MEMBER (as opposed to the payer, covered separately)
+   * stopped being protected. `membership_members.contact_id` CASCADES, so a safe delete would have
+   * quietly detached them from the household instead of refusing.
+   */
+  it("refuses to delete a household MEMBER, not just the payer (C15)", async () => {
+    const payer = await seedContact("Kristin Ward");
+    const member = await seedContact("Christopher Scott");
+    const { accountId } = await makeMembershipAccount({
+      payerContactId: payer,
+      level: "family",
+      expiryDate: "2099-08-31",
+      members: [member],
+    });
+
+    const mlm = await makeActor({
+      email: "mlm-member@example.com",
+      grants: [{ role: "mailing_list_manager" }],
+    });
+    const res = await DELETE_CONTACT(
+      jsonReqAs(mlm.token, "DELETE", `/api/contacts/${member}`),
+      ctx({ id: member }),
+    );
+    expect(res.status).toBe(409);
+    expect((await res.json()).error.detail).toContain("membership");
+
+    // And they are still on the account — the refusal changed nothing.
+    const rows = await db
+      .select()
+      .from(membershipMembers)
+      .where(eq(membershipMembers.accountId, accountId));
+    expect(rows.map((r) => r.contactId)).toContain(member);
   });
 
   it("UNRESTRICTED (super-user, ?force=1) deletes a referenced contact (C6)", async () => {

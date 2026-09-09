@@ -9,7 +9,6 @@ import {
   contactEmails,
   contacts,
   gateSales,
-  memberships,
   membershipCaptures,
   officers,
   performers,
@@ -505,7 +504,11 @@ export async function restoreContact(db: Db, id: string): Promise<ContactRow> {
  * (a log) are deliberately excluded, so a contact whose only references are its own emails is bare.
  */
 export const CONTACT_DELETE_BLOCKERS = [
-  { category: "membership", table: memberships, column: memberships.contactId },
+  // Feature 070: this pointed at the RETIRED `memberships` table, which nothing has written since 068's
+  // cutover — so the guard silently stopped protecting household members, and `membership_members`
+  // CASCADES on contact delete, quietly detaching them. Same category (the error contract and Mel's
+  // label are unchanged); correct table.
+  { category: "membership", table: membershipMembers, column: membershipMembers.contactId },
   {
     category: "membership_capture",
     table: membershipCaptures,
