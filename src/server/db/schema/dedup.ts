@@ -3,7 +3,11 @@ import { contacts } from "./contacts";
 
 // Feature 069 (M-R21): a merge the survivor cannot absorb — two sign-in identities, or two membership
 // accounts. Structurally one problem: only one of the thing may survive, so a person must choose.
-export const heldMergeReasonEnum = pgEnum("held_merge_reason", ["two_logins", "two_accounts"]);
+export const heldMergeReasonEnum = pgEnum("held_merge_reason", [
+  "two_logins",
+  "two_accounts",
+  "role_conflict",
+]);
 
 /**
  * Feature 069 (M-R18 / FR-002, FR-003a): "not duplicates".

@@ -15,8 +15,14 @@ import { recordAudit } from "@/server/lib/audit";
  * different jobs.
  */
 
-/** The three offices that may not combine: authority (President/VP) must not sit with money (Treasurer). */
-const EXCLUSIVE_ROLES: readonly Role[] = ["president", "vice_president", "treasurer"];
+/**
+ * The three offices that may not combine: authority (President/VP) must not sit with money (Treasurer).
+ *
+ * Exported since feature 072 so a MERGE can check the same set. This is a cross-row invariant with no
+ * constraint behind it, so a merge relinking grants in SQL would otherwise break it silently — and the
+ * merge must not carry its own copy of the list, or the two could disagree.
+ */
+export const EXCLUSIVE_ROLES: readonly Role[] = ["president", "vice_president", "treasurer"];
 
 export type GrantInput = {
   subjectContactId: string;

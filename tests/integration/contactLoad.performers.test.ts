@@ -8,6 +8,8 @@ import { parseIcontact } from "@/server/domain/contactLoad/parseIcontact";
 import { parseMemberSheet } from "@/server/domain/contactLoad/parseMemberSheet";
 import { parsePayerSheet } from "@/server/domain/contactLoad/parsePayerSheet";
 import { executeContactLoad } from "@/server/domain/contactLoad/execute";
+import { matchPerformers } from "@/server/domain/contactLoad/matchPerformers";
+import { createContact } from "@/server/domain/contacts/contactService";
 import type { MemberRowFixture } from "./helpers/contactLoadCsv";
 
 function run(members: MemberRowFixture[]) {
@@ -43,11 +45,13 @@ async function performerById(id: string) {
   return p!;
 }
 
-describe("contact load — performer link proposals (US4)", () => {
-  beforeAll(ensureSchema);
-  beforeEach(resetDb);
-  afterAll(closeDb);
+// File-level DB lifecycle: with two describes, a per-describe `afterAll(closeDb)` would close the shared
+// pool before the second one ran.
+beforeAll(ensureSchema);
+beforeEach(resetDb);
+afterAll(closeDb);
 
+describe("contact load — performer link proposals (US4)", () => {
   it("auto-links an exact single match, and surfaces ambiguous/unmatched without linking", async () => {
     // Ambiguity: two RETAINED contacts share a name → any performer matching it is ambiguous.
     await insertRetainedContact("Jamie", "Fiddle");
@@ -73,5 +77,35 @@ describe("contact load — performer link proposals (US4)", () => {
     expect(counts.performerAuto).toBe(1);
     expect(counts.performerAmbiguous).toBe(1);
     expect(counts.performerUnmatched).toBe(1);
+  });
+});
+
+/**
+ * Feature 072 (FR-014). The auto-linker selected EVERY contact with no active filter, so a retired one
+ * was an eligible target. And because a merge leaves the retired shell carrying the same
+ * `dedup_normalized` as its survivor, an unfiltered list made the name look ambiguous — suppressing the
+ * correct live match rather than merely offering a bad one.
+ */
+describe("the auto-linker ignores retired contacts (feature 072)", () => {
+  it("matches the live contact even when a merged duplicate shares its name", async () => {
+    const live = await createContact(db, { firstName: "Fiddle", lastName: "Player" });
+    const retired = await createContact(db, { firstName: "Fiddle", lastName: "Player" });
+    await db.update(contacts).set({ mergedIntoId: live.id }).where(eq(contacts.id, retired.id));
+    await db.insert(performers).values({ displayName: "Fiddle Player" });
+
+    const res = await matchPerformers(db);
+    // Unambiguous: the retired shell does not count as a second candidate.
+    expect(res.auto.map((a) => a.contactId)).toContain(live.id);
+    expect(res.ambiguous).toHaveLength(0);
+  });
+
+  it("does not offer an archived contact at all", async () => {
+    const archived = await createContact(db, { firstName: "Gone", lastName: "Away" });
+    await db.update(contacts).set({ archivedAt: new Date() }).where(eq(contacts.id, archived.id));
+    await db.insert(performers).values({ displayName: "Gone Away" });
+
+    const res = await matchPerformers(db);
+    expect(res.auto).toHaveLength(0);
+    expect(res.unmatched.length).toBeGreaterThan(0);
   });
 });

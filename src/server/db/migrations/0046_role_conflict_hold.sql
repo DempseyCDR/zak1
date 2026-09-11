@@ -1,0 +1,12 @@
+-- Feature 072 (FR-006, FR-007): a third reason a merge can be HELD.
+--
+-- Feature 069 established two — `two_logins` and `two_accounts` — both structural collisions where the
+-- database itself cannot hold the result. `role_conflict` is different in kind: the merge is *possible*,
+-- but completing it would either hand the survivor the authority to assign roles (which confers every
+-- other capability, and `dedup.write` alone must never grant), or leave one person holding two mutually
+-- exclusive offices. FR-005a's exclusivity is a CROSS-ROW invariant enforced in the service layer with no
+-- constraint behind it, so a merge that relinks grants in SQL would bypass it silently.
+--
+-- Alone in its migration deliberately: Postgres allows ADD VALUE inside a transaction, but the new value
+-- cannot be USED until that transaction commits — so any code or DDL referencing it must come later.
+ALTER TYPE held_merge_reason ADD VALUE IF NOT EXISTS 'role_conflict';

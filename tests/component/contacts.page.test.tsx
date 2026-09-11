@@ -541,11 +541,13 @@ describe("held merges in the review queue (feature 069)", () => {
       "fetch",
       vi.fn(async (url: string, init?: RequestInit) => {
         const u = String(url);
+        const method = init?.method ?? "GET";
         calls.push({ url: u, init });
         if (u.includes("/api/contacts/launcher-counts"))
           return json({ needsReview: 1, duplicates: 0 });
         if (u.includes("/api/me/capabilities")) return json({ contactWrite: true, roleAssign });
-        if (u.includes("/api/dedup/held")) return json({ held });
+        if (u.includes("/api/dedup/held"))
+          return json(method === "DELETE" ? { ok: true } : { held });
         if (u.includes("needsReview=1")) return json({ items: [] });
         return json({ items: [] });
       }),
@@ -555,6 +557,56 @@ describe("held merges in the review queue (feature 069)", () => {
 
   const openReview = async (user: ReturnType<typeof userEvent.setup>) =>
     user.click(await screen.findByRole("button", { name: /review queue/i }));
+
+  /**
+   * Feature 072 (FR-018) — found in the manual pass. A held merge returns 200 with `outcome: "held"`,
+   * and the page treated any 200 as success: the list silently refreshed and Mel saw nothing at all. She
+   * only discovered the merge had stopped by later noticing an item in the review queue.
+   */
+  it("tells the user immediately when a merge is HELD rather than completing", async () => {
+    const calls: Call[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string, init?: RequestInit) => {
+        const u = String(url);
+        calls.push({ url: u, init });
+        if (u.includes("/api/contacts/launcher-counts"))
+          return json({ needsReview: 0, duplicates: 1 });
+        if (u.includes("/api/me/capabilities"))
+          return json({ contactWrite: true, roleAssign: false });
+        if (u.includes("/api/dedup/merge"))
+          return json({ outcome: "held", reason: "role_conflict", heldMergeId: "h9" });
+        if (u.includes("/api/dedup/suggestions"))
+          return json({ pairs: [pair("Jon Smith", "John Smith", ["a1", "b1"])], suppressed: 0 });
+        return json({ items: [] });
+      }),
+    );
+    const user = userEvent.setup();
+    render(<ContactsPage />);
+    await user.click(await screen.findByRole("button", { name: /review duplicates/i }));
+    await user.click(await screen.findByRole("button", { name: /keep Jon Smith/i }));
+
+    expect(await screen.findByText(/not merged/i)).toBeInTheDocument();
+  });
+
+  it("lets a dedup worker WITHDRAW a held merge without resolving it (FR-017)", async () => {
+    const calls = stubWithHeld([HELD()], false);
+    const user = userEvent.setup();
+    render(<ContactsPage />);
+    await openReview(user);
+
+    const row = await screen.findByRole("listitem", { name: /held merge/i });
+    // She cannot answer the question — but she may withdraw it, rather than leaving an item she can
+    // never clear sitting in her queue.
+    expect(within(row).queryByRole("button", { name: /resolve/i })).toBeNull();
+    await user.click(within(row).getByRole("button", { name: /don't merge|withdraw/i }));
+
+    await waitFor(() =>
+      expect(
+        calls.some((c) => c.url.includes("/api/dedup/held/h1") && c.init?.method === "DELETE"),
+      ).toBe(true),
+    );
+  });
 
   it("names both contacts and the reason it stopped", async () => {
     stubWithHeld([HELD()], true);

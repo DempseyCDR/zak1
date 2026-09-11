@@ -1,8 +1,8 @@
 import { beforeAll, beforeEach, afterAll, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
 import { ensureSchema, resetDb, closeDb, db } from "./helpers/db";
-import { contacts, membershipAccounts, membershipMembers } from "@/server/db/schema";
-import { contactRow, makeMembershipAccount } from "./helpers/factories";
+import { attendance, contacts, membershipAccounts, membershipMembers } from "@/server/db/schema";
+import { contactRow, makeEvent, makeMembershipAccount } from "./helpers/factories";
 import { mergeContacts } from "@/server/domain/dedup/mergeService";
 import { contactMembership } from "@/server/domain/membership/membershipStatus";
 
@@ -87,5 +87,57 @@ describe("a merge moves membership accounts and attachments (FR-010)", () => {
     if (result.outcome !== "completed") throw new Error("expected completed");
     expect(result.moved).not.toHaveProperty("memberships");
     expect(result.moved).not.toHaveProperty("payers");
+  });
+});
+
+/**
+ * Feature 072 (FR-008). Two references carry a unique constraint the survivor may already satisfy. Both
+ * are genuinely the same fact recorded twice — one household joined under two spellings, one event
+ * attended under two names — so the survivor holds it once and the merge completes, rather than failing
+ * on a raw constraint error, which is the failure mode feature 069 exists to eliminate.
+ */
+describe("a duplicate attachment collapses rather than colliding (FR-008)", () => {
+  const contact = async (name: string) =>
+    (await db.insert(contacts).values(contactRow(name)).returning())[0]!.id;
+
+  it("both contacts attended the same event", async () => {
+    const survivor = await contact("Twice A");
+    const dupe = await contact("Twice B");
+    const evt = await makeEvent();
+    await db.insert(attendance).values([
+      { eventId: evt.id, contactId: survivor },
+      { eventId: evt.id, contactId: dupe },
+    ]);
+
+    const result = await mergeContacts(db, survivor, dupe, survivor);
+    expect(result.outcome).toBe("completed");
+
+    const rows = await db.select().from(attendance).where(eq(attendance.eventId, evt.id));
+    // One row, on the survivor — the person attended once, however many records said so.
+    expect(rows).toHaveLength(1);
+    expect(rows[0]!.contactId).toBe(survivor);
+  });
+
+  it("both contacts are on the same membership account", async () => {
+    const payer = await contact("Household Payer");
+    const survivor = await contact("Spelling One");
+    const dupe = await contact("Spelling Two");
+    const { accountId } = await makeMembershipAccount({
+      payerContactId: payer,
+      level: "family",
+      expiryDate: "2099-08-31",
+      members: [survivor, dupe],
+    });
+
+    const result = await mergeContacts(db, survivor, dupe, survivor);
+    expect(result.outcome).toBe("completed");
+
+    const rows = await db
+      .select({ contactId: membershipMembers.contactId })
+      .from(membershipMembers)
+      .where(eq(membershipMembers.accountId, accountId));
+    const ids = rows.map((r) => r.contactId);
+    expect(ids.filter((id) => id === survivor)).toHaveLength(1);
+    expect(ids).not.toContain(dupe);
   });
 });
