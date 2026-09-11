@@ -6,9 +6,9 @@
  * codebase is tested.
  */
 
-export const STATE_COOKIE = "zak1_oauth_state";
-export const VERIFIER_COOKIE = "zak1_oauth_verifier";
-export const NEXT_COOKIE = "zak1_oauth_next";
+export const STATE_COOKIE = "runcdr_oauth_state";
+export const VERIFIER_COOKIE = "runcdr_oauth_verifier";
+export const NEXT_COOKIE = "runcdr_oauth_next";
 
 export function readCookie(req: Request, name: string): string | undefined {
   const header = req.headers.get("cookie");

@@ -31,7 +31,7 @@
 
 ## Notes
 
-- The upstream requirements (`zak1_Phase5_Requirements.md`, P5-R3) pre-resolved the major decisions (Q5
+- The upstream requirements (`runcdr_Phase5_Requirements.md`, P5-R3) pre-resolved the major decisions (Q5
   add-performer creates a booking; Q7→a last-minute donation flips the booking to donated; respect
   `requires_check`), so this spec carries **no** `[NEEDS CLARIFICATION]` markers — remaining choices had
   reasonable defaults recorded in Assumptions.

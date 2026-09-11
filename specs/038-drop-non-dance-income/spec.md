@@ -6,7 +6,7 @@
 
 **Status**: Draft
 
-**Input**: Phase 6 requirement **P6-R6** (`zak1_Phase6_Requirements.md`, treasurer-report rework thread) — a
+**Input**: Phase 6 requirement **P6-R6** (`runcdr_Phase6_Requirements.md`, treasurer-report rework thread) — a
 YAGNI removal of the unused "treasurer enters non-dance income separate from the door" capability.
 
 ## User Scenarios & Testing *(mandatory)*

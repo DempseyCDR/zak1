@@ -82,4 +82,4 @@ As the **FS** on `/gate` for the same event:
 ## Rollback
 
 The migration is additive (three `NOT NULL DEFAULT` columns). No destructive change; a snapshot of
-`zak1_dev` before applying is optional (`pg_dump -Fc "$DATABASE_URL" -f ~/zak1_pre_0022.dump`).
+`zak1_dev` before applying is optional (`pg_dump -Fc "$DATABASE_URL" -f ~/runcdr_pre_0022.dump`).

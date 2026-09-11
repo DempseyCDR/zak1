@@ -33,7 +33,7 @@ Single Next.js + Postgres project — `src/server/**`, `src/app/**`, `tests/**`,
 **Purpose**: Safety snapshot before the destructive drop.
 
 - [x] T001 Take the pre-migration snapshot: `set -a; . ./.env; set +a` then
-  `pg_dump -Fc "$DATABASE_URL" -f ~/zak1_pre_0031.dump` (data-migration safety convention; FR-006).
+  `pg_dump -Fc "$DATABASE_URL" -f ~/runcdr_pre_0031.dump` (data-migration safety convention; FR-006).
 
 ---
 
@@ -89,7 +89,7 @@ green.
 - [x] T010 [US1] Remove the seeded `('non_dance_income','4910',…)` `account_mapping` row from
   `tests/integration/helpers/db.ts` **and** `src/server/db/seed.ts` (the `resetDb` TRUNCATE-list removal is done
   in T005). Delete `tests/integration/treasurer.non-dance-income.test.ts`.
-- [x] T011 [US1] Remove the two non-dance-income entries from `docs/zak1_Help_Glossary.md`.
+- [x] T011 [US1] Remove the two non-dance-income entries from `docs/runcdr_Help_Glossary.md`.
 
 **Checkpoint**: capability fully removed; migration guard + report + page tests green; other figures unchanged.
 

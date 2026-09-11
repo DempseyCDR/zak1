@@ -6,7 +6,7 @@
 
 **Status**: Draft
 
-**Input**: Phase 6 requirement **P6-R1** (`zak1_Phase6_Requirements.md`) — a public-pages menu component that
+**Input**: Phase 6 requirement **P6-R1** (`runcdr_Phase6_Requirements.md`) — a public-pages menu component that
 becomes the top menu on all web pages. Motivated by defect **D1** (a page with no way to reach it): the site has
 no first-class, complete navigation.
 

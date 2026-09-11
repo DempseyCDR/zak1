@@ -6,7 +6,7 @@
 
 **Status**: Draft
 
-**Input**: Phase 6 requirement **P6-R2** (`zak1_Phase6_Requirements.md`) — a volunteer-pages menu component that
+**Input**: Phase 6 requirement **P6-R2** (`runcdr_Phase6_Requirements.md`) — a volunteer-pages menu component that
 renders as a second top menu when a volunteer is signed in. **Subsumes defect D1** (the `/payments` page has no
 nav link). Builds on feature 034 (the public menu), which already renders as the topmost bar on every page.
 

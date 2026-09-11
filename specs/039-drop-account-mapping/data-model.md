@@ -13,7 +13,7 @@ The GL-account catalog being dropped (created by `0006`):
 | `account_name` | text | account name |
 | `updated_at` | timestamptz | |
 
-- **Removal**: `DROP TABLE IF EXISTS account_mapping` (`0032`), idempotent. Snapshot `~/zak1_pre_0032.dump` first.
+- **Removal**: `DROP TABLE IF EXISTS account_mapping` (`0032`), idempotent. Snapshot `~/runcdr_pre_0032.dump` first.
 - **Rows**: display-only; nothing computed or exported from them. (Feature 038 already removed the
   `non_dance_income` row.)
 

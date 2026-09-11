@@ -1,4 +1,4 @@
-# zak1 — Help & Glossary (v1)
+# runcdr — Help & Glossary (v1)
 
 **Purpose (dual audience).** This file has two jobs:
 
@@ -8,7 +8,7 @@
    logic, validation, API route, UI page) so a coding session can jump straight to the
    right file instead of re-searching.
 
-Companion docs: [`zak1_Project_Context_v1.4.md`](zak1_Project_Context_v1.4.md) (project state),
+Companion docs: [`runcdr_Project_Context_v1.4.md`](runcdr_Project_Context_v1.4.md) (project state),
 `CLAUDE.md` (conventions), `specs/BACKLOG.md` (deferred work). Money is always **integer cents**.
 
 > **How to read the file index.** Paths are relative to the repo root. Conventional locations:
@@ -21,7 +21,7 @@ Companion docs: [`zak1_Project_Context_v1.4.md`](zak1_Project_Context_v1.4.md) (
 
 ## A. User roles
 
-zak1 today has **two roles that actually exist in the database** and a larger set of **functional
+runcdr today has **two roles that actually exist in the database** and a larger set of **functional
 roles** implied by features but not yet enforced by a permission system.
 
 > **Authoritative role model:** the full role model, delegation tree, per-role use cases, and the

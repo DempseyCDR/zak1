@@ -1,4 +1,4 @@
-# zak1 — Data Model
+# runcdr — Data Model
 
 _Point-in-time snapshot of the complete database schema, derived from the Drizzle schema
 (`src/server/db/schema/`) and the hand-authored SQL migrations (`src/server/db/migrations/0001`–`0045`).

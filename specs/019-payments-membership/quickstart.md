@@ -23,7 +23,7 @@ matters to you:
 
 ```bash
 set -a; . ./.env; set +a
-pg_dump -Fc "$DATABASE_URL" -f ~/zak1_pre_0024.dump
+pg_dump -Fc "$DATABASE_URL" -f ~/runcdr_pre_0024.dump
 ```
 
 ---

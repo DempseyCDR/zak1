@@ -16,7 +16,7 @@ The table being dropped (created by migration `0006`). For the record, its shape
 | `created_at` | timestamptz | |
 
 - **Removal**: `DROP TABLE IF EXISTS non_dance_income` (migration `0031`) — takes the index with it. Idempotent.
-- **Rows in practice**: zero (three years). Snapshot `~/zak1_pre_0031.dump` taken before dropping.
+- **Rows in practice**: zero (three years). Snapshot `~/runcdr_pre_0031.dump` taken before dropping.
 
 ## Retained (unchanged): `account_mapping`
 

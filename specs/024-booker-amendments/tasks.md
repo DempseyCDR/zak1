@@ -97,7 +97,7 @@ or the treasurer/organizer reports.
 - [X] T014 Add the affordances to `src/app/(admin)/bookings-report/page.tsx` + `src/app/(admin)/_modals/BookingModal.tsx`: a **band re-point** control (pick a new band) and a **substitute** action; surface the paid-refusal message inline. (The lead cascade needs no new UI — it rides the existing lead status change.)
 - [X] T015 [P] Expose the **substitute add-booking** for the FS on `src/app/(door)/gate/page.tsx` (reuses the `substitute` route; `booking.write`).
 - [X] T016 Full gate (solo-maintainer mode): `pnpm exec tsc --noEmit`; `pnpm exec eslint <changed>`; `pnpm exec prettier --check <changed>`; `pnpm test`; `pnpm build`. All green.
-- [X] T017 [P] Update `zak1_Phase4_Requirements_v1.md` §7 to mark the **booker amendments SHIPPED as 024**; note Phase-4 remaining = Meg's door-attendant experience (Area C).
+- [X] T017 [P] Update `runcdr_Phase4_Requirements_v1.md` §7 to mark the **booker amendments SHIPPED as 024**; note Phase-4 remaining = Meg's door-attendant experience (Area C).
 
 ---
 

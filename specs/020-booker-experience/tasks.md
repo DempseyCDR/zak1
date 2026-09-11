@@ -26,7 +26,7 @@ over existing feature-018 APIs — the only shared prerequisite is the Phase-1 m
 **Purpose**: The one shared prerequisite — the `tentative` enum value and `venues.short_name`. Everything
 else builds on committed schema.
 
-- [x] T001 Snapshot `zak1_dev` (`set -a; . ./.env; set +a; pg_dump -Fc "$DATABASE_URL" -f ~/zak1_pre_0025.dump`) — migration 0025 backfills `short_name`
+- [x] T001 Snapshot `zak1_dev` (`set -a; . ./.env; set +a; pg_dump -Fc "$DATABASE_URL" -f ~/runcdr_pre_0025.dump`) — migration 0025 backfills `short_name`
 - [x] T002 Write `src/server/db/migrations/0025_booker_experience.sql`: `ALTER TYPE booking_status ADD VALUE IF NOT EXISTS 'tentative'`; `ALTER TABLE venues ADD COLUMN IF NOT EXISTS short_name text`; **intentional backfill** of `short_name` from name initials (uppercased first letter of each word, `regexp_split_to_table` + `string_agg`), idempotent `WHERE short_name IS NULL` (header flags the backfill, as 0023/0024 did)
 - [x] T003 [P] Extend Drizzle schema: `src/server/db/schema/enums.ts` (add `'tentative'` to `bookingStatusEnum`; `BookingStatus` union follows), `src/server/db/schema/venues.ts` (`shortName: text("short_name")`)
 - [x] T004 Apply `pnpm run db:migrate`; verify every venue has a `short_name`; `pnpm exec tsc --noEmit` clean; existing 510-test suite still green
@@ -144,7 +144,7 @@ US1's display (US1 already falls back to derived initials, so US1 does not block
 - [x] T034 Full gates: `pnpm test` (510 baseline + new green), `pnpm exec tsc --noEmit`, `pnpm run lint`, `pnpm exec prettier --check .`, `pnpm build`
 - [x] T035 [P] Verify `/dev/routes` (Super-user) reflects the extended routes (`/api/performers?q=`, `/api/bookings/report?sort=`)
 - [x] T036 [P] Update `docs/use-cases.md` (Booker §5.1 / matrix): tentative status, venue short name; note the performer typeahead as the first B39 picker in `specs/BACKLOG.md`
-- [x] T037 [P] Add feature-020 terms to `docs/zak1_Help_Glossary.md` (tentative status, venue short name, performer search / B39 picker, prior-event defaults)
+- [x] T037 [P] Add feature-020 terms to `docs/runcdr_Help_Glossary.md` (tentative status, venue short name, performer search / B39 picker, prior-event defaults)
 - [x] T038 Walk [quickstart.md](quickstart.md) end-to-end across all five stories
 
 ---

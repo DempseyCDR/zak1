@@ -31,7 +31,7 @@ mostly to test files and the independent schema files.
 ## Phase 1: Setup
 
 - [x] T001 Confirm baseline green on `main`: `pnpm test`, `pnpm exec tsc --noEmit`, `pnpm run lint` (Node 24).
-- [x] T002 (Optional) Snapshot `zak1_dev` before the migration: `pg_dump -Fc "$DATABASE_URL" -f ~/zak1_pre_0023.dump`.
+- [x] T002 (Optional) Snapshot `zak1_dev` before the migration: `pg_dump -Fc "$DATABASE_URL" -f ~/runcdr_pre_0023.dump`.
 
 ---
 
@@ -255,7 +255,7 @@ delete the contact and confirm the link nulls.
   --check .`.
 - [x] T046 Run the [quickstart.md](quickstart.md) walkthrough via `preview_start {name:"dev"}` — verify the
   Booker flows, the Webmaster date-refusal, and the confirmed-only public display; capture a screenshot.
-- [x] T047 Author the next project-context snapshot (`zak1_Project_Context_v1.8.md`) recording P3-4 shipped,
+- [x] T047 Author the next project-context snapshot (`runcdr_Project_Context_v1.8.md`) recording P3-4 shipped,
   update the auto-memory status file, and commit the feature as one atomic commit on `main` with the
   `Co-Authored-By` trailer (ask before pushing).
 

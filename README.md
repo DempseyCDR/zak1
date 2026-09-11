@@ -1,4 +1,4 @@
-# zak1 — CDR Dance Club Management Platform
+# runcdr — CDR Dance Club Management Platform
 
 Build 1 of a multi-build exploration. This build implements **feature 001 — Contacts &
 Membership** (see [specs/001-contacts-membership](specs/001-contacts-membership/spec.md)).

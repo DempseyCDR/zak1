@@ -22,7 +22,7 @@ column goes. No computed figure changes.
 (`mappingService.ts`, `reportService.ts`), the `/qbo-mapping` + `/treasurer` pages
 
 **Storage**: PostgreSQL — **destructive** migration `0032_drop_account_mapping.sql`
-(`DROP TABLE IF EXISTS account_mapping`, idempotent). Pre-migration snapshot `~/zak1_pre_0032.dump`.
+(`DROP TABLE IF EXISTS account_mapping`, idempotent). Pre-migration snapshot `~/runcdr_pre_0032.dump`.
 `series_qbo_map` and `mapping_audit` are **not** touched.
 
 **Testing**: Vitest against real Postgres — a **migration** test (table gone + idempotent, mirrors the `0031`
@@ -95,7 +95,7 @@ EDIT:
   tests/integration/treasurer.report.test.ts       # replace the `.account` assertions with no-account-property +
                                                    #   keep class/customer
   tests/component/treasurer.page.test.tsx          # drop the account fields from the mock-report fixture
-  docs/zak1_Help_Glossary.md                       # QBO mapping entry (drop the account-code half)
+  docs/runcdr_Help_Glossary.md                       # QBO mapping entry (drop the account-code half)
 
 NEW:
   src/server/db/migrations/0032_drop_account_mapping.sql        # DROP TABLE IF EXISTS account_mapping

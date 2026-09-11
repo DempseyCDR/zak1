@@ -6,7 +6,7 @@
 
 **Status**: Draft
 
-**Input**: Phase 6 requirement **P6-R7** (`zak1_Phase6_Requirements.md`, treasurer-report rework thread) — a
+**Input**: Phase 6 requirement **P6-R7** (`runcdr_Phase6_Requirements.md`, treasurer-report rework thread) — a
 YAGNI removal of the unused GL-account-code annotation (`account_mapping`), confirmed dead by tracing the code.
 **`series_qbo_map` (gate customer + class) is retained** — it is a different table and the treasurer's real model.
 

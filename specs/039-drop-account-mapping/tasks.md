@@ -34,7 +34,7 @@ Single Next.js + Postgres project — `src/server/**`, `src/app/**`, `tests/**`,
 **Purpose**: Safety snapshot before the destructive drop.
 
 - [X] T001 Take the pre-migration snapshot: `set -a; . ./.env; set +a` then
-  `pg_dump -Fc "$DATABASE_URL" -f ~/zak1_pre_0032.dump` (data-migration safety convention; FR-006).
+  `pg_dump -Fc "$DATABASE_URL" -f ~/runcdr_pre_0032.dump` (data-migration safety convention; FR-006).
 
 ---
 
@@ -102,7 +102,7 @@ saves; `tsc` + full suite green.
 - [X] T013 [US1] Remove the `account_mapping` seed block from `src/server/db/seed.ts` **and** the
   `INSERT INTO account_mapping …` block from `tests/integration/helpers/db.ts` (the TRUNCATE-list edit was done in
   T006). Keep the `series_qbo_map` seed.
-- [X] T014 [US1] Update `docs/zak1_Help_Glossary.md`: drop the GL-account-code half of the QBO-mapping entry
+- [X] T014 [US1] Update `docs/runcdr_Help_Glossary.md`: drop the GL-account-code half of the QBO-mapping entry
   (keep the series → gate customer / class description).
 
 **Checkpoint**: annotation fully removed; migration/report/mapping/page tests green; series/class/customer +

@@ -6,7 +6,7 @@ The spec is unambiguous (drop the whole `account_mapping` catalog; retain `serie
 ## R1 — Dropping the table (destructive, idempotent, snapshot-first)
 
 - **Decision**: `src/server/db/migrations/0032_drop_account_mapping.sql`:
-  `DROP TABLE IF EXISTS account_mapping;`. Snapshot `~/zak1_pre_0032.dump` before applying to `zak1_dev`
+  `DROP TABLE IF EXISTS account_mapping;`. Snapshot `~/runcdr_pre_0032.dump` before applying to `zak1_dev`
   (`zak1_test` auto-migrates). Fold the `account_mapping` removal from the `resetDb` TRUNCATE list into the same
   step so the suite never truncates a dropped table (the 038/I1 lesson).
 - **Rationale**: Additive, never-edited migrations (`0006` created the table). `IF EXISTS` = idempotent (FR-006).

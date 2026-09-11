@@ -90,8 +90,8 @@ lost, re-running changes nothing.
 
 ## Phase 5: Polish + cross-cutting
 
-- [X] T012 Full gate (solo-maintainer mode): `pnpm run db:migrate` (apply 0030 to dev; snapshot `~/zak1_pre_0030.dump` first); `pnpm exec tsc --noEmit`; `pnpm exec eslint <changed>`; `pnpm exec prettier --check <changed>`; `pnpm test` (full suite green — `resetDb`/`ensureSchema` applies 0030 to the test DB; no schema/API-shape change to regress); `pnpm build`. All green.
-- [X] T013 [P] Update `zak1_Phase5_Requirements.md`: mark **P5-R6 SHIPPED as feature 032** (normalize contact phones to canonical E.164 at every write path; `formatPhone` helper ready for R7; backfill migration `0030` → latest migration now `0030`).
+- [X] T012 Full gate (solo-maintainer mode): `pnpm run db:migrate` (apply 0030 to dev; snapshot `~/runcdr_pre_0030.dump` first); `pnpm exec tsc --noEmit`; `pnpm exec eslint <changed>`; `pnpm exec prettier --check <changed>`; `pnpm test` (full suite green — `resetDb`/`ensureSchema` applies 0030 to the test DB; no schema/API-shape change to regress); `pnpm build`. All green.
+- [X] T013 [P] Update `runcdr_Phase5_Requirements.md`: mark **P5-R6 SHIPPED as feature 032** (normalize contact phones to canonical E.164 at every write path; `formatPhone` helper ready for R7; backfill migration `0030` → latest migration now `0030`).
 
 ---
 

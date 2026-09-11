@@ -7,7 +7,7 @@
 **Status**: Draft
 
 **Input**: Phase 6 requirements **P6-R4** (public dance history page `/what-was-on`) and **P6-R5** (series filter
-on both public event-listing pages), specified together as one feature (`zak1_Phase6_Requirements.md`, public
+on both public event-listing pages), specified together as one feature (`runcdr_Phase6_Requirements.md`, public
 event listings thread). Builds on feature 036 (the `/whats-on` home window).
 
 ## Clarifications

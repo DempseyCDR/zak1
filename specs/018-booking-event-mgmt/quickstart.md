@@ -75,4 +75,4 @@ As the **Webmaster**: set an advertised price (allowed); try to change an event'
 ## Rollback
 
 Migration `0023` is additive (two enums + four columns/links). No destructive change; an optional snapshot
-before applying: `pg_dump -Fc "$DATABASE_URL" -f ~/zak1_pre_0023.dump`.
+before applying: `pg_dump -Fc "$DATABASE_URL" -f ~/runcdr_pre_0023.dump`.

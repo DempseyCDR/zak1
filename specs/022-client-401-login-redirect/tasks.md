@@ -81,7 +81,7 @@ Ships as one atomic commit (solo-maintainer mode). No server/DB change — clien
 
 - [X] T012 Coverage guard (research R6): run `grep -rnE 'fetch\(\s*[\`"]/api|fetch\(\s*\`\$\{' src/app` and confirm no **staff** client file still calls raw `/api` fetch (only the excluded `join` page may). Fix any missed site.
 - [X] T013 Full gate (solo-maintainer mode): `pnpm exec tsc --noEmit`; `pnpm exec eslint <changed files>`; `pnpm exec prettier --check <changed files>`; `pnpm test` (both new component tests present, suite green); `pnpm build`.
-- [X] T014 [P] Update `zak1_Phase4_Requirements_v1.md` §7 to mark **B41 (#2) SHIPPED as 022**, and the door-attendant notes' B41 item (#8) as shipped.
+- [X] T014 [P] Update `runcdr_Phase4_Requirements_v1.md` §7 to mark **B41 (#2) SHIPPED as 022**, and the door-attendant notes' B41 item (#8) as shipped.
 
 ---
 

@@ -27,7 +27,7 @@ lead cascade, band re-point; and B42 non-performer reimbursement.
 
 ## Phase 1: Setup
 
-- [X] T001 Snapshot safety: capture `~/zak1_pre_0027.dump` from `zak1_dev` (source `.env` first), per the pre-backfill convention.
+- [X] T001 Snapshot safety: capture `~/runcdr_pre_0027.dump` from `zak1_dev` (source `.env` first), per the pre-backfill convention.
 
 ---
 
@@ -126,7 +126,7 @@ lead cascade, band re-point; and B42 non-performer reimbursement.
 - [X] T021 [P] [US2] Write `tests/integration/eventDelete.crossEventPayment.test.ts` (analyze H1, FR-013): deleting an event whose booking is settled by a **live cross-event** payment (a check recorded at a *different* event) is **refused**; an event none of whose bookings has a live payment line is not blocked by this.
 - [X] T022 [US2] Widen the `deleteEvent` guardrail in `src/server/domain/events/eventService.ts` (analyze H1, FR-013): also block when any of the event's bookings has a **live** payment line (`payment_bookings` → `performer_payments` with `voided_at IS NULL`), beyond the existing "payment recorded at this event" blocker — so a cross-event check's settled booking is never silently orphaned (preserves SC-002).
 - [X] T023 Full gate (solo-maintainer mode): `pnpm exec tsc --noEmit`; `pnpm exec eslint <changed>`; `pnpm exec prettier --check <changed>`; `pnpm test`; `pnpm build`. All green.
-- [X] T024 [P] Update `zak1_Phase4_Requirements_v1.md` §7 to mark the FS payments substrate **SHIPPED as 023** (migration 0027; per-line allocation + voids; **cross-event delete guardrail**; treasurer per-line; organizer combined-cost). Note the booker-side amendments remain the next (dependent) feature.
+- [X] T024 [P] Update `runcdr_Phase4_Requirements_v1.md` §7 to mark the FS payments substrate **SHIPPED as 023** (migration 0027; per-line allocation + voids; **cross-event delete guardrail**; treasurer per-line; organizer combined-cost). Note the booker-side amendments remain the next (dependent) feature.
 
 ---
 

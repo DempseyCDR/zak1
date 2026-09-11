@@ -1,12 +1,12 @@
-# zak1 — Project Context for Session Transfer
+# runcdr — Project Context for Session Transfer
 
 > Single living doc — no versioned copies. Update in place each session.
 
-**Snapshot:** 2026-08-22 · **Repo:** `/Users/rcd/Repositories/zak1` · **Remote:**
-`github.com/DempseyCDR/zak1` · **Head:** local `main` == `origin/main` at **`51cecea`** (PR #7 `backlog-tidy`
+**Snapshot:** 2026-08-22 · **Repo:** `/Users/rcd/Repositories/runcdr` · **Remote:**
+`github.com/DempseyCDR/runcdr` · **Head:** local `main` == `origin/main` at **`51cecea`** (PR #7 `backlog-tidy`
 merge). **Working now on branch `048-whats-on-cards`** (P7-R4 spec+plan+tasks done, **not yet implemented**;
 uncommitted). **Phases 3, 4, 5, 6 COMPLETE.** ⭐ **NOW IN PHASE 7 — the public website rewrite** (requirements
-in `zak1_Phase7_Requirements.md`, keyed `P7-Rn`).
+in `runcdr_Phase7_Requirements.md`, keyed `P7-Rn`).
 **Shipped & merged since 043:** **044** contact load — replace roster from iContact + membership import
 (operator CLI `pnpm contacts:load`; migration **`0033`** `membership_level`) · **045** public design tokens
 (P7-R1) · **046** public nav mobile pattern (P7-R2) · **047** public home page (P7-R3). 045–047 are frontend,
@@ -16,13 +16,13 @@ next** (a small +2-field projection change, no migration).
 feature 044, so per constitution v1.3.0 the workflow is permanently: **feature branches + reviewed PRs, no
 self-merge to `main`** (the solo-maintainer one-atomic-commit-to-main habit is retired — see §4).
 Suite **765 tests / 234 files green** through 047; `tsc`/eslint/markdownlint/prettier/build all clean. Node 24,
-pnpm. Purpose: seed a fresh session to continue work on zak1 (CDR).
+pnpm. Purpose: seed a fresh session to continue work on runcdr (CDR).
 
 ---
 
 ## 1. What this is
 
-**zak1** = "Build 1" of a single-tenant management platform for **CDR** (Country Dancers of Rochester, a
+**runcdr** = "Build 1" of a single-tenant management platform for **CDR** (Country Dancers of Rochester, a
 contra/English dance club): contacts & membership, door attendance & gate money, performer bookings,
 treasurer & organizer reports, mailing-list exports, a public website, staff auth, authorization, check-in,
 booking & event management, membership acquisition (door + online), the Booker's booking-report/modal UX, and
@@ -31,7 +31,7 @@ the Financial-Secretary payment substrate.
 load + P7-R1..R3 shipped; P7-R4 in progress as 048). Money is always **integer cents**.
 Single tenant (multi-tenant deferred).
 
-> **Naming:** `zak1` is the internal codename; the club-facing name is **cdrochester** (what Google's
+> **Naming:** `runcdr` is the internal codename; the club-facing name is **cdrochester** (what Google's
 > consent screen shows). No rename wanted.
 
 ## 2. Tech stack & runtime
@@ -68,11 +68,11 @@ set +a`.
   `0033_membership_level.sql`** (044) — adds a `membership_level` enum (`individual`/`family`/`supporter`/
   `student`) + `memberships.level` (backfilled to `individual`, then NOT NULL); for the contact-load re-import.
   Prior: **`0032_drop_account_mapping.sql`** (039, P6-R7) — a **destructive** `DROP TABLE IF EXISTS account_mapping`
-  (idempotent; the second destructive migration; snapshot `~/zak1_pre_0032.dump`; applied). `0031` (038, P6-R6)
-  was the first destructive `DROP TABLE IF EXISTS non_dance_income` (snapshot `~/zak1_pre_0031.dump`).
+  (idempotent; the second destructive migration; snapshot `~/runcdr_pre_0032.dump`; applied). `0031` (038, P6-R6)
+  was the first destructive `DROP TABLE IF EXISTS non_dance_income` (snapshot `~/runcdr_pre_0031.dump`).
   `0030_normalize_contact_phones.sql` (032, P5-R6) normalized `contacts.phone` to E.164 (snapshot
-  `~/zak1_pre_0030.dump`). `0029_gate_sales_note.sql` (031) added nullable `gate_sales.note`.
-  `0028_backfill_contact_names.sql` (027) re-split mis-split contact names (snapshot `~/zak1_pre_0028.dump`).
+  `~/runcdr_pre_0030.dump`). `0029_gate_sales_note.sql` (031) added nullable `gate_sales.note`.
+  `0028_backfill_contact_names.sql` (027) re-split mis-split contact names (snapshot `~/runcdr_pre_0028.dump`).
   **Phase 6 features 034/035/036/037 add NO migration** (UI/domain over the existing schema); 038 (`0031`) +
   039 (`0032`) are the two destructive `DROP TABLE` removals. `0027_payment_allocation_and_voids.sql` (023) =
   `payment_bookings.amount_cents` (per-line allocation,
@@ -83,8 +83,8 @@ set +a`.
   `0024_payments_membership.sql` (019) added `performer_payments`, `payment_bookings`, `membership_captures`,
   `paypal_notifications`, `club_settings.membership_year_end`, `memberships.source_*` indexes.
 - **`pnpm run db:seed` TRUNCATEs `zak1_dev`** — never run it; it is not a migration rollback.
-- **Snapshots on disk:** `~/zak1_pre_0024.dump` … `~/zak1_pre_0028.dump`, `~/zak1_pre_0030.dump`,
-  `~/zak1_pre_0031.dump`, `~/zak1_pre_0032.dump` (pre-migration safety copies).
+- **Snapshots on disk:** `~/runcdr_pre_0024.dump` … `~/runcdr_pre_0028.dump`, `~/runcdr_pre_0030.dump`,
+  `~/runcdr_pre_0031.dump`, `~/runcdr_pre_0032.dump` (pre-migration safety copies).
 
 ## 4. Tests & governance
 
@@ -112,7 +112,7 @@ per the amendment the project **switched permanently out of solo-maintainer mode
 **every feature on its own branch → reviewed PR → merge; NO self-merge to `main`, NO direct commits to `main`.**
 (The old solo habit — one atomic commit straight to `main`, feature branches optional — is retired; do not
 resume it.) Features 044–047 all shipped this way (PRs #2, #4, #5, #6; backlog-tidy #7). Recorded in memory as
-`zak1-multi-contributor-mode.md`.
+`runcdr-multi-contributor-mode.md`.
 
 **Commits:** one atomic commit per feature **on a feature branch**, opened as a **PR** (never self-merged),
 trailer `Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>`. Commits are **SSH-signed via 1Password**
@@ -123,7 +123,7 @@ trailer `Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>`. Commits are *
 
 ```text
 docs/use-cases.md            ★ authoritative role model + permission matrix (P3-1..P4-1 enforced)
-docs/zak1_Help_Glossary.md   term → file index (has feature-019 & 020 sections)
+docs/runcdr_Help_Glossary.md   term → file index (has feature-019 & 020 sections)
 src/app/
   (admin)/bookings-report/page.tsx booker report: venue short name, sort, status letters, empty slots, modals
   (admin)/_modals/BookingModal.tsx booking create/edit/read-only modal (typeahead, add-performer, mailto)
@@ -156,10 +156,10 @@ tests/{unit,integration,component}/
 
 ## 5b. Memory pointers (`~/.claude/.../memory/`)
 
-`zak1-implementation-status.md`, `zak1-020-booker-experience.md`, `zak1-phase3-roles.md`,
-`zak1-015-staff-auth.md`, `zak1-demo-db-persistence.md`, plus the feature-breakdown and backlog notes, and the
-**Phase 4** notes: `zak1-phase4-requirements.md` (umbrella), `zak1-phase4-fs-payments-draft.md`,
-`zak1-phase4-meg-checkin-notes.md`. **Governance:** `zak1-multi-contributor-mode.md` (multi-contributor mode is
+`runcdr-implementation-status.md`, `runcdr-020-booker-experience.md`, `runcdr-phase3-roles.md`,
+`runcdr-015-staff-auth.md`, `runcdr-demo-db-persistence.md`, plus the feature-breakdown and backlog notes, and the
+**Phase 4** notes: `runcdr-phase4-requirements.md` (umbrella), `runcdr-phase4-fs-payments-draft.md`,
+`runcdr-phase4-meg-checkin-notes.md`. **Governance:** `runcdr-multi-contributor-mode.md` (multi-contributor mode is
 active since 044 — feature branches + reviewed PRs, no self-merge to `main`).
 
 ## 6. Implementation status (001–047 shipped)
@@ -171,7 +171,7 @@ booking/event mgmt · 019 payments & membership** · **Phase 4 COMPLETE: 020 Boo
 experience (Area C — per-record roster corrections + selection/entry polish; no migration)** — all
 **implemented and pushed**. **Nothing outstanding in Phase 4** (Areas A–D all delivered).
 
-**Phase 5 (COMPLETE):** requirements collected in **`zak1_Phase5_Requirements.md`** (P5-R1..R7 + defects D1/D2;
+**Phase 5 (COMPLETE):** requirements collected in **`runcdr_Phase5_Requirements.md`** (P5-R1..R7 + defects D1/D2;
 all questions Q1–Q14 resolved). **Shipped: D2** gate data-loss fix (`aea57c6`); **026/027** structured name
 capture + backfill (R5, migration `0028`); **028** shared event selector (P5-R1, no migration — adopted on
 check-in/gate/payments/treasurer, in-page state, treasurer moved to a single `/treasurer` page); **029**
@@ -182,7 +182,7 @@ migration). **All R-items R1–R7 delivered.** Deferred out of Phase 5: dedup ph
 backlog **B43** (simplify `is_donated` model — deferred during 030), and defect **D1** (`/payments` has no nav
 link — rehomed to Phase 6, see below).
 
-**Phase 6 (COMPLETE):** requirements in **`zak1_Phase6_Requirements.md`** (R1–R12 + defects D1/D3).
+**Phase 6 (COMPLETE):** requirements in **`runcdr_Phase6_Requirements.md`** (R1–R12 + defects D1/D3).
 Each R-item goes through the full SpecKit pipeline as its own feature. **Requirement → feature map:**
 
 - **Navigation** — **R1 → 034** (public-pages menu, rendered once from the ROOT layout on every page; hand-
@@ -246,7 +246,7 @@ safety: **dry-run by default**, **pg_dump backup**, **single transaction**, audi
 null the nullable refs (`audit_events.actor_contact_id`, `role_grants.granted_by`) and retain merge-audit parties
 so the hard reset can proceed. iContact attributes not already in the schema are discarded.
 
-⭐ **Phase 7 (UNDERWAY — the public website rewrite):** requirements in **`zak1_Phase7_Requirements.md`**
+⭐ **Phase 7 (UNDERWAY — the public website rewrite):** requirements in **`runcdr_Phase7_Requirements.md`**
 (keyed `P7-Rn`). Frontend-first; each R-item is its own SpecKit feature; **all merged via reviewed PRs**
 (multi-contributor mode). **Requirement → feature map:**
 
@@ -471,7 +471,7 @@ service/route/Zod + the treasurer-report `nonDanceIncome` section + the treasure
 Type-driven: `tsc` enumerates dangling refs. ⚠️ **Removal-migration pattern (reused by 039):** the destructive
 `DROP TABLE IF EXISTS` migration + the `resetDb` TRUNCATE-list edit land in the **same** step (else the suite
 errors truncating a dropped table); test-first via a migration idempotency test + `not.toHaveProperty` /
-section-absent assertions; snapshot `~/zak1_pre_NNNN.dump` first. ⚠️ deleting an API route under a running dev
+section-absent assertions; snapshot `~/runcdr_pre_NNNN.dump` first. ⚠️ deleting an API route under a running dev
 server leaves a **stale `.next/types/validator.ts`** that fails `tsc` — clear `.next/types` + recompile.
 
 **039 drop account_mapping (P6-R7, SHIPPED, migration `0032` DROP TABLE — the second destructive removal):** purge
@@ -495,9 +495,9 @@ Save+Cancel, performer typeahead, add-performer via contact link, PII-gated mail
 event modal** (prior-event venue/start defaults, dynamic rent) · **US5 venue short name**. Domain logic
 node-tested; modal/report interactions component-tested (jsdom).
 
-**Phase 4 requirements (consolidated, committed at repo root):** `zak1_Phase4_Requirements_v1.md` (umbrella,
-§7 sequencing — now marks **all areas SHIPPED**) + the two drafts `zak1_Phase4_FS_Payments_DRAFT.md` and
-`zak1_Phase4_Meg_Checkin_NOTES.md`. **Phase 4 is fully shipped: 021, 022, 023, 024, 025.** See §7 for the 024
+**Phase 4 requirements (consolidated, committed at repo root):** `runcdr_Phase4_Requirements_v1.md` (umbrella,
+§7 sequencing — now marks **all areas SHIPPED**) + the two drafts `runcdr_Phase4_FS_Payments_DRAFT.md` and
+`runcdr_Phase4_Meg_Checkin_NOTES.md`. **Phase 4 is fully shipped: 021, 022, 023, 024, 025.** See §7 for the 024
 and 025 load-bearing decisions.
 
 ## 9. Known issues / gotchas found in real use
@@ -567,7 +567,7 @@ pnpm build                     # production build (Turbopack, clean)
 pnpm dev                       # Next 16.2.10 dev server, port 3000
 pnpm run auth:bootstrap -- --email a@b.org [--contact-id <uuid>] [--role super_user]
 pnpm run db:seed               # ⚠️ WIPES zak1_dev — do NOT run
-# snapshot (source env first): pg_dump -Fc "$DATABASE_URL" -f ~/zak1_demo.dump
+# snapshot (source env first): pg_dump -Fc "$DATABASE_URL" -f ~/runcdr_demo.dump
 ```
 
 ## 13. Google / demo setup (operational, not code)
@@ -593,7 +593,7 @@ Migrations through **`0033`** (044) are applied to `zak1_dev`; 045–047 added n
 **Operational note (carried from Phase 6):** a one-off `zak1_dev` data fix set payment `65fdeb94…`.`check_number`
 = `1792` (D3; was NULL) — data only, not in git.
 **To resume:** run **`/speckit-implement`** on `048-whats-on-cards`, then branch → PR → review → merge (do NOT
-self-merge). After 048, continue Phase 7 (`zak1_Phase7_Requirements.md`): **P7-R5+** (event detail enrichment,
+self-merge). After 048, continue Phase 7 (`runcdr_Phase7_Requirements.md`): **P7-R5+** (event detail enrichment,
 performer promo links per updated **R9**, single-source pricing R10, admin styling, etc.). Open backlog carries
 forward: **B40** contact email-management UI, **B42** organizer expense reimbursement, **B43** simplify
 `is_donated`, **B44** static-content CMS, **B45** video-meeting venue, **B47** next-band hero, plus the pre-rollout

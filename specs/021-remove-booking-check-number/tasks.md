@@ -27,7 +27,7 @@ partial-MVP; the "MVP" is the whole feature.
 ## Phase 1: Setup
 
 - [X] T001 Create the migration file `src/server/db/migrations/0026_drop_bookings_check_number.sql` with a header comment explaining the correction (performer_payments is the sole check store; reconcile before drop).
-- [X] T002 Snapshot safety: capture `~/zak1_pre_0026.dump` from `zak1_dev` before applying (source `.env` first), per the project's pre-backfill convention.
+- [X] T002 Snapshot safety: capture `~/runcdr_pre_0026.dump` from `zak1_dev` before applying (source `.env` first), per the project's pre-backfill convention.
 
 ---
 
@@ -95,7 +95,7 @@ payment"); an event with none is not blocked by this guard.
 
 - [X] T017 [P] Sweep for residual references: `grep -rniE "check_number|checkNumber" src` — confirm the only survivors are `performer_payments`/`payment` (the kept store); optionally drop the harmless `checkNumber` term from the public leak-guard regexes in `tests/integration/public.confirmed.test.ts` and `tests/integration/publicEventDetail.test.ts`.
 - [X] T018 Full gate (the reviewer, solo-maintainer mode): `pnpm exec tsc --noEmit`; `pnpm exec eslint <changed files>`; `pnpm exec prettier --check <changed files>`; `pnpm test` (route inventory `auth.routeInventory.test.ts` auto-updates for the removed `/check` route); `pnpm build`. All green.
-- [X] T019 Update `zak1_Phase4_Requirements_v1.md` §7 to mark the "drop `bookings.check_number`" feature as specified/implemented (021), and note migration is `0026`.
+- [X] T019 Update `runcdr_Phase4_Requirements_v1.md` §7 to mark the "drop `bookings.check_number`" feature as specified/implemented (021), and note migration is `0026`.
 
 ---
 

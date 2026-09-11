@@ -6,7 +6,7 @@
 
 **Status**: Draft
 
-**Input**: Phase 6 requirement **P6-R3** (`zak1_Phase6_Requirements.md`) — `/whats-on` is the public home page,
+**Input**: Phase 6 requirement **P6-R3** (`runcdr_Phase6_Requirements.md`) — `/whats-on` is the public home page,
 showing dances from **two days ago** into the future in ascending order, so visitors see what just happened as
 well as what's coming.
 

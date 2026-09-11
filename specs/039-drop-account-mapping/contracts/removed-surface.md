@@ -37,7 +37,7 @@ This feature **removes** interfaces. The contract is what ceases to exist and wh
 ## Migration contract
 
 - `0032_drop_account_mapping.sql`: `DROP TABLE IF EXISTS account_mapping` — idempotent. Snapshot
-  `~/zak1_pre_0032.dump` first.
+  `~/runcdr_pre_0032.dump` first.
 
 ## Test contract (codifies the removal)
 

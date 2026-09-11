@@ -26,9 +26,9 @@ holds the user's real demo data (~1335 contacts, 1 volunteer). There is **no** r
 
 ```bash
 set -a; . ./.env; set +a
-pg_dump -Fc "$DATABASE_URL" -f ~/zak1_pre_0021.dump
+pg_dump -Fc "$DATABASE_URL" -f ~/runcdr_pre_0021.dump
 # restore, if it comes to that:
-# pg_restore --clean --if-exists --no-owner -d zak1_dev ~/zak1_pre_0021.dump
+# pg_restore --clean --if-exists --no-owner -d zak1_dev ~/runcdr_pre_0021.dump
 ```
 
 Confirm the starting state (FR-013):

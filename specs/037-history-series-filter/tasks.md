@@ -135,7 +135,7 @@ no param shows all; the filter lists all series and marks the selected one; a fi
 
 ## Phase 5: Polish & Cross-Cutting Concerns
 
-- [x] T016 [P] Update `docs/zak1_Help_Glossary.md` with a short entry for the public listings (`/whats-on`
+- [x] T016 [P] Update `docs/runcdr_Help_Glossary.md` with a short entry for the public listings (`/whats-on`
   window + `/what-was-on` history + `?series=` filter → `publicSchedule.ts` readers + the two `_components`).
 - [x] T017 Run the full local gate: `pnpm exec tsc --noEmit && pnpm run lint && pnpm exec vitest run` — all green
   (scope prettier/lint to changed files if run separately).

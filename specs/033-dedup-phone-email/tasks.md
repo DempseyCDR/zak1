@@ -56,7 +56,7 @@ email; two same-name contacts with different phone/email are distinguishable.
 ## Phase 3: Polish + cross-cutting
 
 - [X] T006 Full gate (solo-maintainer mode): `pnpm exec tsc --noEmit`; `pnpm exec eslint <changed>`; `pnpm exec prettier --check <changed>`; `pnpm test` (full suite green — existing dedup tests unregressed, matching unchanged); `pnpm build`. All green.
-- [X] T007 [P] Update `zak1_Phase5_Requirements.md`: mark **P5-R7 SHIPPED as feature 033** (dedup queue shows phone + active email per candidate; display-only, matching unchanged; consumes 032's `formatPhone`). Note **all Phase 5 R-items (R1–R7) are now shipped**; remaining Phase 5 = defect **D1** (`/payments` nav link) + backlog.
+- [X] T007 [P] Update `runcdr_Phase5_Requirements.md`: mark **P5-R7 SHIPPED as feature 033** (dedup queue shows phone + active email per candidate; display-only, matching unchanged; consumes 032's `formatPhone`). Note **all Phase 5 R-items (R1–R7) are now shipped**; remaining Phase 5 = defect **D1** (`/payments` nav link) + backlog.
 
 ---
 

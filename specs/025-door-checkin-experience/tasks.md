@@ -121,7 +121,7 @@ record" control present.
 ## Phase 7: Polish + cross-cutting
 
 - [X] T021 Full gate (solo-maintainer mode): `pnpm exec tsc --noEmit`; `pnpm exec eslint <changed>`; `pnpm exec prettier --check <changed>`; `pnpm test` (incl. `auth.routeInventory.test.ts` — the three new routes appear automatically and must be recognized); `pnpm build`. All green.
-- [X] T022 [P] Update `zak1_Phase4_Requirements_v1.md` §7 to mark the **door-attendant experience SHIPPED as 025** and note **Phase 4 complete** (Areas A–D all delivered).
+- [X] T022 [P] Update `runcdr_Phase4_Requirements_v1.md` §7 to mark the **door-attendant experience SHIPPED as 025** and note **Phase 4 complete** (Areas A–D all delivered).
 
 ---
 

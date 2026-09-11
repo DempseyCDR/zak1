@@ -45,7 +45,7 @@ pnpm exec tsc --noEmit
 
 - On `zak1_dev`, capture `Σ performer_payments.amount_cents` and per-payment link counts BEFORE; run
   `db:migrate`; assert every `payment_bookings.amount_cents` is set and each payment's lines sum to its total.
-  Snapshot `~/zak1_pre_0027.dump` first.
+  Snapshot `~/runcdr_pre_0027.dump` first.
 
 ## Full gate (solo-maintainer mode)
 

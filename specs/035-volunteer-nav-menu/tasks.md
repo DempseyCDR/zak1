@@ -146,7 +146,7 @@ and role filtering; US1 still passes.
 
 ## Phase 6: Polish & Cross-Cutting Concerns
 
-- [x] T014 [P] Update `docs/zak1_Help_Glossary.md`: note the volunteer nav now renders from the **root layout**
+- [x] T014 [P] Update `docs/runcdr_Help_Glossary.md`: note the volunteer nav now renders from the **root layout**
   on every page when signed in (second bar, `aria-label="Main"`), is a **courtesy not a control**, and is kept
   complete by the `auth.navCompleteness` guard (mirrors the `routeInventory` note). Adjust the existing nav
   mention if present.
@@ -191,7 +191,7 @@ and role filtering; US1 still passes.
 
 ```bash
 # Minimal parallelism. The one independent-file task:
-Task: "T014 Update docs/zak1_Help_Glossary.md with the volunteer-nav + completeness-guard note"
+Task: "T014 Update docs/runcdr_Help_Glossary.md with the volunteer-nav + completeness-guard note"
 # Everything else touches nav.ts, Nav.tsx, layout.tsx, the group layouts, page.tsx, or a shared test file.
 ```
 

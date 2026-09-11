@@ -29,7 +29,7 @@ Single Next.js App Router project: `src/app/**` (UI + API routes), `src/server/*
 **Purpose**: Everything that touches the database shape, in one additive migration, so every story builds on
 committed schema. Per [data-model.md](data-model.md).
 
-- [x] T001 Snapshot `zak1_dev` before anything else (`set -a; . ./.env; set +a; pg_dump -Fc "$DATABASE_URL" -f ~/zak1_pre_0024.dump`) — migration 0024 contains an intentional backfill (research R7)
+- [x] T001 Snapshot `zak1_dev` before anything else (`set -a; . ./.env; set +a; pg_dump -Fc "$DATABASE_URL" -f ~/runcdr_pre_0024.dump`) — migration 0024 contains an intentional backfill (research R7)
 - [x] T002 Write `src/server/db/migrations/0024_payments_membership.sql`: tables `performer_payments`, `payment_bookings`, `membership_captures`, `paypal_notifications` (UNIQUE `provider_event_id`); enums `capture_status`, `notification_status`; `ALTER TYPE parameter_category ADD VALUE 'door'` and `parameter_kind ADD VALUE 'seed_float'` (separate statements — added enum values are unusable in the same transaction); `club_settings.membership_year_end` text NOT NULL DEFAULT '08-31'; `memberships.source_gate_sale_id` / `source_notification_id` with partial unique indexes; backfill `performer_payments` + `payment_bookings` from bookings with `pay_cents > 0` (header comment flags the backfill, as 0023's did)
 - [x] T003 [P] New Drizzle schema files `src/server/db/schema/performerPayments.ts` (both payment tables), `src/server/db/schema/membershipCaptures.ts`, `src/server/db/schema/paypalNotifications.ts`; export all from `src/server/db/schema/index.ts`
 - [x] T004 [P] Extend existing Drizzle schemas to mirror T002: `src/server/db/schema/enums.ts` (two new pgEnums + `parameter_category`/`parameter_kind` values), `src/server/db/schema/clubSettings.ts` (`membershipYearEnd`), `src/server/db/schema/memberships.ts` (two source columns)
@@ -160,7 +160,7 @@ stays per-record; old records keep their float; unconfigured series → $15.
 - [x] T047 Full gates: `pnpm test` (baseline 450 + all new green), `pnpm exec tsc --noEmit`, `pnpm run lint`, `pnpm exec prettier --check .`, `pnpm build`
 - [x] T048 [P] Verify `/dev/routes` (Super-user) lists the new routes, including the two public ones with their `withPublic` wrapper visible
 - [x] T049 [P] Update `specs/BACKLOG.md`: B28/B30/B31 → done (019); Project Context §9 items 1–2 → done (019)
-- [x] T050 [P] Add feature 019 terms to `docs/zak1_Help_Glossary.md` (performer payment, payment↔booking link, membership capture, parked payment, membership year-end, seed float parameter)
+- [x] T050 [P] Add feature 019 terms to `docs/runcdr_Help_Glossary.md` (performer payment, payment↔booking link, membership capture, parked payment, membership year-end, seed float parameter)
 - [x] T051 Walk the full [quickstart.md](quickstart.md) once end-to-end, including the three pre-rollout operational items (real year-end date, sandbox payload confirmation, consent-screen publish) — flag, don't fix
 
 ---

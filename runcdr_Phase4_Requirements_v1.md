@@ -1,10 +1,10 @@
-# zak1 — Phase 4 Requirements (v1)
+# runcdr — Phase 4 Requirements (v1)
 
 **Status:** Consolidated requirements, **pre-SpecKit** — feeds `/speckit-specify` per feature. · **Date:**
 2026-07-28 · **Amends** feature 020 (Booker) · **Corrects** feature 019 (payments). · Consolidates the two
 working drafts (kept for code-grounding detail):
-[`zak1_Phase4_FS_Payments_DRAFT.md`](zak1_Phase4_FS_Payments_DRAFT.md) ·
-[`zak1_Phase4_Meg_Checkin_NOTES.md`](zak1_Phase4_Meg_Checkin_NOTES.md).
+[`runcdr_Phase4_FS_Payments_DRAFT.md`](runcdr_Phase4_FS_Payments_DRAFT.md) ·
+[`runcdr_Phase4_Meg_Checkin_NOTES.md`](runcdr_Phase4_Meg_Checkin_NOTES.md).
 
 ---
 
