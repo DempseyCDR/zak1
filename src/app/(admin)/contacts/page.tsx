@@ -30,10 +30,27 @@ type ContactSummary = {
 };
 
 // Feature 065: which archive/delete controls this viewer may use (from /api/me/capabilities).
+/**
+ * Feature 072 (FR-018): what to tell the user the moment a merge stops. Each names the obstacle and the
+ * way forward, because "held" on its own leaves them with nothing to do next.
+ */
+const HELD_FALLBACK = "Not merged — the merge was held and is now in the review queue.";
+const HELD_MESSAGE: Record<string, string> = {
+  two_logins:
+    "Not merged: both contacts can sign in. An officer who can assign roles must choose which sign-in " +
+    "survives. It is now in the review queue.",
+  two_accounts:
+    "Not merged: both contacts pay for a membership account. One account must be chosen first. It is " +
+    "now in the review queue.",
+  role_conflict:
+    "Not merged: this would give one person the authority to assign roles, or two offices that must " +
+    "stay separate. An officer must remove the conflicting role first. It is now in the review queue.",
+};
+
 // Feature 069 (FR-014): a merge held because it cannot complete without a decision (M-R21).
 type HeldMerge = {
   id: string;
-  reason: "two_logins" | "two_accounts";
+  reason: "two_logins" | "two_accounts" | "role_conflict";
   canonicalId: string;
   canonicalDisplayName: string;
   mergedId: string;
@@ -144,6 +161,9 @@ export default function ContactsPage() {
   const [topics, setTopics] = useState<string[]>(["contact_tracing"]);
   const [error, setError] = useState<string | null>(null);
   const [warning, setWarning] = useState<string | null>(null);
+  // Feature 072 (FR-018): the outcome of a merge attempt, shown in the main flow — `warning`
+  // above renders only inside the create-contact form, so it cannot carry this.
+  const [mergeNotice, setMergeNotice] = useState<string | null>(null);
 
   // Feature 064 (F1): one shared refresh so the button counts stay correct after ANY mutation, whatever
   // view triggered it.
@@ -349,16 +369,34 @@ export default function ContactsPage() {
 
   async function merge(canonicalId: string, mergedId: string) {
     setComparing(null);
+    setMergeNotice(null);
     const res = await apiFetch("/api/dedup/merge", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ canonicalId, mergedId }),
     });
-    if (res.ok) {
-      await refreshView(); // the pair leaves the current list
-      await refreshCounts(); // F1 — from search OR duplicates view
-      searchRef.current?.focus();
+    if (!res.ok) return;
+    // Feature 072 (FR-018): a HELD merge is a 200 carrying `outcome: "held"`. Treating every 200 as
+    // success meant the list silently refreshed and the user saw nothing — they learned the merge had
+    // stopped only by later noticing an item in the review queue. Say so at the moment it happens.
+    const body = await res.json().catch(() => null);
+    if (body?.outcome === "held") {
+      setMergeNotice(HELD_MESSAGE[String(body.reason)] ?? HELD_FALLBACK);
     }
+    await refreshView(); // the pair leaves the current list
+    await refreshCounts(); // F1 — from search OR duplicates view
+    searchRef.current?.focus();
+  }
+
+  // Feature 072 (FR-017): withdraw a held merge. Not the same as deciding the pair are different people
+  // — that is "not duplicates", with its own record. This just says "leave them alone for now", changes
+  // nothing, and is available to whoever could attempt the merge.
+  async function abandonHeld(id: string) {
+    const res = await apiFetch(`/api/dedup/held/${id}`, { method: "DELETE" });
+    if (!res.ok) return;
+    setMergeNotice(null);
+    await refreshView();
+    await refreshCounts();
   }
 
   // Feature 069 (M-R18). "Not duplicates" is a decision, not a dismissal: it is recorded with the two
@@ -544,11 +582,16 @@ export default function ContactsPage() {
                     <p className={styles.dupHousehold}>
                       {h.reason === "two_logins"
                         ? "Both contacts sign in. Someone who can assign roles must choose which sign-in survives before these can be merged."
-                        : "Both contacts pay for a membership account. One account must be chosen before these can be merged."}
+                        : h.reason === "two_accounts"
+                          ? "Both contacts pay for a membership account. One account must be chosen before these can be merged."
+                          : // Feature 072 (FR-010a): say what to DO. There is no resolution screen, and
+                            // the supported route is to remove the cause on the access screen — the hold
+                            // then closes itself and the merge succeeds on a second attempt.
+                            "Merging these would give one person the authority to assign roles, or two offices that must stay separate. Remove the conflicting role on the access screen, then merge again."}
                     </p>
                   </div>
                   <span className={styles.dupActions}>
-                    {(h.reason === "two_logins" ? caps.roleAssign : true) ? (
+                    {(h.reason === "two_accounts" ? true : caps.roleAssign) ? (
                       <button
                         type="button"
                         className={styles.dupButton}
@@ -559,6 +602,15 @@ export default function ContactsPage() {
                     ) : (
                       <em className={styles.dupHousehold}>Waiting on an officer</em>
                     )}
+                    {/* FR-017: always available to whoever could attempt the merge — otherwise the queue
+                        fills with items the person working it has no way to clear. */}
+                    <button
+                      type="button"
+                      className={styles.dupButton}
+                      onClick={() => void abandonHeld(h.id)}
+                    >
+                      Don&apos;t merge
+                    </button>
                   </span>
                 </li>
               ))}
@@ -568,6 +620,13 @@ export default function ContactsPage() {
             <p className={styles.hint}>More matches — refine your search to narrow the list.</p>
           )}
         </section>
+      )}
+
+      {/* Feature 072 (FR-018): why a merge did not complete, said at the moment it happens. */}
+      {mergeNotice && (
+        <p role="status" className={styles.warning}>
+          {mergeNotice}
+        </p>
       )}
 
       {/* Potential duplicates — query-scoped alongside search, or the global queue via the button. */}

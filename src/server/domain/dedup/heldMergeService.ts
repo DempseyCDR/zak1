@@ -1,13 +1,26 @@
 import { and, eq, isNull, sql } from "drizzle-orm";
 import type { Db } from "@/server/db/client";
-import { contactEmails, heldMerges, membershipAccounts } from "@/server/db/schema";
+import {
+  contactEmails,
+  heldMerges,
+  membershipAccounts,
+  roleGrants,
+  staffIdentities,
+} from "@/server/db/schema";
+import type { HeldMergeReason } from "@/server/db/schema";
 import { errors } from "@/server/lib/apiError";
 import { recordAudit } from "@/server/lib/audit";
-import { mergeContacts, type HeldMergeReasonAuthority, type MergeOutcome } from "./mergeService";
+import {
+  bothCanSignIn,
+  findRoleConflicts,
+  mergeContacts,
+  type HeldMergeReasonAuthority,
+  type MergeOutcome,
+} from "./mergeService";
 
 export type HeldMergeItem = {
   id: string;
-  reason: "two_logins" | "two_accounts";
+  reason: HeldMergeReason;
   canonicalId: string;
   canonicalDisplayName: string;
   mergedId: string;
@@ -33,9 +46,6 @@ async function closeStaleHolds(db: Db): Promise<void> {
          EXISTS (SELECT 1 FROM contacts c
                   WHERE c.id IN (h.canonical_id, h.merged_id)
                     AND (c.merged_into_id IS NOT NULL OR c.archived_at IS NOT NULL))
-         OR (h.reason = 'two_logins' AND (
-               SELECT COUNT(*) FROM contact_emails ce
-                WHERE ce.contact_id IN (h.canonical_id, h.merged_id) AND ce.is_login) < 2)
          OR (h.reason = 'two_accounts' AND (
                SELECT COUNT(*) FROM membership_accounts ma
                 WHERE ma.payer_contact_id IN (h.canonical_id, h.merged_id)) < 2)
@@ -45,9 +55,10 @@ async function closeStaleHolds(db: Db): Promise<void> {
 
 export async function listHeldMerges(db: Db): Promise<HeldMergeItem[]> {
   await closeStaleHolds(db);
+  await closeStaleByDetection(db);
   const rows = await db.execute<{
     id: string;
-    reason: "two_logins" | "two_accounts";
+    reason: HeldMergeReason;
     canonical_id: string;
     canonical_name: string;
     merged_id: string;
@@ -76,17 +87,79 @@ export async function listHeldMerges(db: Db): Promise<HeldMergeItem[]> {
 }
 
 /** Which authority a hold's reason demands — the route gates on this (FR-012/FR-013). */
-export function authorityFor(reason: "two_logins" | "two_accounts"): HeldMergeReasonAuthority {
-  return reason === "two_logins" ? "role.assign" : "dedup.write";
+export function authorityFor(reason: HeldMergeReason): HeldMergeReasonAuthority {
+  // Feature 072: a role conflict is a governance decision, like choosing a surviving sign-in. Only an
+  // account choice is ordinary duplicate work.
+  return reason === "two_accounts" ? "dedup.write" : "role.assign";
+}
+
+/**
+ * Feature 072 (FR-010a): close a hold whose obstacle is gone, by asking the SAME question the merge asks.
+ *
+ * This lives in TypeScript rather than the SQL sweep above deliberately. When the two were written
+ * separately they drifted: the sweep counted login addresses while the merge also checked sign-in
+ * identities, so clearing one address closed the hold and the next attempt raised it again — a loop with
+ * no exit. Calling the detection itself is what makes that impossible.
+ *
+ * A `role_conflict` closes when the union stops triggering — typically because an
+ * officer withdrew the conflicting grant on the access screen. That check is the same one the merge runs,
+ * so it lives in TypeScript rather than the SQL sweep above; duplicating it as SQL would let the two
+ * drift, and this is the route by which a hold is recoverable with no resolution screen.
+ */
+/** Does either contact actually hold a Google account binding? (See the FR-012a note above.) */
+async function pairHasIdentity(db: Db, canonicalId: string, mergedId: string): Promise<boolean> {
+  const rows = await db
+    .select({ id: staffIdentities.id })
+    .from(staffIdentities)
+    .where(sql`${staffIdentities.contactId} IN (${canonicalId}, ${mergedId})`);
+  return rows.length > 0;
+}
+
+async function closeStaleByDetection(db: Db): Promise<void> {
+  const open = await db.query.heldMerges.findMany({ where: isNull(heldMerges.resolvedAt) });
+  for (const h of open) {
+    const stillBlocked =
+      h.reason === "role_conflict"
+        ? (await findRoleConflicts(db, h.canonicalId, h.mergedId)).length > 0
+        : h.reason === "two_logins"
+          ? await bothCanSignIn(db, h.canonicalId, h.mergedId)
+          : true; // `two_accounts` is handled by the SQL sweep, whose count matches its detection.
+    if (!stillBlocked) {
+      await db.update(heldMerges).set({ resolvedAt: new Date() }).where(eq(heldMerges.id, h.id));
+    }
+  }
 }
 
 export async function getHeldMerge(db: Db, id: string) {
   await closeStaleHolds(db);
+  await closeStaleByDetection(db);
   const row = await db.query.heldMerges.findFirst({
     where: and(eq(heldMerges.id, id), isNull(heldMerges.resolvedAt)),
   });
   if (!row) throw errors.heldMergeNotFound();
   return row;
+}
+
+/**
+ * Feature 072 (FR-017): withdraw a held merge without merging and without changing anyone's access.
+ *
+ * A hold asks a question, and "leave them alone" is a legitimate answer. Before this, the only exits were
+ * to resolve it — which needs the reason's authority — or to remove its cause, which changes somebody's
+ * roles or accounts. Neither suits the ordinary case: the person working the queue tried a merge, it
+ * stopped, and they decided not to pursue it.
+ *
+ * This needs only `dedup.write`, the authority to merge, because abandoning is non-destructive by
+ * construction: a hold never wrote anything, so withdrawing it writes nothing back. It is deliberately
+ * NOT a judgement that the pair are different people — that is a rejection, with its own record.
+ */
+export async function abandonHeldMerge(db: Db, id: string, actor: string): Promise<void> {
+  const hold = await getHeldMerge(db, id);
+  await db.update(heldMerges).set({ resolvedAt: new Date() }).where(eq(heldMerges.id, hold.id));
+  await recordAudit(db, {
+    kind: "dedup.merge_abandoned",
+    actorContactId: actor,
+    details: { heldMergeId: hold.id, reason: hold.reason },
+  });
 }
 
 /**
@@ -98,17 +171,43 @@ export async function getHeldMerge(db: Db, id: string) {
 export async function resolveHeldMerge(
   db: Db,
   id: string,
-  choice: { survivingLoginEmailId?: string; survivingAccountId?: string },
+  choice: {
+    survivingIdentityId?: string;
+    survivingLoginEmailId?: string;
+    survivingAccountId?: string;
+    keepGrantIds?: string[];
+  },
   actor: string,
 ): Promise<MergeOutcome> {
   const hold = await getHeldMerge(db, id);
 
+  // The choice must answer the question actually asked. A grant list does not settle which account
+  // survives, and an account id does not settle who may assign roles.
   const answered =
-    hold.reason === "two_logins" ? !!choice.survivingLoginEmailId : !!choice.survivingAccountId;
+    hold.reason === "two_logins"
+      ? // FR-012a: the address is a label; the identity is what grants access. Naming the address while
+        // leaving the binding untouched settles nothing — which is exactly what feature 069 did.
+        //
+        // But require the binding only when one EXISTS. A login address may be designated before the
+        // person has ever signed in, in which case there is no binding to leave untouched and the label
+        // is the whole of the sign-in. Demanding an identity there would make the hold unresolvable.
+        !!choice.survivingLoginEmailId &&
+        (!(await pairHasIdentity(db, hold.canonicalId, hold.mergedId)) ||
+          !!choice.survivingIdentityId)
+      : hold.reason === "two_accounts"
+        ? !!choice.survivingAccountId
+        : !!choice.keepGrantIds;
   if (!answered) throw errors.heldMergeReasonMismatch(hold.reason);
 
   // The chosen thing must belong to one of the two contacts — otherwise the "choice" resolves nothing.
-  if (hold.reason === "two_logins") {
+  if (hold.reason === "role_conflict") {
+    // Every named grant must belong to the contact being merged — naming one of the survivor's own, or
+    // a stranger's, would not resolve anything.
+    for (const grantId of choice.keepGrantIds!) {
+      const g = await db.query.roleGrants.findFirst({ where: eq(roleGrants.id, grantId) });
+      if (!g || g.contactId !== hold.mergedId) throw errors.heldMergeReasonMismatch(hold.reason);
+    }
+  } else if (hold.reason === "two_logins") {
     const email = await db.query.contactEmails.findFirst({
       where: eq(contactEmails.id, choice.survivingLoginEmailId!),
     });

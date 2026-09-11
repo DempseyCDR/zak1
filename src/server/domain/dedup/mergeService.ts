@@ -1,14 +1,19 @@
-import { and, eq, exists, ne, sql } from "drizzle-orm";
+import { and, eq, inArray, ne, sql } from "drizzle-orm";
 import type { Db, DbOrTx } from "@/server/db/client";
 import {
   contactEmails,
   contacts,
   heldMerges,
   membershipAccounts,
-  membershipMembers,
   mergeAudit,
+  roleGrants,
+  staffIdentities,
   type HeldMergeReason,
 } from "@/server/db/schema";
+import { UNCONDITIONAL_MOVES } from "./contactReferences";
+import { CAPABILITIES } from "@/server/auth/capabilities";
+import { EXCLUSIVE_ROLES } from "@/server/domain/access/grantService";
+import type { Role } from "@/server/db/schema";
 import { errors } from "@/server/lib/apiError";
 import { writeAudit, recordAudit } from "@/server/lib/audit";
 import { recomputeContactStatus } from "@/server/domain/membership/membershipService";
@@ -17,6 +22,16 @@ import { recomputeContactStatus } from "@/server/domain/membership/membershipSer
 export type HeldMergeReasonAuthority = "role.assign" | "dedup.write";
 
 export type LoginCandidate = { emailId: string; email: string; contactDisplayName: string };
+export type GrantCandidate = {
+  grantId: string;
+  role: string;
+  scope: string | null;
+  /** Which side holds it — the exclusivity trigger can come from the survivor's side alone. */
+  heldBy: "survivor" | "merged";
+  /** Why this grant is contested: it confers role-assigning authority, or it breaks office exclusivity. */
+  conflict: "role_assign" | "exclusive";
+};
+
 export type AccountCandidate = {
   accountId: string;
   level: string;
@@ -48,9 +63,22 @@ export type MergeOutcome =
       reason: "two_accounts";
       heldMergeId: string;
       candidates: AccountCandidate[];
+    }
+  | {
+      outcome: "held";
+      reason: "role_conflict";
+      heldMergeId: string;
+      candidates: GrantCandidate[];
     };
 
 export type MergeResolution = {
+  /** Feature 072 (FR-009): which of the merged contact's grants move. Empty means none — valid. */
+  keepGrantIds?: string[];
+  /**
+   * Feature 072 (FR-012a): the Google account binding that survives. Required alongside
+   * `survivingLoginEmailId` — the address alone is a label and settles nothing about access.
+   */
+  survivingIdentityId?: string;
   /** Chosen by a `role.assign` holder: which sign-in identity survives (FR-012). */
   survivingLoginEmailId?: string;
   /** Chosen by a `dedup.write` holder: which membership account survives. */
@@ -68,6 +96,12 @@ const loginsOf = (db: DbOrTx, contactId: string) =>
     .innerJoin(contacts, eq(contacts.id, contactEmails.contactId))
     .where(and(eq(contactEmails.contactId, contactId), eq(contactEmails.isLogin, true)));
 
+const identitiesOf = (db: DbOrTx, contactId: string) =>
+  db
+    .select({ id: staffIdentities.id })
+    .from(staffIdentities)
+    .where(eq(staffIdentities.contactId, contactId));
+
 const accountsOf = (db: DbOrTx, contactId: string) =>
   db
     .select({
@@ -79,6 +113,99 @@ const accountsOf = (db: DbOrTx, contactId: string) =>
     .from(membershipAccounts)
     .innerJoin(contacts, eq(contacts.id, membershipAccounts.payerContactId))
     .where(eq(membershipAccounts.payerContactId, contactId));
+
+/**
+ * Feature 072: can BOTH contacts sign in?
+ *
+ * A sign-in is an account binding plus the address that labels it, and either can collide —
+ * `staff_identities` is unique per contact, the login address unique per contact. Exported because the
+ * auto-close must ask exactly this question too: when the two disagreed, clearing one login address
+ * closed the hold while the identities still collided, so the next attempt raised it again. A hold that
+ * closes without the obstacle being gone is worse than one that stays.
+ */
+export async function bothCanSignIn(
+  db: DbOrTx,
+  canonicalId: string,
+  mergedId: string,
+): Promise<boolean> {
+  const [aLogins, bLogins, aIds, bIds] = await Promise.all([
+    loginsOf(db, canonicalId),
+    loginsOf(db, mergedId),
+    identitiesOf(db, canonicalId),
+    identitiesOf(db, mergedId),
+  ]);
+  return (aLogins.length > 0 && bLogins.length > 0) || (aIds.length > 0 && bIds.length > 0);
+}
+
+/**
+ * Feature 072 (FR-006, FR-007): would this merge compound privilege?
+ *
+ * Two triggers, both computed from the UNION of the pair's grants because the second can arise wholly
+ * from the survivor's side (survivor President + merged Treasurer), where the record being merged
+ * carries no role-assigning authority at all.
+ *
+ * The escalation test is "would GAIN", not "the merged record holds": merging a President into an
+ * existing Super-user escalates nothing, since Super-user already supersets it, and holding there would
+ * be pointless friction.
+ */
+export async function findRoleConflicts(
+  db: DbOrTx,
+  canonicalId: string,
+  mergedId: string,
+  keepGrantIds?: string[],
+): Promise<GrantCandidate[]> {
+  const rows = await db
+    .select({
+      id: roleGrants.id,
+      contactId: roleGrants.contactId,
+      role: roleGrants.role,
+      seriesId: roleGrants.seriesId,
+      groupId: roleGrants.groupId,
+    })
+    .from(roleGrants)
+    .where(sql`${roleGrants.contactId} IN (${canonicalId}, ${mergedId})`);
+
+  const assigns = (role: string) => "role.assign" in (CAPABILITIES[role as Role] ?? {});
+  const survivorRoles = rows.filter((r) => r.contactId === canonicalId).map((r) => r.role);
+  // Only grants actually being moved can cause a conflict. When a resolution names a subset, the ones
+  // left behind are not moving and therefore compound nothing.
+  const movingRows = rows.filter(
+    (r) => r.contactId === mergedId && (!keepGrantIds || keepGrantIds.includes(r.id)),
+  );
+
+  const out: GrantCandidate[] = [];
+  const survivorAssigns = survivorRoles.some(assigns);
+  const exclusiveAfter = new Set(
+    [...survivorRoles, ...movingRows.map((r) => r.role)].filter((r) =>
+      EXCLUSIVE_ROLES.includes(r as Role),
+    ),
+  );
+
+  for (const r of movingRows) {
+    // Escalation: the survivor would gain role-assigning authority it does not already hold.
+    if (assigns(r.role) && !survivorAssigns) {
+      out.push({
+        grantId: r.id,
+        role: r.role,
+        scope: r.seriesId ?? r.groupId ?? null,
+        heldBy: "merged",
+        conflict: "role_assign",
+      });
+      continue;
+    }
+    // Exclusivity: the union would leave one person holding two of the three exclusive offices.
+    if (EXCLUSIVE_ROLES.includes(r.role as Role) && exclusiveAfter.size > 1) {
+      out.push({
+        grantId: r.id,
+        role: r.role,
+        scope: r.seriesId ?? r.groupId ?? null,
+        heldBy: "merged",
+        conflict: "exclusive",
+      });
+    }
+  }
+  return out;
+}
 
 /**
  * Record the hold, or return the one already standing for this pair. Kept OUTSIDE the merge transaction
@@ -138,7 +265,9 @@ export async function mergeContacts(
     loginsOf(db, canonicalId),
     loginsOf(db, mergedId),
   ]);
-  if (canonicalLogins.length > 0 && mergedLogins.length > 0 && !resolution.survivingLoginEmailId) {
+  // FR-011/FR-012 — the same check the auto-close uses, so the two can never drift apart.
+  const signInCollision = await bothCanSignIn(db, canonicalId, mergedId);
+  if (signInCollision && !resolution.survivingIdentityId && !resolution.survivingLoginEmailId) {
     return {
       outcome: "held",
       reason: "two_logins",
@@ -160,8 +289,46 @@ export async function mergeContacts(
     };
   }
 
+  // Feature 072 (FR-006, FR-007, FR-016): detected BEFORE the transaction opens, like the two above, so
+  // a hold writes nothing but its own row.
+  const roleConflicts = await findRoleConflicts(db, canonicalId, mergedId, resolution.keepGrantIds);
+  if (roleConflicts.length > 0) {
+    return {
+      outcome: "held",
+      reason: "role_conflict",
+      heldMergeId: await hold(db, canonicalId, mergedId, "role_conflict", actor),
+      candidates: roleConflicts,
+    };
+  }
+
   return db.transaction(async (tx) => {
-    // Apply the sign-in choice before relinking, so the partial unique index sees one login (FR-012).
+    // Feature 072 (FR-012, FR-012a): apply the sign-in choice as ONE thing. The identity that was not
+    // chosen is DELETED, not moved — `staff_identities` is unique per contact, and sign-in auto-enrols,
+    // so the person simply signs in with the surviving Google account. That is FR-006 (one account per
+    // person) working as designed, not a lockout.
+    if (resolution.survivingIdentityId) {
+      await tx
+        .delete(staffIdentities)
+        .where(
+          and(
+            sql`${staffIdentities.contactId} IN (${canonicalId}, ${mergedId})`,
+            ne(staffIdentities.id, resolution.survivingIdentityId),
+          ),
+        );
+      await tx
+        .update(staffIdentities)
+        .set({ contactId: canonicalId })
+        .where(eq(staffIdentities.id, resolution.survivingIdentityId));
+    } else {
+      // Uncontested: only one side can sign in, so it simply moves — preserving `last_sign_in_at`, and
+      // sparing the person a needless re-enrolment round trip (FR-011).
+      await tx
+        .update(staffIdentities)
+        .set({ contactId: canonicalId })
+        .where(eq(staffIdentities.contactId, mergedId));
+    }
+
+    // The label follows the binding.
     if (resolution.survivingLoginEmailId) {
       await tx
         .update(contactEmails)
@@ -194,43 +361,65 @@ export async function mergeContacts(
       }
     }
 
-    const relinkedEmails = await tx
-      .update(contactEmails)
+    // ---------------------------------------------------------------- collisions, then the move
+    //
+    // Feature 072 (FR-001, FR-008). Two references carry a unique constraint the survivor may already
+    // satisfy, so the losing row is dropped rather than the merge failing on a raw constraint error —
+    // the failure mode feature 069 exists to eliminate. Both are genuinely the same fact recorded twice:
+    // the duplicate was added to one household under two spellings, or attended one event under two
+    // names. ⚠️ DESTRUCTIVE and unrecorded: the dropped row leaves no trace (see feature 073).
+    await tx.execute(sql`
+      DELETE FROM membership_members m
+       WHERE m.contact_id = ${mergedId}
+         AND EXISTS (SELECT 1 FROM membership_members s
+                      WHERE s.account_id = m.account_id AND s.contact_id = ${canonicalId})
+    `);
+    await tx.execute(sql`
+      DELETE FROM attendance a
+       WHERE a.contact_id = ${mergedId}
+         AND EXISTS (SELECT 1 FROM attendance s
+                      WHERE s.event_id = a.event_id AND s.contact_id = ${canonicalId})
+    `);
+
+    // Feature 072 (FR-008): grants move only once the conflict check above has passed. A resolution may
+    // name a subset; anything not named stays on the retired contact, where nothing reads it. The
+    // duplicate is dropped rather than colliding — the same person plausibly holds the same role at the
+    // same scope on both records.
+    const movedGrants = await tx
+      .update(roleGrants)
       .set({ contactId: canonicalId })
-      .where(eq(contactEmails.contactId, mergedId))
-      .returning({ id: contactEmails.id });
-
-    // Feature 069 (FR-010). Feature 068 replaced `memberships` / `payers` with membership ACCOUNTS but
-    // left this service relinking the retired tables, so a merged account owner's household would have
-    // been stranded on a contact no read can reach. Ownership moves first, then attachments.
-    const movedAccounts = await tx
-      .update(membershipAccounts)
-      .set({ payerContactId: canonicalId })
-      .where(eq(membershipAccounts.payerContactId, mergedId))
-      .returning({ id: membershipAccounts.id });
-
-    // Both contacts may be attached to the SAME account (the duplicate was added to the household
-    // twice under two spellings). The PK is (account_id, contact_id), so drop the losing row rather
-    // than collide; the survivor is already attached, and the household is unchanged either way.
-    // ⚠️ DESTRUCTIVE and unrecorded: this row is gone, and nothing says it existed.
-    await tx.delete(membershipMembers).where(
-      and(
-        eq(membershipMembers.contactId, mergedId),
-        exists(
-          tx
-            .select({ one: sql`1` })
-            .from(sql`${membershipMembers} AS survivor`)
-            .where(
-              sql`survivor.account_id = ${membershipMembers}.account_id AND survivor.contact_id = ${canonicalId}`,
-            ),
+      .where(
+        and(
+          eq(roleGrants.contactId, mergedId),
+          // `inArray` with an empty list compiles to `false`, which is exactly right: naming no grants
+          // means none move.
+          ...(resolution.keepGrantIds ? [inArray(roleGrants.id, resolution.keepGrantIds)] : []),
+          sql`NOT EXISTS (
+            SELECT 1 FROM role_grants s
+             WHERE s.contact_id = ${canonicalId} AND s.role = ${roleGrants.role}
+               AND s.series_id IS NOT DISTINCT FROM ${roleGrants.seriesId}
+               AND s.group_id IS NOT DISTINCT FROM ${roleGrants.groupId})`,
         ),
-      ),
-    );
-    const movedMembers = await tx
-      .update(membershipMembers)
-      .set({ contactId: canonicalId })
-      .where(eq(membershipMembers.contactId, mergedId))
-      .returning({ accountId: membershipMembers.accountId });
+      )
+      .returning({ id: roleGrants.id });
+
+    // The relink itself is driven by the CLASSIFICATION, not by tables named here (FR-002). That is the
+    // whole point: feature 068 retired the membership tables and this service went on relinking the old
+    // pair for two releases, because the only statement of what to move was the code doing the moving.
+    // A newly classified reference is now carried without touching this file.
+    //
+    // Identifiers come from `contactReferences.ts` — our own constant, never user input — so building
+    // the statement with `sql.identifier` is safe.
+    const moved: Record<string, number> = { role_grants: movedGrants.length };
+    for (const ref of UNCONDITIONAL_MOVES) {
+      const rows = await tx.execute(sql`
+        UPDATE ${sql.identifier(ref.table)}
+           SET ${sql.identifier(ref.column)} = ${canonicalId}
+         WHERE ${sql.identifier(ref.column)} = ${mergedId}
+        RETURNING 1
+      `);
+      moved[ref.table] = [...rows].length;
+    }
 
     // Soft-retire the merged contact: the row itself survives intact — names, phone, pronouns, source
     // and timestamps are all untouched — so clearing `merged_into_id` brings the contact back.
@@ -246,12 +435,6 @@ export async function mergeContacts(
 
     // Canonical may have gained membership coverage → recompute its cached status.
     await recomputeContactStatus(tx, canonicalId, "membership_change", actor);
-
-    const moved = {
-      contact_emails: relinkedEmails.length,
-      membership_accounts: movedAccounts.length,
-      membership_members: movedMembers.length,
-    };
 
     await tx.insert(mergeAudit).values({ canonicalId, mergedId, actor, relinkedCounts: moved });
     writeAudit({ kind: "contact.merge", actor, details: { canonicalId, mergedId, moved } });

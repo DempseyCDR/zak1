@@ -36,9 +36,9 @@ the one check that existed had already stopped catching them.
 Feature 071 rejects both at session read, the same way withdrawn volunteer access is rejected. The stale
 `is_volunteer` flags on already-merged contacts are a separate data cleanup.
 
-### 1b. The relinking itself — **still open**
+### 1b. The relinking itself — **CLOSED by feature 072**
 
-Deferred because the collisions are real and need specifying, not because the work is large:
+Shipped in feature 072. The collisions were real and were specified rather than guessed:
 
 - **`staff_identities` is UNIQUE on `contact_id`.** Merging two staff contacts cannot simply move the
   identity — this is a third structural collision, the same shape as the two feature 069 already holds

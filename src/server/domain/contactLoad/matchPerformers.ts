@@ -1,4 +1,4 @@
-import { isNull } from "drizzle-orm";
+import { and, isNull } from "drizzle-orm";
 import type { DbOrTx } from "@/server/db/client";
 import { contacts, performers } from "@/server/db/schema";
 import { normalizeName } from "@/server/domain/contacts/normalize";
@@ -10,9 +10,13 @@ import type { PerformerResolution } from "./loadPlan";
 // match `normalizeName(performer.displayName)` to `contacts.dedup_normalized`. Exactly one match →
 // auto-link; zero or several → surfaced for a human (never auto-applied on a common name).
 export async function matchPerformers(db: DbOrTx): Promise<PerformerResolution> {
+  // Feature 072 (FR-014): never offer a RETIRED contact as a link target. Worse than offering one, a
+  // merged contact keeps the same `dedup_normalized` as its survivor — so leaving it in makes the name
+  // look AMBIGUOUS and suppresses the correct live match, which is the opposite of helping.
   const contactRows = await db
     .select({ id: contacts.id, dedup: contacts.dedupNormalized })
-    .from(contacts);
+    .from(contacts)
+    .where(and(isNull(contacts.mergedIntoId), isNull(contacts.archivedAt)));
   const byDedup = new Map<string, string[]>();
   for (const c of contactRows) {
     const list = byDedup.get(c.dedup) ?? [];

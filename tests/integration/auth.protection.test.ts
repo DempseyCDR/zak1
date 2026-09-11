@@ -4,6 +4,7 @@ import { ensureSchema, resetDb, closeDb } from "./helpers/db";
 import { ctx } from "./helpers/http";
 import { db } from "@/server/db/client";
 import { contacts, staffIdentities } from "@/server/db/schema";
+import { resolveSignIn } from "@/server/auth/signIn";
 import { contactRow, makeVolunteerContact } from "./helpers/factories";
 import { createSession, SESSION_COOKIE } from "@/server/auth/session";
 import { GET as LIST_EVENTS } from "@/app/api/events/route";
@@ -111,6 +112,50 @@ describe("API protection (FR-004)", () => {
     const anonymous = await LIST_EVENTS(req("/api/events"), ctx());
     expect(retired.status).toBe(anonymous.status);
     expect(await retired.json()).toEqual(await anonymous.json());
+  });
+
+  /**
+   * Feature 072 (FR-013). Feature 071 refuses a retired contact at session READ, which is what made this
+   * visible: sign-in appeared to succeed and then every request 401'd. The refusal belongs at sign-in,
+   * and BOTH routes need it — a Google account already bound to a contact since merged, and a first-time
+   * address match on a retired one. Neither checked; the known-account branch tested only `is_volunteer`.
+   */
+  it("refuses a Google account bound to a contact that has since been merged away", async () => {
+    const { contactId } = await signedInToken("merged-signer@cdrochester.org");
+    const [survivor] = await db.insert(contacts).values(contactRow("Survivor")).returning();
+    await db.update(contacts).set({ mergedIntoId: survivor!.id }).where(eq(contacts.id, contactId));
+
+    const identity = await db.query.staffIdentities.findFirst({
+      where: eq(staffIdentities.contactId, contactId),
+    });
+    const result = await resolveSignIn(db, {
+      sub: identity!.googleSub,
+      email: "merged-signer@cdrochester.org",
+      email_verified: true,
+    });
+    expect(result.ok).toBe(false);
+  });
+
+  it("refuses a FIRST-TIME sign-in matching an archived contact", async () => {
+    const c = await makeVolunteerContact({
+      firstName: "Archie",
+      lastName: "Ved",
+      email: "archie@cdrochester.org",
+    });
+    await db.update(contacts).set({ archivedAt: new Date() }).where(eq(contacts.id, c.contactId));
+
+    const result = await resolveSignIn(db, {
+      sub: "brand-new-google-sub",
+      email: "archie@cdrochester.org",
+      email_verified: true,
+    });
+    // Refused at sign-in — not enrolled, and not handed a session every page then rejects.
+    expect(result.ok).toBe(false);
+    const identities = await db
+      .select()
+      .from(staffIdentities)
+      .where(eq(staffIdentities.contactId, c.contactId));
+    expect(identities).toHaveLength(0);
   });
 
   it("does not reveal WHY access was refused", async () => {

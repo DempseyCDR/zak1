@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import type { Db } from "@/server/db/client";
 import { contactEmails, contacts, staffIdentities } from "@/server/db/schema";
 import type { RefusalReason, VerifiedClaims } from "@/server/validation/auth";
@@ -40,6 +40,12 @@ export async function resolveSignIn(db: Db, claims: VerifiedClaims): Promise<Sig
       if (!contact?.isVolunteer) {
         return refuse("not_volunteer", { googleSub: claims.sub, contactId: known.contactId });
       }
+      // Feature 072 (FR-013): the contact is no longer an active record — merged away or archived.
+      // Feature 071 already refuses such a session at READ, so without this the person signs in
+      // successfully and then every page fails: the app looks broken rather than closed.
+      if (contact.mergedIntoId !== null || contact.archivedAt !== null) {
+        return refuse("not_volunteer", { googleSub: claims.sub, contactId: known.contactId });
+      }
 
       // The address changed since enrolment. Keep the sub binding — never silently re-point to
       // whatever contact the new address matches — but make it visible.
@@ -72,7 +78,17 @@ export async function resolveSignIn(db: Db, claims: VerifiedClaims): Promise<Sig
       .select({ contact: contacts, emailId: contactEmails.id })
       .from(contactEmails)
       .innerJoin(contacts, eq(contacts.id, contactEmails.contactId))
-      .where(and(eq(contactEmails.email, claims.email), eq(contactEmails.status, "active")));
+      .where(
+        and(
+          eq(contactEmails.email, claims.email),
+          eq(contactEmails.status, "active"),
+          // Feature 072 (FR-013): never enrol against a retired contact. A merged one keeps no active
+          // address, but an ARCHIVED one does — so without this an archived volunteer could enrol and be
+          // handed a session that feature 071 then rejects on every request.
+          isNull(contacts.mergedIntoId),
+          isNull(contacts.archivedAt),
+        ),
+      );
 
     if (matches.length === 0) return refuse("no_match", { email: claims.email });
 
