@@ -100,7 +100,7 @@ effect fires on the confirmed pick.
 ## Phase 6: Polish + cross-cutting
 
 - [X] T014 Full gate (solo-maintainer mode): `pnpm exec tsc --noEmit`; `pnpm exec eslint <changed>`; `pnpm exec prettier --check <changed>`; `pnpm test` (incl. the generated `auth.routeInventory.test.ts`, which picks up the treasurer route change); `pnpm build`. All green.
-- [X] T015 [P] Update `zak1_Phase5_Requirements.md`: mark **P5-R1 SHIPPED as feature 028** (shared filterable event selector on check-in/gate/payments/treasurer; in-page state, no deep links; treasurer now `/treasurer`); note B39 (reusable picker) is realized.
+- [X] T015 [P] Update `runcdr_Phase5_Requirements.md`: mark **P5-R1 SHIPPED as feature 028** (shared filterable event selector on check-in/gate/payments/treasurer; in-page state, no deep links; treasurer now `/treasurer`); note B39 (reusable picker) is realized.
 
 ---
 

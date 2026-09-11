@@ -6,7 +6,7 @@ Bash runs Node 24 (no prefix). Prereqs: `pnpm install`; local Postgres up (`zak1
 
 ```bash
 # snapshot first (project practice for data migrations)
-set -a; . ./.env; set +a; pg_dump -Fc "$DATABASE_URL" -f ~/zak1_pre_0030.dump
+set -a; . ./.env; set +a; pg_dump -Fc "$DATABASE_URL" -f ~/runcdr_pre_0030.dump
 pnpm run db:migrate    # applies 0030_normalize_contact_phones.sql (values-only backfill; unparseable unchanged)
 ```
 

@@ -29,7 +29,7 @@ This feature **removes** interfaces. The contract is what ceases to exist and wh
 ## Migration contract
 
 - `0031_drop_non_dance_income.sql`: `DROP TABLE IF EXISTS non_dance_income` — idempotent (safe to re-run),
-  drops the `non_dance_income_event` index with the table. Snapshot `~/zak1_pre_0031.dump` first.
+  drops the `non_dance_income_event` index with the table. Snapshot `~/runcdr_pre_0031.dump` first.
 
 ## Test contract (codifies the removal)
 

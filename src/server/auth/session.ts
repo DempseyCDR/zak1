@@ -15,7 +15,7 @@ import { writeAudit } from "@/server/lib/audit";
  * usable sessions. This module deals in tokens, never cookies: HTTP concerns live in the routes.
  */
 
-export const SESSION_COOKIE = "zak1_staff_session";
+export const SESSION_COOKIE = "runcdr_staff_session";
 
 /** The signed-in staff member. Identity ONLY — roles/scopes are P3-2's job (FR-005). */
 export type CurrentStaff = {

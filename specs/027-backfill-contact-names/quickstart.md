@@ -33,7 +33,7 @@ stable; re-run is a no-op.
 
    ```bash
    set -a; . ./.env; set +a
-   pg_dump -Fc "$DATABASE_URL" -f ~/zak1_pre_0028.dump
+   pg_dump -Fc "$DATABASE_URL" -f ~/runcdr_pre_0028.dump
    ```
 
 2. Apply: `pnpm run db:migrate` (runs `0028` once; already-applied migrations are skipped).

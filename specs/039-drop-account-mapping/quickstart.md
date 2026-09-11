@@ -6,7 +6,7 @@ Proof the GL-account annotation is gone and class/customer + series editor stay.
 ## Prerequisites
 
 - Node 24 + pnpm; local Postgres. **Snapshot first**: `set -a; . ./.env; set +a` then
-  `pg_dump -Fc "$DATABASE_URL" -f ~/zak1_pre_0032.dump`.
+  `pg_dump -Fc "$DATABASE_URL" -f ~/runcdr_pre_0032.dump`.
 
 ## Migration
 

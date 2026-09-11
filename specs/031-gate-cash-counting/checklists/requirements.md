@@ -31,7 +31,7 @@
 
 ## Notes
 
-- The upstream requirements (`zak1_Phase5_Requirements.md`, P5-R4) pre-resolved the major decisions (Q8 no
+- The upstream requirements (`runcdr_Phase5_Requirements.md`, P5-R4) pre-resolved the major decisions (Q8 no
   denomination persistence; Q9 checks fold into gross cash; Q10 one free-text comment for the anonymous-sales
   section, no per-item line items), so this spec carries **no** `[NEEDS CLARIFICATION]` markers — remaining
   choices had reasonable defaults recorded in Assumptions.

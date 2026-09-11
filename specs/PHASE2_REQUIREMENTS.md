@@ -1,7 +1,7 @@
-# zak1 — Phase 2 Requirements (cleanup)
+# runcdr — Phase 2 Requirements (cleanup)
 
 _Input for `/speckit-specify`. Phase 1 delivered features 001–009 (see
-[zak1 implementation status] memory + `specs/DATA_MODEL.md`). Phase 2 addresses gaps and cleanups
+[runcdr implementation status] memory + `specs/DATA_MODEL.md`). Phase 2 addresses gaps and cleanups
 noticed after Phase 1. Each item below is written to be handed to `/speckit-specify` as a feature
 description; run `/speckit-clarify` afterward to resolve the flagged open questions._
 

@@ -1,7 +1,7 @@
-# zak1 — Phase 3 Requirements (roles, UI, and the check-in/finance backlog)
+# runcdr — Phase 3 Requirements (roles, UI, and the check-in/finance backlog)
 
 _Input for `/speckit-specify`. Phase 1 delivered features 001–009; Phase 2 delivered 010–014
-(see [zak1 implementation status] memory). Phase 3 fleshes out **user roles + UI** and works through the
+(see [runcdr implementation status] memory). Phase 3 fleshes out **user roles + UI** and works through the
 backlog **B22–B37** surfaced during the 2026-07-12/13 role/use-case review. The authoritative role model
 is [`../docs/use-cases.md`](../docs/use-cases.md); per-item detail lives in [`BACKLOG.md`](BACKLOG.md).
 Each package below is written to be handed to `/speckit-specify` as one (or a small number of) feature

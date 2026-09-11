@@ -66,7 +66,7 @@ in agreement, and proves idempotency (re-running the UPDATE changes nothing).
 
 **Alternatives considered**: A `tsx` backfill script calling `normalizePhone` directly (one implementation) —
 attractive, but the project's one-time data changes are SQL migrations (021/027); staying consistent, with a
-parity test guarding divergence, is preferred. Snapshot `~/zak1_pre_0030.dump` before running (project
+parity test guarding divergence, is preferred. Snapshot `~/runcdr_pre_0030.dump` before running (project
 practice for data migrations).
 
 ## R5 — No schema change; matching unchanged

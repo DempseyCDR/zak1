@@ -37,7 +37,7 @@ files**, which are genuinely independent. This ordering also honours the spec's 
 - [x] T001 Confirm baseline green on `main`: `pnpm test`, `pnpm exec tsc --noEmit`, `pnpm run lint` all pass
   (run with Node 24: `export NVM_DIR="$HOME/.nvm"; . "$NVM_DIR/nvm.sh"; nvm use 24`).
 - [x] T002 (Optional) Snapshot `zak1_dev` before the migration: source env, then
-  `pg_dump -Fc "$DATABASE_URL" -f ~/zak1_pre_0022.dump`.
+  `pg_dump -Fc "$DATABASE_URL" -f ~/runcdr_pre_0022.dump`.
 
 ---
 
@@ -264,7 +264,7 @@ rejected on a non-`community_dance` event.
   --check .`.
 - [x] T040 Run the [quickstart.md](quickstart.md) walkthrough via `preview_start {name:"dev"}` — verify the
   Door Attendant flow end-to-end and the `/gate` exclusion, capture a screenshot as proof.
-- [x] T041 Author the next project-context snapshot (e.g. `zak1_Project_Context_v1.7.md`) recording P3-3
+- [x] T041 Author the next project-context snapshot (e.g. `runcdr_Project_Context_v1.7.md`) recording P3-3
   shipped, and update the auto-memory status file; commit the feature as one atomic commit on `main` with the
   `Co-Authored-By` trailer (ask before pushing).
 

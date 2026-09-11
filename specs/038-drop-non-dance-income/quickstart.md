@@ -5,7 +5,7 @@ and [data-model.md](data-model.md).
 
 ## Prerequisites
 
-- Node 24 + pnpm; local Postgres. **Snapshot first**: `pg_dump -Fc "$DATABASE_URL" -f ~/zak1_pre_0031.dump`
+- Node 24 + pnpm; local Postgres. **Snapshot first**: `pg_dump -Fc "$DATABASE_URL" -f ~/runcdr_pre_0031.dump`
   (source env: `set -a; . ./.env; set +a`).
 
 ## Migration

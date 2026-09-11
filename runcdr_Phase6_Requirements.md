@@ -1,4 +1,4 @@
-# zak1 — Phase 6 Requirements (collecting)
+# runcdr — Phase 6 Requirements (collecting)
 
 **Status:** Requirements collection — open, running doc (pre-spec). **Started:** 2026-08-04.
 
@@ -178,9 +178,9 @@ admissions or a `gate_sales` category. Constitution §II (YAGNI). This is a genu
   `tests/component/treasurer.page.test.tsx` (NDI assertions) · `tests/integration/helpers/db.ts` (remove
   `non_dance_income` from the `resetDb` TRUNCATE list **and** the seeded `('non_dance_income','4910',…)`
   `account_mapping` row) · `seed.ts` (the `non_dance_income` QBO mapping seed row) ·
-  `docs/zak1_Help_Glossary.md` (two entries).
+  `docs/runcdr_Help_Glossary.md` (two entries).
 - **New:** a **destructive** migration `00NN_drop_non_dance_income.sql` (`DROP TABLE non_dance_income` + its
-  index) — take a pre-migration snapshot (`~/zak1_pre_00NN.dump`) first, per the data-migration convention.
+  index) — take a pre-migration snapshot (`~/runcdr_pre_00NN.dump`) first, per the data-migration convention.
 
 **Decided:** the `account_mapping` **table stays** (many other line keys use it); only the seeded
 `non_dance_income` **row** is removed. Any such row already in `zak1_dev`/prod becomes a harmless orphan —
@@ -223,7 +223,7 @@ keeps **customer + class + amounts** (sales-receipt-shaped) and simply drops the
   `{ series }` only) · `seed.ts` + `tests/integration/helpers/db.ts` (remove the account_mapping seed block +
   the `account_mapping` TRUNCATE entry) · `tests/integration/treasurer.mapping-audit.test.ts` (drop the account
   case, keep series_qbo) · `treasurer.report.test.ts` et al. (drop `.account` assertions) ·
-  `docs/zak1_Help_Glossary.md`.
+  `docs/runcdr_Help_Glossary.md`.
 - **New:** a **destructive** migration `00NN_drop_account_mapping.sql` (`DROP TABLE account_mapping`) — snapshot
   first. `mapping_audit` **stays** (series_qbo still writes to it; `qbo_mapping.updated` audit kind stays).
 

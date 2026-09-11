@@ -1,9 +1,9 @@
-# zak1 — Phase 7 Requirements (collecting)
+# runcdr — Phase 7 Requirements (collecting)
 
 **Status:** Requirements collection — open, running doc (pre-spec). **Started:** 2026-08-12. **Drafted by:** Zak
 (with Claude), from the cdrochester.org site audit — **review with Rich before any feature enters the pipeline.**
 
-Phase 6 is complete (features 034–043). Phase 7 is the **public website rewrite**: zak1's public surface
+Phase 6 is complete (features 034–043). Phase 7 is the **public website rewrite**: runcdr's public surface
 replaces the WordPress site at cdrochester.org, **mobile-first**. Requirements are keyed `P7-Rn`; each will go
 through the SpecKit pipeline later. **We are only collecting features now — specs come later.**
 
@@ -58,7 +58,7 @@ needs a visual foundation; doing it first prevents per-page ad-hoc styling.
 for event types (contra `#82c2d6`, english `#ffb472`, special `#f28780`, assembly `#b3ce84`, meeting
 `#9b84ce`). Keep the palette; fix the known contrast failure (peach-on-blue footer links).
 
-**Decided here:** series color coding carries over and maps onto zak1's `series` table (→ R4). Accessibility
+**Decided here:** series color coding carries over and maps onto runcdr's `series` table (→ R4). Accessibility
 floor: WCAG AA contrast, honest heading order (the current site uses H1 twice per page).
 
 **Open questions (§4 first):** Tailwind vs. hand-rolled tokens (D-1); whether series color becomes a `series`
@@ -104,7 +104,7 @@ time, series (color-coded per R1), venue short name, price; whole card links to 
 answers above the fold on a phone.
 
 **Why:** Use case #1. The current WP site's equivalent (next-6 strip + calendar) is the most-used feature per
-the audit; zak1's listing already has the right data, wrong presentation.
+the audit; runcdr's listing already has the right data, wrong presentation.
 
 **Grounding (code):** shared `ScheduleList` / `SeriesFilter` server components (037) render both listings from
 `listPublicEvents`; series filter is `?series=` server-rendered — all of that stays; this is presentation +
@@ -122,7 +122,7 @@ slot.
 **Why:** Use cases #1/#3/#5 converge here; it's also the shareable artifact ("come to this dance" links).
 
 **Grounding (code):** `getPublicEventDetail` exists (public-safe projection, confirmed-only bookings);
-`venues` has `name`, `address`, `short_name`, lat/long (007-era). No image support exists anywhere in zak1 —
+`venues` has `name`, `address`, `short_name`, lat/long (007-era). No image support exists anywhere in runcdr —
 event imagery is new (schema + storage decision, see §4 D-4).
 
 **Open questions:** per-event images in v1 or a per-series default photo (cheaper, likely sufficient);
@@ -212,7 +212,7 @@ cards, event detail, series landings, home, printable calendar — from one sour
 printable calendar footer, **and they disagree** (contra "$12" vs sliding scale $15/$12/$5; ECD $12 vs $10;
 lesson "6:10" vs "come 30 min early"). Single-sourcing is the core argument for the rewrite.
 
-**Grounding (code):** ⚠️ **admission pricing is not modeled in zak1.** `series_parameters` holds *staff pay
+**Grounding (code):** ⚠️ **admission pricing is not modeled in runcdr.** `series_parameters` holds *staff pay
 rates* and expenses (category `rate`/`expense`), not admission prices; 018 left advertised price display-only.
 Real pricing is structured: sliding scale with labels (supporter $15 / dancer $12 / student $5), family caps,
 per-special-event pricing, "musicians free". Likely an additive `series_parameters` category (`admission`,
@@ -253,7 +253,7 @@ runs **Sep 1–Aug 31**), role-based contact directory, board page, donate affor
 - **Contact directory:** role aliases (president@, ContraBooking@, etc. — full list in audit findings §data-6)
   are club-side email config, rendered as a static/content page (R7); no schema. Don't repeat the WP site's
   JS-only email obfuscation — server-render them (they're role aliases, not personal PII).
-- **Board page:** names/roles — content page (R7); zak1 role grants are *not* the source (they're access
+- **Board page:** names/roles — content page (R7); runcdr role grants are *not* the source (they're access
   control, not the public officer list).
 
 ### P7-R13 — Announcements ("is the dance on?")
@@ -262,7 +262,7 @@ runs **Sep 1–Aug 31**), role-based contact directory, board page, donate affor
 home + whats-on) while active. Covers cancellations, weather, big news.
 
 **Why:** Use case #8. The current site derives a header banner from the latest blog post — manual and
-easy to leave stale. Note the WP taxonomy uses **"Cancelled" as an event type** — status-as-type; zak1
+easy to leave stale. Note the WP taxonomy uses **"Cancelled" as an event type** — status-as-type; runcdr
 should carry cancellation on the event (flag/status) so listings can show it properly, with the banner for
 site-wide notice.
 
@@ -307,15 +307,15 @@ lose. Renders from the same `listPublicEvents` data (single-source, R10 prices i
   replacement (Site Kit/GT-MQRTLVJ), and the iContact signup embed (keep the service, render the form
   server-side-friendly).
 - **D-6 · Event-type taxonomy mapping** — WP's 10 types (incl. Techno, Porch Dance, Ball Prep,
-  Cancelled-as-type) vs. zak1's 4 series. Map: recurring styles → series; one-offs → event groups/labels
+  Cancelled-as-type) vs. runcdr's 4 series. Map: recurring styles → series; one-offs → event groups/labels
   (010/013); **Cancelled → event status, not type** (R13). Needs a one-time content decision per historical
   type during migration (§5).
 
 ## 5. Content & data migration (one-time, scoped later)
 
-The WP site's live data (audit findings §"Live data") vs. zak1's schema:
+The WP site's live data (audit findings §"Live data") vs. runcdr's schema:
 
-| WP data | zak1 home | Gap |
+| WP data | runcdr home | Gap |
 |---|---|---|
 | Events (+types, prices, venue, performers) | `events`/`series`/`event_groups` | historical import optional; type mapping D-6 |
 | Venues | `venues` | `is_public` + `directions` (R8); import the 4 public ones |

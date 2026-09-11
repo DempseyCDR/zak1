@@ -95,7 +95,7 @@ the reloaded anon amounts.
 ## Phase 5: Polish + cross-cutting
 
 - [X] T013 Full gate (solo-maintainer mode): `pnpm run db:migrate` (apply 0029); `pnpm exec tsc --noEmit`; `pnpm exec eslint <changed>`; `pnpm exec prettier --check <changed>`; `pnpm test` (full suite green — `resetDb`/`ensureSchema` applies the new column; FR-007: deposit/card/seed-float/comp math and the FS-only boundary unregressed); `pnpm build`. All green.
-- [X] T014 [P] Update `zak1_Phase5_Requirements.md`: mark **P5-R4 SHIPPED as feature 031** (denomination helper + direct total + anon `gate_sales.note` comment; checks fold into gross cash; migration `0029`, the first Phase 5 migration → latest migration is now `0029`).
+- [X] T014 [P] Update `runcdr_Phase5_Requirements.md`: mark **P5-R4 SHIPPED as feature 031** (denomination helper + direct total + anon `gate_sales.note` comment; checks fold into gross cash; migration `0029`, the first Phase 5 migration → latest migration is now `0029`).
 
 ---
 

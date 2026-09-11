@@ -146,7 +146,7 @@ independently.
 
 **Purpose**: Gates, docs, and end-to-end validation.
 
-- [x] T011 [P] Update `docs/zak1_Help_Glossary.md` with a short "Public navigation menu" entry pointing at
+- [x] T011 [P] Update `docs/runcdr_Help_Glossary.md` with a short "Public navigation menu" entry pointing at
   `src/app/PublicNav.tsx` + `src/app/publicNavItems.ts` (mirrors the glossary's term→file convention).
 - [x] T012 Run the full local gate: `pnpm exec tsc --noEmit && pnpm run lint && pnpm exec vitest run` — all
   green (scope prettier/lint to changed files if run separately).
@@ -191,7 +191,7 @@ independently.
 
 ```bash
 # This feature has minimal parallelism. The one independent-file task:
-Task: "T011 Update docs/zak1_Help_Glossary.md with a Public navigation menu entry"
+Task: "T011 Update docs/runcdr_Help_Glossary.md with a Public navigation menu entry"
 # can proceed alongside preparing the T012 gate run; everything else touches
 # PublicNav.tsx, publicNavItems.ts, the layouts, or the single test file and must serialize.
 ```

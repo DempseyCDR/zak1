@@ -31,7 +31,7 @@
 
 ## Notes
 
-- The upstream requirements (`zak1_Phase5_Requirements.md`, P5-R6) pre-resolved the major decisions
+- The upstream requirements (`runcdr_Phase5_Requirements.md`, P5-R6) pre-resolved the major decisions
   (Q12/Q13: canonical E.164, assume `+1`, dashed display, normalize-on-write + one-time backfill). The items
   the requirement left to "firm at spec" — extensions, non-US, and unparseable input — are resolved here with
   reasonable defaults (keep raw when unparseable; extensions kept raw; non-US kept with its country code), so

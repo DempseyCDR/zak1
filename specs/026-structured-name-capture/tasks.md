@@ -70,7 +70,7 @@ both post structured names; linking an existing contact posts only `contactId`.
 ## Phase 4: Polish + cross-cutting
 
 - [X] T010 Full gate (solo-maintainer mode): `pnpm exec tsc --noEmit`; `pnpm exec eslint <changed>`; `pnpm exec prettier --check <changed>`; `pnpm test` (the `makePerformer` factory now feeds structured names, so the whole suite exercises the corrected path); `pnpm build`. All green.
-- [X] T011 [P] Update `zak1_Phase5_Requirements.md`: mark **R5-P1 (structured name capture) SHIPPED as feature 026**; note R5-P2 (backfill of existing mis-split contacts) still pending.
+- [X] T011 [P] Update `runcdr_Phase5_Requirements.md`: mark **R5-P1 (structured name capture) SHIPPED as feature 026**; note R5-P2 (backfill of existing mis-split contacts) still pending.
 
 ---
 

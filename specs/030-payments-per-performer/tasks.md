@@ -145,7 +145,7 @@ accepts a check.
 ## Phase 9: Polish + cross-cutting
 
 - [X] T022 Full gate (solo-maintainer mode): `pnpm exec tsc --noEmit`; `pnpm exec eslint <changed>`; `pnpm exec prettier --check <changed>`; `pnpm test` (full suite green — incl. the generated `auth.routeInventory.test.ts`, which picks up the two new routes; reconciliation unchanged); `pnpm build`. All green.
-- [X] T023 [P] Update `zak1_Phase5_Requirements.md`: mark **P5-R3 SHIPPED as feature 030** (payments page per-performer workflow; two narrow payment-write settlement ops; no migration).
+- [X] T023 [P] Update `runcdr_Phase5_Requirements.md`: mark **P5-R3 SHIPPED as feature 030** (payments page per-performer workflow; two narrow payment-write settlement ops; no migration).
 
 ---
 

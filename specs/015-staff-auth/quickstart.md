@@ -26,7 +26,7 @@ is the run/verify guide.
   `External` is a **superset** that admits both. `Testing` admits only an explicitly maintained test-user
   list (max 100) — a trap that strands a volunteer on the night of an event. Scopes are `openid` + `email`
   (non-sensitive), so no sensitive-scope verification review is expected. The app name shown on the consent
-  screen is the club-facing one (**cdrochester**); `zak1` is only the internal build codename and never
+  screen is the club-facing one (**cdrochester**); `runcdr` is only the internal build codename and never
   appears to users.
   - *Optional*: a Workspace admin can mark the app **trusted** in the admin console so `cdrochester.org`
     users skip the consent prompt, while personal accounts still work.

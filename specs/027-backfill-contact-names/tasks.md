@@ -64,8 +64,8 @@ again → zero further change.
 ## Phase 4: Polish + cross-cutting
 
 - [X] T005 Full gate (solo-maintainer mode): `pnpm exec tsc --noEmit`; `pnpm exec eslint <changed>`; `pnpm exec prettier --check <changed>`; `pnpm test`; `pnpm build`. All green. (The 0028 migration is applied to `zak1_test` at `ensureSchema` on empty data — a no-op there; the test exercises it against seeded rows.)
-- [X] T006 [P] Update `zak1_Phase5_Requirements.md`: mark **R5-P2 SHIPPED as feature 027** (backfill migration `0028`); the R5 cluster's remaining piece done. Note latest migration is now `0028`.
-- [X] T007 **Operational (manual, post-commit — not part of the gate):** apply to `zak1_dev` — `pg_dump -Fc "$DATABASE_URL" -f ~/zak1_pre_0028.dump` (snapshot), then `pnpm run db:migrate`, then verify `select count(*) from contacts where last_name is null and btrim(first_name) like '% %';` returns `0` (SC-001); spot-check compound surnames and hand-correct any odd split.
+- [X] T006 [P] Update `runcdr_Phase5_Requirements.md`: mark **R5-P2 SHIPPED as feature 027** (backfill migration `0028`); the R5 cluster's remaining piece done. Note latest migration is now `0028`.
+- [X] T007 **Operational (manual, post-commit — not part of the gate):** apply to `zak1_dev` — `pg_dump -Fc "$DATABASE_URL" -f ~/runcdr_pre_0028.dump` (snapshot), then `pnpm run db:migrate`, then verify `select count(*) from contacts where last_name is null and btrim(first_name) like '% %';` returns `0` (SC-001); spot-check compound surnames and hand-correct any odd split.
 
 ---
 

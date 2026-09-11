@@ -49,7 +49,7 @@ Next.js App Router monolith: `src/app/` (routes/pages), `src/server/` (auth, dom
 
 **Purpose**: Establish a known-good baseline and a way back from T005.
 
-- [X] T001 🛑 Snapshot `zak1_dev` to `~/zak1_pre_0021.dump` via `pg_dump -Fc` per [quickstart.md](quickstart.md); verify the dump restores into a scratch DB. **Blocks T005 — this is the only rollback.**
+- [X] T001 🛑 Snapshot `zak1_dev` to `~/runcdr_pre_0021.dump` via `pg_dump -Fc` per [quickstart.md](quickstart.md); verify the dump restores into a scratch DB. **Blocks T005 — this is the only rollback.**
 - [X] T002 Record the pre-migration baseline: `pnpm test` (expect ~291 green / 112 files), `pnpm exec tsc --noEmit`, `pnpm run lint`. A red baseline must be fixed before T005, not diagnosed after it.
 - [X] T003 Confirm the starting state: `psql "$DATABASE_URL" -c "SELECT id, display_name, volunteer_roles FROM contacts WHERE is_volunteer"` → **expect `Rich Dempsey | {}` — an EMPTY array**. ⚠️ *Corrected 2026-07-15 against live data: this task originally expected `{administrator}`. Nobody holds any role and nobody ever has — `bootstrapOfficer`'s `--role` is optional and 015 did not use it. The migration therefore migrates zero rows, and the cold start (T011) is real.* (FR-013)
 
@@ -258,7 +258,7 @@ Next.js App Router monolith: `src/app/` (routes/pages), `src/server/` (auth, dom
 - [X] T072 [P] Update `specs/DATA_MODEL.md` — `role_grants`, `audit_events`, the `contacts` changes, and the **removal** of `volunteer_roles`.
 - [X] T073 [P] Update `docs/use-cases.md` — the "does not enforce any of this yet" caveat is now false; authorization ships here.
 - [X] T074 [P] Update `specs/PHASE3_REQUIREMENTS.md` — P3-2 status → shipped; P3-3/P3-4 unblocked.
-- [X] T075 [P] Refresh auto-memory — `zak1-implementation-status` (016 shipped, new test count), `zak1-phase3-roles` (P3-2 done, P3-3 next); add a note that the audit trail is now a table.
+- [X] T075 [P] Refresh auto-memory — `runcdr-implementation-status` (016 shipped, new test count), `runcdr-phase3-roles` (P3-2 done, P3-3 next); add a note that the audit trail is now a table.
 - [X] T076 Full green gate: `pnpm test`, `pnpm exec tsc --noEmit`, `pnpm run lint`, `pnpm exec prettier --check .`. Confirm **`tests/integration/auth.public.test.ts` (inherited from 015) is still green** — it is what guards FR-018, and this feature's coverage of "the public site stays open" is that test, deliberately rather than by luck.
 - [X] T077 Re-verify the Constitution Check in [plan.md](plan.md) against what was actually built; record any drift.
 

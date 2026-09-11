@@ -61,7 +61,7 @@ rows descend by date; toggling once flips to ascending, again returns to descend
 ## Phase 3: Polish + cross-cutting
 
 - [X] T007 Full gate (solo-maintainer mode): `pnpm exec tsc --noEmit`; `pnpm exec eslint <changed>`; `pnpm exec prettier --check <changed>`; `pnpm test` (full suite green — FR-004: no other bookings-report assertion regresses); `pnpm build`. All green.
-- [X] T008 [P] Update `zak1_Phase5_Requirements.md`: mark **P5-R2 SHIPPED as feature 029** (bookings report now defaults to descending date; toggle unchanged; no migration), closing the last ascending-default surface (SC-003).
+- [X] T008 [P] Update `runcdr_Phase5_Requirements.md`: mark **P5-R2 SHIPPED as feature 029** (bookings report now defaults to descending date; toggle unchanged; no migration), closing the last ascending-default surface (SC-003).
 
 ---
 

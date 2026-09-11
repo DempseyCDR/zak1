@@ -7,7 +7,7 @@ decisions are mechanical (how to drop safely, how to test a removal); resolved b
 
 - **Decision**: New migration `src/server/db/migrations/0031_drop_non_dance_income.sql`:
   `DROP TABLE IF EXISTS non_dance_income;` (drops the `non_dance_income_event` index with the table). Take
-  `~/zak1_pre_0031.dump` before applying to `zak1_dev`; `zak1_test` is auto-migrated.
+  `~/runcdr_pre_0031.dump` before applying to `zak1_dev`; `zak1_test` is auto-migrated.
 - **Rationale**: The project uses additive, hand-authored SQL migrations and never edits old ones (`0006` created
   the table). `IF EXISTS` makes it idempotent (FR-006). A `pg_dump` snapshot matches the data-migration safety
   convention used for `0028`/`0030`. Money-in-cents is unaffected (the table is discarded whole).

@@ -1,11 +1,11 @@
-# zak1 — Roles, Use Cases & Permission Matrix (working draft)
+# runcdr — Roles, Use Cases & Permission Matrix (working draft)
 
 **Status:** Working draft — Phase 3 role/UI design input. **Will change.** Built by walking through
 what each role *does* (use cases first), then deriving the security model and UI implications.
 
-**Companions:** [`zak1_Help_Glossary.md`](zak1_Help_Glossary.md) (term ↔ file index) ·
+**Companions:** [`runcdr_Help_Glossary.md`](runcdr_Help_Glossary.md) (term ↔ file index) ·
 [`../specs/BACKLOG.md`](../specs/BACKLOG.md) (deferred features B22–B31 surfaced here) ·
-[`../zak1_Project_Context_v1.5.md`](../zak1_Project_Context_v1.5.md) (project state) ·
+[`../runcdr_Project_Context_v1.5.md`](../runcdr_Project_Context_v1.5.md) (project state) ·
 [`../specs/016-role-authorization/spec.md`](../specs/016-role-authorization/spec.md) (the feature
 implementing this document).
 

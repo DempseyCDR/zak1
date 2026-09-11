@@ -11,7 +11,7 @@ End-to-end validation guide proving the feature works. Implementation details li
 
 ```bash
 pnpm install
-docker run -d --name zak1-pg -e POSTGRES_PASSWORD=dev -p 5432:5432 postgres:16
+docker run -d --name runcdr-pg -e POSTGRES_PASSWORD=dev -p 5432:5432 postgres:16
 # enable extensions + run migrations
 pnpm db:migrate
 pnpm db:seed   # loads a small contact/member fixture

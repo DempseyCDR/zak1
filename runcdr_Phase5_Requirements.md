@@ -1,4 +1,4 @@
-# zak1 — Phase 5 Requirements (collecting)
+# runcdr — Phase 5 Requirements (collecting)
 
 **Status:** Requirements collection — open, running doc (pre-spec). **Started:** 2026-07-30.
 

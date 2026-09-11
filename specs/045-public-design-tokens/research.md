@@ -71,12 +71,12 @@ is satisfied structurally — the losing pairings are never expressible through 
 reappears the moment someone uses the token on cream); recolor the whole palette (rejected — the audit says
 keep the identity; only the failing pairings are adjusted).
 
-## R4. Scope clarification — the "double H1" and "footer" defects are WordPress, not zak1
+## R4. Scope clarification — the "double H1" and "footer" defects are WordPress, not runcdr
 
 **Decision**: Treat FR-005 (footer) and FR-006 (one H1) as **discipline enforced by the foundation**, not
-fixes to existing zak1 code. zak1's public pages already have exactly one `<h1>` each (`whats-on`,
+fixes to existing runcdr code. runcdr's public pages already have exactly one `<h1>` each (`whats-on`,
 `what-was-on`, `whats-on/[eventId]`, `join`), and `PublicNav` is a `<nav>` (no heading), so there is no
-double-H1 to fix — the requirement is to keep it that way (a component test guards it). zak1 has **no
+double-H1 to fix — the requirement is to keep it that way (a component test guards it). runcdr has **no
 footer** today; a real footer with org info is **R3**, not R1. R1's obligation is that the link/background
 tokens are AA on every surface a future footer would use (R3), which R3 satisfies.
 

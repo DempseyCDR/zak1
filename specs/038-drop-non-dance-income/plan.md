@@ -21,7 +21,7 @@ row is harmless — FR-007). Every other treasurer figure is unchanged (the sect
 
 **Storage**: PostgreSQL — **destructive** migration `0031_drop_non_dance_income.sql`
 (`DROP TABLE IF EXISTS non_dance_income` — drops the `non_dance_income_event` index with it). Idempotent
-(`IF EXISTS`). Pre-migration snapshot `~/zak1_pre_0031.dump`.
+(`IF EXISTS`). Pre-migration snapshot `~/runcdr_pre_0031.dump`.
 
 **Testing**: Vitest against real Postgres — a **migration** test (reads+executes the `0031` SQL, asserts the
 table is gone, safe to re-run) mirroring the 027/`0028` convention; plus updated report + treasurer-page tests
@@ -91,7 +91,7 @@ EDIT:
   tests/integration/helpers/db.ts               # drop non_dance_income from resetDb TRUNCATE + the seeded
                                                 #   ('non_dance_income','4910',…) account_mapping row
   src/server/db/seed.ts                         # drop the non_dance_income account_mapping seed row
-  docs/zak1_Help_Glossary.md                    # drop the two non-dance-income entries
+  docs/runcdr_Help_Glossary.md                    # drop the two non-dance-income entries
 
 NEW:
   src/server/db/migrations/0031_drop_non_dance_income.sql   # DROP TABLE IF EXISTS non_dance_income
