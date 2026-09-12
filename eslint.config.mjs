@@ -29,8 +29,6 @@ export default tseslint.config(
       "src/server/db/seed.ts",
       "src/server/db/bootstrapOfficer.ts",
       "src/server/db/contactLoad.ts",
-      // Feature 072: one-off repair CLI. Spent once run — delete it with the routine it calls.
-      "src/server/db/repairMerges.ts",
       "src/jobs/**",
       "tests/**",
     ],

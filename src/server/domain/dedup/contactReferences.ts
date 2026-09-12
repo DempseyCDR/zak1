@@ -45,11 +45,10 @@ import {
  */
 export type ContactReferenceDisposition = "move" | "leave" | "structural";
 
-export type ContactReference = {
+type ContactReferenceBase = {
   /** Bare table name, matching `conrelid::regclass::text` so the guard can compare directly. */
   table: string;
   column: string;
-  disposition: ContactReferenceDisposition;
   /**
    * The Drizzle column. Carried by EVERY entry, not just the moved ones: a renamed column then fails to
    * compile here, rather than only surfacing when the parity guard next runs against a database.
@@ -64,6 +63,29 @@ export type ContactReference = {
   why: string;
 };
 
+/**
+ * Feature 074 (FR-001): `pk` is REQUIRED on a `move` and FORBIDDEN on anything else, rather than being
+ * one optional field on a single shape. A moved row must be nameable so an undo can move it back; a row
+ * that never moves has no use for a key, and a key declared there would be dead weight that looked
+ * meaningful. Making that a matter of types rather than convention means the classification cannot be
+ * half-filled in.
+ */
+export type ContactReference =
+  | (ContactReferenceBase & {
+      disposition: "move";
+      /**
+       * The columns identifying one row of this table — the table's real primary key, asserted against
+       * `pg_constraint` by the parity guard.
+       *
+       * This field exists because `membership_members` has a COMPOSITE key and no `id` column, and its
+       * `contact_id` is simultaneously half that key and the column a merge rewrites. Recording a row's
+       * key as it stands AFTER the move is the only identification that works for both that table and
+       * the ten ordinary ones.
+       */
+      pk: readonly AnyPgColumn[];
+    })
+  | (ContactReferenceBase & { disposition: "leave" | "structural"; pk?: never });
+
 export const CONTACT_REFERENCES: readonly ContactReference[] = [
   // ---------------------------------------------------------------- move (11)
   {
@@ -71,6 +93,7 @@ export const CONTACT_REFERENCES: readonly ContactReference[] = [
     column: "contact_id",
     disposition: "move",
     col: contactEmails.contactId,
+    pk: [contactEmails.id],
     why: "How the person is reached. Moved since the original dedup feature.",
   },
   {
@@ -78,6 +101,7 @@ export const CONTACT_REFERENCES: readonly ContactReference[] = [
     column: "payer_contact_id",
     disposition: "move",
     col: membershipAccounts.payerContactId,
+    pk: [membershipAccounts.id],
     why: "The household they pay for. Unique per payer, so two payers raise a `two_accounts` hold.",
   },
   {
@@ -85,6 +109,10 @@ export const CONTACT_REFERENCES: readonly ContactReference[] = [
     column: "contact_id",
     disposition: "move",
     col: membershipMembers.contactId,
+    // The reason `pk` exists. This table has NO `id`: its key is the pair, and `contact_id` is both half
+    // of that key and the column the merge rewrites — so a moved row's identity changes as it moves.
+    // Recording the key as it stands AFTER the move is what makes it findable again.
+    pk: [membershipMembers.accountId, membershipMembers.contactId],
     why: "The household covering them. Both contacts may be on one account — the duplicate is dropped.",
   },
   {
@@ -92,6 +120,7 @@ export const CONTACT_REFERENCES: readonly ContactReference[] = [
     column: "contact_id",
     disposition: "move",
     col: attendance.contactId,
+    pk: [attendance.id],
     why: "Their check-in history. Unique per (event, contact), so a shared event drops the duplicate.",
   },
   {
@@ -99,6 +128,7 @@ export const CONTACT_REFERENCES: readonly ContactReference[] = [
     column: "contact_id",
     disposition: "move",
     col: gateSales.contactId,
+    pk: [gateSales.id],
     why: "What they bought at the door — a named receipt that belongs to the person.",
   },
   {
@@ -106,6 +136,7 @@ export const CONTACT_REFERENCES: readonly ContactReference[] = [
     column: "contact_id",
     disposition: "move",
     col: membershipCaptures.contactId,
+    pk: [membershipCaptures.id],
     why: "An online membership purchase resolved to this person.",
   },
   {
@@ -113,6 +144,7 @@ export const CONTACT_REFERENCES: readonly ContactReference[] = [
     column: "contact_id",
     disposition: "move",
     col: performers.contactId,
+    pk: [performers.id],
     why:
       "Who they are on stage. Leaving this behind is what hid the Booker's email link, dropped them " +
       "from the performer mailing list, and let the open-band guard double-subtract them.",
@@ -122,6 +154,7 @@ export const CONTACT_REFERENCES: readonly ContactReference[] = [
     column: "contact_id",
     disposition: "move",
     col: officers.contactId,
+    pk: [officers.id],
     why: "The seat they hold. Unique on the SEAT, not the contact, so this cannot collide.",
   },
   {
@@ -129,6 +162,7 @@ export const CONTACT_REFERENCES: readonly ContactReference[] = [
     column: "landlord_contact_id",
     disposition: "move",
     col: venues.landlordContactId,
+    pk: [venues.id],
     why: "The hall they rent to the club.",
   },
   {
@@ -136,6 +170,7 @@ export const CONTACT_REFERENCES: readonly ContactReference[] = [
     column: "contact_id",
     disposition: "move",
     col: roleGrants.contactId,
+    pk: [roleGrants.id],
     conditional: true,
     why:
       "What they may do. Moved only when it would not compound privilege — otherwise the merge is " +
@@ -146,6 +181,7 @@ export const CONTACT_REFERENCES: readonly ContactReference[] = [
     column: "contact_id",
     disposition: "move",
     col: staffIdentities.contactId,
+    pk: [staffIdentities.id],
     conditional: true,
     why:
       "Their sign-in. Unique per contact, so two sign-ins raise a `two_logins` hold; where only one " +

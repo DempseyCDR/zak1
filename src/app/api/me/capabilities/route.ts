@@ -22,5 +22,9 @@ export const GET = withAuth({ requires: "base" }, async (_req, ctx) => {
     // Feature 069 (FR-012/FR-013): a merge held because both contacts sign in is resolved by choosing
     // which identity survives — a role decision, so the queue shows that action only to its holder.
     roleAssign: actorCan(ctx.actor, "role.assign"),
+    // Feature 074 (FR-023): the merge history and its undo control are duplicate work, so the record
+    // shows that block only to a holder. `roleAssign` above additionally gates the sign-in PORTION of
+    // an undo, but server-side — lacking it skips those entries rather than hiding the control.
+    dedupWrite: actorCan(ctx.actor, "dedup.write"),
   });
 });

@@ -152,6 +152,10 @@ export default function DuplicatePair({
                 >
                   Keep {b.displayName}
                 </button>
+                {/* Feature 074 (FR-029): say the safety net exists BEFORE the merge, not after. Knowing
+                    a merge can be taken back is most of what makes it possible to act on a pair at all;
+                    discovering it afterwards is worth much less. */}
+                <span className={styles.hint}>Either can be undone afterwards.</span>
               </>
             )}
             {/* Rejecting is blocked only by an address the row is not showing — a conflict between the

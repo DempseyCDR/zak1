@@ -6,8 +6,10 @@ no-unmerge gap recorded in [mel-maintenance-remaining.md](mel-maintenance-remain
 
 Requirement IDs are `MRG-Rn`. Anything marked _(open)_ is not yet decided.
 
-**Split:** §1–§5 are **feature 072** (relinking, decided 2026-09-09). §6 is **feature 073** (undo), whose
-requirements are deliberately still open and get their own session.
+**Split:** §1–§5 are **feature 072** (relinking, shipped 2026-09-11). §6 is **feature 074** (undo,
+shipped 2026-09-12) — it was numbered 073 while this document was drafted, but that number was consumed
+by the project rename, so the undo feature is 074. §6's requirements were settled in the requirements
+session of 2026-09-11 and are no longer open.
 
 ---
 
@@ -94,13 +96,17 @@ Three silent failures follow from the stranded performers alone — no error is 
   contact's grants to move**. One mechanism covers both triggers: decline the role-assigning grant, or
   choose which exclusive role survives. Moving none is a valid answer.
 
-## 6. Undo _(open — feature 073)_
+## 6. Undo _(settled — feature 074, shipped)_
 
-- **MRG-R11 _(open)_ — There is no unmerge today, and the data does not support one.** `merge_audit`
-  records **counts, not identifiers** (`{"contact_emails": 2}`), so it can say a merge happened but not
-  what moved. Clearing `merged_into_id` restores the contact row — names, phone, pronouns and timestamps
-  are untouched — but the re-pointed rows cannot be told apart from the survivor's own. Recovery is
-  currently a database restore.
+- **MRG-R11 — RESOLVED by feature 074.** The diagnosis below was correct and is what 074 fixed:
+  `merge_audit` recorded **counts, not identifiers** (`{"contact_emails": 2}`), so it could say a merge
+  happened but not what moved, and the re-pointed rows could not be told apart from the survivor's own.
+  A merge now writes a `reversal_manifest` alongside those counts, and an undo replays it.
+
+  Two limits, both deliberate: merges recorded **before** 074 have no manifest and stay permanently
+  un-reversible (there is no backfill — the information was never written down), and a merge is
+  reversible only while its survivor is still live, so chains unwind most-recent-first. See
+  `specs/074-undo-merge/`.
 - **MRG-R12 _(open)_ — Two paths are outright destructive**, both from feature 069: a colliding
   `membership_members` row is deleted, and so is the account not chosen when a `two_accounts` hold is
   resolved (taking its level, expiry and last-payment date). Reversibility requires these to be marked

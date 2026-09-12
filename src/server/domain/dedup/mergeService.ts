@@ -1,4 +1,4 @@
-import { and, eq, inArray, ne, sql } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 import type { Db, DbOrTx } from "@/server/db/client";
 import {
   contactEmails,
@@ -11,6 +11,7 @@ import {
   type HeldMergeReason,
 } from "@/server/db/schema";
 import { UNCONDITIONAL_MOVES } from "./contactReferences";
+import { manifestBuilder, rowKey } from "./mergeManifest";
 import { CAPABILITIES } from "@/server/auth/capabilities";
 import { EXCLUSIVE_ROLES } from "@/server/domain/access/grantService";
 import type { Role } from "@/server/db/schema";
@@ -302,44 +303,98 @@ export async function mergeContacts(
   }
 
   return db.transaction(async (tx) => {
+    // Feature 074 (FR-001 to FR-005): the merge records what it does as it does it. Accumulated here and
+    // written with the merge audit row below — one insert, one transaction, so a merge cannot commit
+    // without its manifest and therefore cannot become an un-reversible merge nobody can identify as
+    // one. Names inside the manifest are always the DATABASE's (snake_case); see `mergeManifest.ts`.
+    const manifest = manifestBuilder();
+
     // Feature 072 (FR-012, FR-012a): apply the sign-in choice as ONE thing. The identity that was not
     // chosen is DELETED, not moved — `staff_identities` is unique per contact, and sign-in auto-enrols,
     // so the person simply signs in with the surviving Google account. That is FR-006 (one account per
     // person) working as designed, not a lockout.
     if (resolution.survivingIdentityId) {
-      await tx
-        .delete(staffIdentities)
-        .where(
-          and(
-            sql`${staffIdentities.contactId} IN (${canonicalId}, ${mergedId})`,
-            ne(staffIdentities.id, resolution.survivingIdentityId),
-          ),
-        );
-      await tx
-        .update(staffIdentities)
-        .set({ contactId: canonicalId })
-        .where(eq(staffIdentities.id, resolution.survivingIdentityId));
+      // Feature 074: snapshot in full before deleting. `google_sub` is the only durable handle on a
+      // Google account — an id recorded without it could never be re-created.
+      const discarded = [
+        ...(await tx.execute<Record<string, unknown>>(sql`
+          DELETE FROM staff_identities
+           WHERE contact_id IN (${canonicalId}, ${mergedId})
+             AND id <> ${resolution.survivingIdentityId}
+          RETURNING *
+        `)),
+      ];
+      for (const row of discarded) {
+        manifest.destroy({
+          table: "staff_identities",
+          key: rowKey(row, ["id"]),
+          row,
+          accessChanging: true,
+        });
+      }
+      // The chosen binding may itself be the merged contact's, in which case it MOVES. Recording the
+      // move conditionally matters: claiming a move that did not happen would make the undo take the
+      // survivor's own binding away from it.
+      const relinked = [
+        ...(await tx.execute<Record<string, unknown>>(sql`
+          UPDATE staff_identities SET contact_id = ${canonicalId}
+           WHERE id = ${resolution.survivingIdentityId} AND contact_id = ${mergedId}
+          RETURNING id
+        `)),
+      ];
+      for (const row of relinked) {
+        manifest.move({
+          table: "staff_identities",
+          column: "contact_id",
+          key: rowKey(row, ["id"]),
+          fromContactId: mergedId,
+          accessChanging: true,
+        });
+      }
     } else {
       // Uncontested: only one side can sign in, so it simply moves — preserving `last_sign_in_at`, and
       // sparing the person a needless re-enrolment round trip (FR-011).
-      await tx
-        .update(staffIdentities)
-        .set({ contactId: canonicalId })
-        .where(eq(staffIdentities.contactId, mergedId));
+      const relinked = [
+        ...(await tx.execute<Record<string, unknown>>(sql`
+          UPDATE staff_identities SET contact_id = ${canonicalId}
+           WHERE contact_id = ${mergedId}
+          RETURNING id
+        `)),
+      ];
+      for (const row of relinked) {
+        manifest.move({
+          table: "staff_identities",
+          column: "contact_id",
+          key: rowKey(row, ["id"]),
+          fromContactId: mergedId,
+          accessChanging: true,
+        });
+      }
     }
 
     // The label follows the binding.
     if (resolution.survivingLoginEmailId) {
-      await tx
-        .update(contactEmails)
-        .set({ isLogin: false })
-        .where(
-          and(
-            sql`${contactEmails.contactId} IN (${canonicalId}, ${mergedId})`,
-            eq(contactEmails.isLogin, true),
-            ne(contactEmails.id, resolution.survivingLoginEmailId),
-          ),
-        );
+      // Feature 074 (FR-003): capture the prior value before overwriting it. This is the one operation
+      // that changes a row the merge leaves in place, so there is no deleted row to snapshot — only the
+      // flag itself, which is what actually labels who may sign in.
+      const demoted = [
+        ...(await tx.execute<Record<string, unknown>>(sql`
+          UPDATE contact_emails SET is_login = false
+           WHERE contact_id IN (${canonicalId}, ${mergedId})
+             AND is_login = true
+             AND id <> ${resolution.survivingLoginEmailId}
+          RETURNING id
+        `)),
+      ];
+      for (const row of demoted) {
+        manifest.overwrite({
+          table: "contact_emails",
+          key: rowKey(row, ["id"]),
+          column: "is_login",
+          previousValue: true,
+          accessChanging: true,
+        });
+      }
     }
 
     // Apply the account choice the same way: fold the losing household in, then drop the empty account.
@@ -351,13 +406,58 @@ export async function mergeContacts(
         .map((a) => a.accountId)
         .filter((id) => id !== resolution.survivingAccountId);
       for (const accountId of losing) {
-        await tx.execute(sql`
-          INSERT INTO membership_members (account_id, contact_id)
-          SELECT ${resolution.survivingAccountId}, mm.contact_id
-            FROM membership_members mm WHERE mm.account_id = ${accountId}
-          ON CONFLICT DO NOTHING
-        `);
-        await tx.delete(membershipAccounts).where(eq(membershipAccounts.id, accountId));
+        // Feature 074 (FR-004): RETURNING yields only the rows actually inserted, because
+        // ON CONFLICT DO NOTHING silently skips anyone already on the surviving account. Those are the
+        // rows an undo must take away again — without recording them the survivor would keep a
+        // household it never had.
+        const created = [
+          ...(await tx.execute<Record<string, unknown>>(sql`
+            INSERT INTO membership_members (account_id, contact_id)
+            SELECT ${resolution.survivingAccountId}, mm.contact_id
+              FROM membership_members mm WHERE mm.account_id = ${accountId}
+            ON CONFLICT DO NOTHING
+            RETURNING account_id, contact_id
+          `)),
+        ];
+        for (const row of created) {
+          manifest.create({
+            table: "membership_members",
+            key: rowKey(row, ["account_id", "contact_id"]),
+          });
+        }
+
+        // ⚠️ Feature 074 (FR-002), and the reason this block is not symmetric with the one above:
+        // `membership_members.account_id` is ON DELETE CASCADE, so deleting the account below destroys
+        // EVERY household row on it — including the ones the INSERT just skipped, which were therefore
+        // never copied anywhere. No statement in this merge names those rows; they simply vanish. They
+        // must be snapshotted here, before the delete, or an undo restores the account with an empty
+        // household and loses each member's original `attached_at`.
+        const cascaded = [
+          ...(await tx.execute<Record<string, unknown>>(sql`
+            SELECT * FROM membership_members WHERE account_id = ${accountId}
+          `)),
+        ];
+        for (const row of cascaded) {
+          manifest.destroy({
+            table: "membership_members",
+            key: rowKey(row, ["account_id", "contact_id"]),
+            row,
+          });
+        }
+
+        // The account itself, in full: level, expiry and last-payment date all die with it.
+        const [discardedAccount] = [
+          ...(await tx.execute<Record<string, unknown>>(sql`
+            DELETE FROM membership_accounts WHERE id = ${accountId} RETURNING *
+          `)),
+        ];
+        if (discardedAccount) {
+          manifest.destroy({
+            table: "membership_accounts",
+            key: rowKey(discardedAccount, ["id"]),
+            row: discardedAccount,
+          });
+        }
       }
     }
 
@@ -367,19 +467,36 @@ export async function mergeContacts(
     // satisfy, so the losing row is dropped rather than the merge failing on a raw constraint error —
     // the failure mode feature 069 exists to eliminate. Both are genuinely the same fact recorded twice:
     // the duplicate was added to one household under two spellings, or attended one event under two
-    // names. ⚠️ DESTRUCTIVE and unrecorded: the dropped row leaves no trace (see feature 073).
-    await tx.execute(sql`
-      DELETE FROM membership_members m
-       WHERE m.contact_id = ${mergedId}
-         AND EXISTS (SELECT 1 FROM membership_members s
-                      WHERE s.account_id = m.account_id AND s.contact_id = ${canonicalId})
-    `);
-    await tx.execute(sql`
-      DELETE FROM attendance a
-       WHERE a.contact_id = ${mergedId}
-         AND EXISTS (SELECT 1 FROM attendance s
-                      WHERE s.event_id = a.event_id AND s.contact_id = ${canonicalId})
-    `);
+    // names. Feature 074 (FR-002): the dropped row is now snapshotted in full before it goes, so the
+    // drop is recorded rather than silent and an undo can put the duplicate back.
+    const droppedMembers = [
+      ...(await tx.execute<Record<string, unknown>>(sql`
+        DELETE FROM membership_members m
+         WHERE m.contact_id = ${mergedId}
+           AND EXISTS (SELECT 1 FROM membership_members s
+                        WHERE s.account_id = m.account_id AND s.contact_id = ${canonicalId})
+        RETURNING *
+      `)),
+    ];
+    for (const row of droppedMembers) {
+      manifest.destroy({
+        table: "membership_members",
+        key: rowKey(row, ["account_id", "contact_id"]),
+        row,
+      });
+    }
+    const droppedAttendance = [
+      ...(await tx.execute<Record<string, unknown>>(sql`
+        DELETE FROM attendance a
+         WHERE a.contact_id = ${mergedId}
+           AND EXISTS (SELECT 1 FROM attendance s
+                        WHERE s.event_id = a.event_id AND s.contact_id = ${canonicalId})
+        RETURNING *
+      `)),
+    ];
+    for (const row of droppedAttendance) {
+      manifest.destroy({ table: "attendance", key: rowKey(row, ["id"]), row });
+    }
 
     // Feature 072 (FR-008): grants move only once the conflict check above has passed. A resolution may
     // name a subset; anything not named stays on the retired contact, where nothing reads it. The
@@ -402,6 +519,14 @@ export async function mergeContacts(
         ),
       )
       .returning({ id: roleGrants.id });
+    for (const row of movedGrants) {
+      manifest.move({
+        table: "role_grants",
+        column: "contact_id",
+        key: { id: row.id },
+        fromContactId: mergedId,
+      });
+    }
 
     // The relink itself is driven by the CLASSIFICATION, not by tables named here (FR-002). That is the
     // whole point: feature 068 retired the membership tables and this service went on relinking the old
@@ -412,22 +537,41 @@ export async function mergeContacts(
     // the statement with `sql.identifier` is safe.
     const moved: Record<string, number> = { role_grants: movedGrants.length };
     for (const ref of UNCONDITIONAL_MOVES) {
-      const rows = await tx.execute(sql`
-        UPDATE ${sql.identifier(ref.table)}
-           SET ${sql.identifier(ref.column)} = ${canonicalId}
-         WHERE ${sql.identifier(ref.column)} = ${mergedId}
-        RETURNING 1
-      `);
-      moved[ref.table] = [...rows].length;
+      // Feature 074 (FR-001): the statement returns each moved row's KEY rather than a bare `1`, so the
+      // move is recorded reversibly. The key is the one the classification declares, which is why
+      // `membership_members` — composite key, no `id`, and its `contact_id` rewritten by this very
+      // statement — is carried here without a special case. RETURNING yields post-update values, so the
+      // key is the row's identity AS IT NOW STANDS, which is what an undo will look it up by.
+      const pkColumns = ref.pk.map((c) => c.name);
+      const rows = [
+        ...(await tx.execute<Record<string, unknown>>(sql`
+          UPDATE ${sql.identifier(ref.table)}
+             SET ${sql.identifier(ref.column)} = ${canonicalId}
+           WHERE ${sql.identifier(ref.column)} = ${mergedId}
+          RETURNING ${sql.join(
+            pkColumns.map((c) => sql.identifier(c)),
+            sql`, `,
+          )}
+        `)),
+      ];
+      for (const row of rows) {
+        manifest.move({
+          table: ref.table,
+          column: ref.column,
+          key: rowKey(row, pkColumns),
+          fromContactId: mergedId,
+        });
+      }
+      moved[ref.table] = rows.length;
     }
 
     // Soft-retire the merged contact: the row itself survives intact — names, phone, pronouns, source
     // and timestamps are all untouched — so clearing `merged_into_id` brings the contact back.
     //
-    // ⚠️ That is NOT the same as an undo. The RELINKING above is one-way: `merge_audit` records only
-    // COUNTS, never which rows moved, so once these emails and attachments sit on the survivor nothing
-    // distinguishes them from its own. There is no unmerge path, and recovering from a mistaken merge
-    // means restoring the database. See the follow-up in specs/069-triage-worklists/tasks.md.
+    // Feature 074: that clearing is now one step of a real undo rather than a tantalising half-measure.
+    // Everything above has been recorded in `manifest`, so the relinking is no longer one-way — see
+    // `undoMergeService.ts`. Merges recorded BEFORE 074 remain permanently un-reversible, because their
+    // `reversal_manifest` is NULL and nothing can reconstruct it.
     await tx
       .update(contacts)
       .set({ mergedIntoId: canonicalId, updatedAt: new Date() })
@@ -436,7 +580,16 @@ export async function mergeContacts(
     // Canonical may have gained membership coverage → recompute its cached status.
     await recomputeContactStatus(tx, canonicalId, "membership_change", actor);
 
-    await tx.insert(mergeAudit).values({ canonicalId, mergedId, actor, relinkedCounts: moved });
+    // Feature 074 (FR-005): the manifest rides the merge's OWN audit insert, inside this transaction.
+    // Not a second write — a merge that committed while its manifest failed would be un-reversible and
+    // indistinguishable from a pre-074 merge, which is the one outcome this feature cannot allow.
+    await tx.insert(mergeAudit).values({
+      canonicalId,
+      mergedId,
+      actor,
+      relinkedCounts: moved,
+      reversalManifest: manifest.build(),
+    });
     writeAudit({ kind: "contact.merge", actor, details: { canonicalId, mergedId, moved } });
 
     return { outcome: "completed" as const, canonicalId, moved };

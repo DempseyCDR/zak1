@@ -48,17 +48,69 @@ Shipped in feature 072. The collisions were real and were specified rather than 
 
 Until this lands, merging a volunteer leaves their identity and grants stranded on the retired shell.
 
-## 2. There is no unmerge
+## 2. There is no unmerge — CLOSED by feature 074 (2026-09-12)
 
-`merge_audit.relinked_counts` records **counts, not identifiers**, so the table says a merge happened but
-not what moved. Clearing `contacts.merged_into_id` restores the contact row — names, phone, pronouns and
-timestamps are untouched — but the re-pointed emails and memberships cannot be told apart from the
-survivor's own. Two paths are also destructive: a colliding `membership_members` row is deleted, as is
-the unchosen account when a `two_accounts` hold is resolved.
+`merge_audit.relinked_counts` recorded **counts, not identifiers**, so the table said a merge happened
+but not what moved, and the re-pointed emails and memberships could not be told apart from the
+survivor's own. Recovery from a mistaken merge was a database restore.
 
-**Recovery from a mistaken merge is a database restore.** The proposed shape of a fix — moved row ids,
-marking instead of deleting, an unmerge service, and a retention decision — is written up in
-[specs/069-triage-worklists/tasks.md](../069-triage-worklists/tasks.md).
+A merge now also writes a **`reversal_manifest`**: every re-linked row's primary key, the full prior
+content of every row it destroys, the prior value of every field it overwrites, and the identity of
+every row it creates. `POST /api/dedup/merges/{id}/undo` replays it, and the contact record shows the
+merges that produced it with an honest verdict on each.
+
+Feature 074 also found and recorded **five** destructive paths where this section named two. The fifth
+had no statement of its own anywhere in the merge: `membership_members.account_id` is
+`ON DELETE CASCADE`, so deleting the unchosen account silently destroyed every household row on it —
+including the ones `ON CONFLICT DO NOTHING` never copied because that person was already on the
+surviving account.
+
+**Two limits, both deliberate, both permanent:**
+
+- Merges recorded **before** 074 have no manifest and can never be undone. There is no backfill; the
+  information was never written down. They are reconstructed by hand, accepting some loss of history,
+  and the UI says so rather than offering an action that would fail.
+- A merge is reversible only while its survivor is still live and neither contact has been archived, so
+  **chains unwind most-recent-first or not at all**. There is no time limit — age is shown as
+  information, never enforced as a cut-off.
+
+See [specs/074-undo-merge/](../074-undo-merge/).
+
+## 2a. A merge can silently revoke a volunteer's access (FOUND 2026-09-12, NOT FIXED)
+
+Found walking feature 074's §4 manual pass: `dempsey.peggy@gmail.com` (mailing list manager) merged into
+`peggy@cdrochester.org`. The merge completed. Afterwards **neither address could sign in**, with no
+message explaining why.
+
+**Cause.** `contacts.is_volunteer` is an attribute of the PERSON, but it is not a foreign key, so it sits
+entirely outside the `CONTACT_REFERENCES` classification and no merge has ever considered it. Merging a
+volunteer into a non-volunteer therefore moves the role grants and the sign-in binding onto a contact
+that is not a volunteer, and `resolveSignIn` requires `is_volunteer`. Both addresses then fail, because
+the merged contact's email moved to the survivor and now resolves there too.
+
+**It produces a state the system otherwise forbids.** `grantService` refuses to grant a role to a
+non-volunteer (`grantRequiresVolunteer`, `grantService.ts:84`), but the merge relinks grants in raw SQL
+and bypasses it — **the same class of bug as feature 072's `EXCLUSIVE_ROLES` finding**: a service-layer
+invariant with no constraint behind it, walked past by a SQL relink. 072 caught exclusivity and missed
+this one.
+
+**Recovery is not automatic.** The known-`google_sub` branch of `resolveSignIn` wins before enrolment is
+reached, so the person cannot simply sign in again — while the binding points at a non-volunteer, the
+attempt is refused. Undoing the merge fixes it, but the undo's sign-in portion needs `role.assign`.
+
+**The likely fix** — for its own feature, not a patch: treat `is_volunteer` as something a merge carries,
+so the survivor becomes a volunteer if either side was. That wants a deliberate decision, because it
+GRANTS access rather than separating records, and it is the one direction the merge has so far never
+taken.
+
+## 2b. Retired contacts still appear on the access page (FOUND 2026-09-12, NOT FIXED)
+
+`listVolunteers` (`grantService.ts:275`) selects `contacts.is_volunteer = true` with **no merged or
+archived filter**, so a contact that has been merged away is still listed as a volunteer — showing with
+no roles, because its grants moved to the survivor. Same family as the `matchPerformers` and
+`resolveSignIn` enrolment holes feature 072 closed; this one was missed because it is a read path.
+
+Small and self-contained: add the active-contact predicate.
 
 ## 3. Smaller items
 

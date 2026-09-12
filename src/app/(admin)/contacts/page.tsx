@@ -8,6 +8,7 @@ import RecordView from "@/app/(admin)/_components/RecordView";
 import EmailEditor, { type EmailRow } from "./_components/EmailEditor";
 import MessageRecipient, { type MessageRecipientRow } from "./_components/MessageRecipient";
 import MembershipAccount, { type MembershipBlock } from "./_components/MembershipAccount";
+import MergeHistory from "./_components/MergeHistory";
 import DuplicatePair, { type DupPair } from "./_components/DuplicatePair";
 import MergeCompare from "./_components/MergeCompare";
 import { formatPhone } from "@/server/domain/contacts/phone";
@@ -64,6 +65,7 @@ type Caps = {
   contactMailingWrite: boolean;
   membershipWrite: boolean; // feature 068 (FR-017): FS/Treasurer/Super-user
   roleAssign: boolean; // feature 069 (FR-012): may choose which sign-in identity survives
+  dedupWrite: boolean; // feature 074 (FR-023): may see the merge history and undo a merge
 };
 
 // Feature 063 (M-R5..M-R8): the full record behind an opened contact, fed by GET /api/contacts/:id.
@@ -135,6 +137,7 @@ export default function ContactsPage() {
     contactMailingWrite: false,
     membershipWrite: false,
     roleAssign: false,
+    dedupWrite: false,
   });
   const [includeArchived, setIncludeArchived] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false); // second-step guard for the destructive action
@@ -223,6 +226,7 @@ export default function ContactsPage() {
           contactMailingWrite: !!c.contactMailingWrite,
           membershipWrite: !!c.membershipWrite,
           roleAssign: !!c.roleAssign,
+          dedupWrite: !!c.dedupWrite,
         });
       }
     })();
@@ -861,6 +865,16 @@ export default function ContactsPage() {
                   contactId={record.id}
                   membership={record.membership}
                   canWrite={caps.membershipWrite}
+                  onChanged={() => openRecord(record.id)}
+                />
+              )}
+              {/* Feature 074 (FR-026): the merges that produced this record, each with an honest
+                  verdict on whether it can still be undone. Only shown to a duplicate-management
+                  holder, since that is who may act on it. */}
+              {caps.dedupWrite && (
+                <MergeHistory
+                  key={`mh-${record.id}`}
+                  contactId={record.id}
                   onChanged={() => openRecord(record.id)}
                 />
               )}

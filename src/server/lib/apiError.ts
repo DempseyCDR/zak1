@@ -4,6 +4,9 @@ export type ApiErrorCode =
   // Feature 069 (M-R21): a merge held for a decision the survivor cannot make for itself.
   | "HELD_MERGE_NOT_FOUND"
   | "HELD_MERGE_REASON_MISMATCH"
+  // Feature 074: undoing a merge.
+  | "MERGE_NOT_FOUND"
+  | "MERGE_NOT_REVERSIBLE"
   // Feature 068 (M-R/FR-003a, FR-009): membership account guards.
   | "LEVEL_CAPACITY_EXCEEDED"
   | "LEVEL_ADMITS_NO_MEMBERS"
@@ -176,6 +179,17 @@ export const errors = {
     new ApiError("ACCOUNT_NOT_FOUND", 404, "This contact has no membership account."),
   heldMergeNotFound: () =>
     new ApiError("HELD_MERGE_NOT_FOUND", 404, "That held merge no longer exists."),
+  /** Feature 074: no merge with that id. Distinct from a merge that exists but cannot be undone. */
+  mergeNotFound: () => new ApiError("MERGE_NOT_FOUND", 404, "That merge no longer exists."),
+  /**
+   * Feature 074 (FR-007 to FR-010): the merge exists but cannot be undone.
+   *
+   * The verdict rides in `detail` rather than only in the prose, because the caller has to explain
+   * WHICH condition applies (FR-028) and must not have to parse a sentence to find out. The message is
+   * Mel's, the detail is the client's.
+   */
+  mergeNotReversible: (verdict: string, message: string) =>
+    new ApiError("MERGE_NOT_REVERSIBLE", 409, message, verdict),
   /** The choice offered must match what actually collided — a login cannot resolve an account clash. */
   heldMergeReasonMismatch: (reason: string) =>
     new ApiError(
