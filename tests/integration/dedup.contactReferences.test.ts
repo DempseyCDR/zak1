@@ -111,3 +111,65 @@ describe("every reference to a contact is classified (FR-002a)", () => {
     }
   });
 });
+
+/**
+ * Feature 074 (FR-001). A moved row has to be nameable, or it cannot be moved back.
+ *
+ * The obvious design — record each moved row's `id` — does not work: `membership_members` has a
+ * COMPOSITE primary key and no `id` column at all, and its `contact_id` is simultaneously half that key
+ * and the column the merge rewrites. So every moved reference declares the columns that identify one of
+ * its rows, and these tests hold that declaration to the database's own definition of the key rather
+ * than to a second hand-maintained list.
+ */
+type PkRow = { column_name: string };
+
+async function primaryKeyColumns(table: string): Promise<string[]> {
+  const rows = await db.execute<PkRow>(sql`
+    SELECT a.attname AS column_name
+      FROM pg_constraint co
+      JOIN unnest(co.conkey) WITH ORDINALITY k(attnum, ord) ON true
+      JOIN pg_attribute a ON a.attrelid = co.conrelid AND a.attnum = k.attnum
+     WHERE co.contype = 'p' AND co.conrelid = ${table}::regclass
+     ORDER BY k.ord
+  `);
+  return [...rows].map((r) => r.column_name);
+}
+
+describe("every moved reference declares its primary key (FR-001)", () => {
+  const moved = CONTACT_REFERENCES.filter((r) => r.disposition === "move");
+
+  it("declares a non-empty key on every moved reference", () => {
+    for (const ref of moved) {
+      // Named, not counted — the failure has to say which reference nobody gave a key.
+      expect(ref.pk, `${key(ref)} declares no primary key, so a moved row cannot be named`).toBeTruthy();
+      expect(ref.pk.length, `${key(ref)} declares an empty primary key`).toBeGreaterThan(0);
+    }
+  });
+
+  it("declares exactly the key the database has", async () => {
+    for (const ref of moved) {
+      const actual = await primaryKeyColumns(ref.table);
+      const declared = ref.pk.map((c) => c.name);
+      expect(
+        [...declared].sort(),
+        `${key(ref)} declares [${declared.join(", ")}] but the table's key is [${actual.join(", ")}]`,
+      ).toEqual([...actual].sort());
+    }
+  });
+
+  it("membership_members is the composite case this field exists for", async () => {
+    const ref = moved.find((r) => r.table === "membership_members");
+    expect(ref?.pk.map((c) => c.name).sort()).toEqual(["account_id", "contact_id"]);
+    // And it genuinely has no `id` — if one is ever added, the reasoning above should be revisited.
+    expect(await primaryKeyColumns("membership_members")).not.toContain("id");
+  });
+
+  it("leave and structural entries declare no key — they are never moved", () => {
+    for (const ref of CONTACT_REFERENCES.filter((r) => r.disposition !== "move")) {
+      expect(
+        "pk" in ref && ref.pk !== undefined,
+        `${key(ref)} is ${ref.disposition} but declares a primary key it cannot use`,
+      ).toBe(false);
+    }
+  });
+});

@@ -75,6 +75,40 @@ Templates updated (all verified this session):
   - .specify/templates/tasks-template.md ✅ no change required (no workflow references)
   - README.md ✅ no change required
 Deferred TODOs: none
+
+Version change: 1.3.0 → 1.4.0 (2026-09-11)
+Modified sections:
+  - Development Workflow: the branch-and-PR requirement is lifted OUT of the mode distinction and made
+    unconditional. Solo-maintainer mode is renamed single-contributor mode and rewritten: it no longer
+    permits committing direct to main. The only remaining difference between the modes is whether a
+    second person must approve before merge.
+  - Development Workflow: the one-way switch clause is REMOVED. The mode now tracks the live contributor
+    count in both directions, and each transition is recorded here.
+  - Governance → Compliance: both modes now land work by PR, so the parenthetical distinguishing
+    "feature commit (solo-maintainer mode) or PR (multi-contributor mode)" is collapsed to "Every PR".
+Reason: Zak has stopped contributing, returning the project to one contributor. Under 1.3.0 that switch
+  was declared one-way and permanent, so honouring the fact at all required an amendment — hence this
+  one. But reverting literally to 1.3.0's solo-maintainer mode would have discarded a practice that
+  demonstrably earned its place: features 069–073 each landed as a reviewed PR (#31–#35), and those five
+  diffs are now the only place each change is legible as a single unit. The rule that could not survive
+  one contributor was never the branch or the PR — it was "self-merging is not permitted", which with one
+  person is not a standard but a deadlock. So that single clause is dropped and the rest is kept and made
+  unconditional. Note that Principle I already said "No feature branch may be merged unless all tests
+  pass", which presumed branches even while the workflow section called them optional; that inconsistency
+  is resolved here in favour of branches.
+Version rationale: MINOR. No Core Principle (I–IV) is added, removed, or redefined. Unlike 1.2.0 and
+  1.3.0 this amendment does NEWLY REQUIRE something — a branch and a PR, where solo-maintainer mode
+  made both optional — so those amendments' "only permits, never requires" justification is explicitly
+  NOT available here and is not claimed. MINOR is nonetheless correct: the scope is one section's
+  procedure, not a principle, and nothing in flight is invalidated, since every feature since 069 already
+  works this way. This constitution is not retroactive: work that complied with the version in force when
+  it landed remains compliant, and features 001–068 are not made irregular by this change.
+Templates updated (all verified this session):
+  - .specify/templates/plan-template.md ✅ no change required (Constitution Check derives from this file)
+  - .specify/templates/spec-template.md ✅ no change required (no workflow references)
+  - .specify/templates/tasks-template.md ✅ no change required (no workflow references)
+  - README.md ✅ no change required
+Deferred TODOs: none
 -->
 
 # runcdr Constitution
@@ -150,33 +184,46 @@ Observability is not optional and is not deferred to "after MVP."
 
 ## Development Workflow
 
-The workflow has two modes. The mode is determined by a simple fact, not a preference: **how many people are
-contributing code.**
+These rules are unconditional, whoever is contributing:
 
-**Solo-maintainer mode** (in effect while the project has exactly one contributor):
+- Work lands on `main` **only through a pull request** from a feature branch named `###-feature-name`,
+  matching its spec directory (`specs/###-feature-name/`). Nothing is committed direct to `main`.
+- One **atomic commit per feature**. Commits MUST be meaningful; squash "WIP" commits before opening the
+  PR.
+- Before opening the PR, the full gate suite MUST pass locally: tests, type check, lint, formatting,
+  production build, and the `plan.md` Constitution Check sign-off.
+- Every PR MUST state: passing tests, no lint errors, and a Constitution Check sign-off.
+- The implementation plan (`plan.md`) Constitution Check gate MUST be reviewed before Phase 0 research and
+  re-verified after Phase 1 design.
 
-- One **atomic commit per feature**, made directly to `main`. Feature branches are optional; the
-  `###-feature-name` convention lives on in the spec directory names (`specs/###-feature-name/`).
-- Before committing, the full gate suite MUST pass locally: tests, type check, lint, formatting, production
-  build, and the `plan.md` Constitution Check sign-off. The gates replace the reviewer; they are not
-  optional because no one is watching.
-- Commits MUST be atomic and meaningful; no "WIP" commits on `main`.
+On top of that, one rule — and only one — depends on **how many people are currently contributing code**.
+That is a fact about the project, not a preference:
 
-**Multi-contributor mode** (activates automatically when a second contributor — e.g. Zak — begins
-contributing code, and stays active thereafter):
+**Single-contributor mode** (in effect while the project has exactly one contributor):
 
-- Feature branches follow the naming convention `###-feature-name`.
-- Every PR MUST include: passing tests, no lint errors, and a Constitution Check sign-off.
-- Code review is required before merging; self-merging to `main` is not permitted.
-- Commits MUST be atomic and meaningful; squash "WIP" commits before requesting review.
+- The author merges their own PR. Self-merge is permitted **because there is no second person to ask**,
+  not because review is unimportant: with one contributor, requiring approval produces deadlock, and
+  1.3.0 already recorded what happens when the constitution mandates a reviewer who does not exist.
+- The gate suite therefore carries the full weight. It is not optional because no one is watching — it is
+  the only thing watching. A gate MUST NOT be skipped, loosened, or deferred to "fix in a follow-up".
+- The PR still opens, and still stands as the reviewable record of the change even when the reviewer and
+  the author are the same person.
 
-The switch is one-way and requires no further amendment: the first merged contribution from a second person
-puts the project in multi-contributor mode permanently.
+**Multi-contributor mode** (in effect while two or more people are contributing code):
 
-**Both modes**:
+- Code review by someone other than the author is required before merging; self-merging to `main` is not
+  permitted.
 
-- The implementation plan (`plan.md`) Constitution Check gate MUST be reviewed before
-  Phase 0 research and re-verified after Phase 1 design.
+The mode follows the contributor count in **both directions**. It is not latched, and changing it does not
+require re-litigating the workflow — but each transition MUST be recorded in the Sync Impact Report above,
+with the version bumped, so the project's history says which discipline was in force when each feature
+landed. Recorded transitions to date:
+
+| Date | Mode | Trigger |
+|---|---|---|
+| 2026-07-23 (v1.3.0) | single contributor | one maintainer since inception |
+| 2026-08-20 (feat 044) | multi-contributor | Zak began contributing |
+| 2026-09-11 (v1.4.0) | single contributor | Zak stopped contributing |
 
 ## Governance
 
@@ -195,8 +242,10 @@ document takes precedence.
 - MINOR — new principle or section added.
 - PATCH — clarifications, wording, or typo fixes.
 
-**Compliance**: Every feature commit (solo-maintainer mode) or PR (multi-contributor mode) must pass the
-Constitution Check in `plan.md` before landing on `main`.
+**Compliance**: Every PR must pass the Constitution Check in `plan.md` before landing on `main`.
 Exceptions require written justification in the Complexity Tracking table.
 
-**Version**: 1.3.0 | **Ratified**: 2026-06-16 | **Last Amended**: 2026-07-23
+**Not retroactive**: work that complied with the version of this constitution in force when it landed
+remains compliant. An amendment governs what comes after it, and never makes past features irregular.
+
+**Version**: 1.4.0 | **Ratified**: 2026-06-16 | **Last Amended**: 2026-09-11

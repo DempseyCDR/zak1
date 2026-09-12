@@ -25,6 +25,8 @@ import { auditEvents } from "@/server/db/schema";
 export type AuditEvent = {
   kind:
     | "contact.merge"
+    // Feature 074 (FR-021): a merge reversed. Carries what was restored and what was skipped.
+    | "contact.merge.undone"
     // Feature 069 (M-R18/M-R21): triage decisions.
     | "dedup.pair_rejected"
     | "dedup.pair_unrejected"

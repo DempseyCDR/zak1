@@ -57,6 +57,7 @@ erDiagram
     contacts ||--o{ held_merges : "merge held on"
     contacts ||--o{ status_change_audit : logs
     contacts ||--o{ merge_audit : "canonical/merged"
+    merge_audit ||--o| merge_reversals : "undone by"
     contacts ||--o| performers : "may back"
     contacts ||--o{ attendance : "checked in as"
     contacts ||--o{ gate_sales : "named on"
@@ -273,14 +274,43 @@ Append-only record of contact dedup merges.
 | merged_id | uuid NOT NULL → contacts(id) | merged-away contact |
 | actor | text NOT NULL | |
 | relinked_counts | jsonb NOT NULL default `{}` | how many rows of each type were re-pointed |
+| reversal_manifest | jsonb NULL | feature 074: everything needed to undo this merge. **NULL = recorded before 074, permanently un-reversible** |
 | created_at | timestamptz | |
 
 - **Indexes**: `merge_audit_canonical`, `merge_audit_merged`.
-- ⚠️ `relinked_counts` records **counts, not identifiers**, so this table says a merge happened but not
-  what moved. There is **no unmerge**: clearing `contacts.merged_into_id` restores the contact row, but
-  the re-pointed emails and memberships cannot be told apart from the survivor's own. Recovering from a
-  mistaken merge means restoring the database. Written up as a follow-up in
-  `specs/069-triage-worklists/tasks.md`.
+- `relinked_counts` records **counts, not identifiers** — it says a merge happened and how much moved,
+  never what. Feature 074 added the missing half in `reversal_manifest`, which records each re-linked
+  row's primary key, the full prior content of every row the merge destroyed, the prior value of every
+  field it overwrote, and the identity of every row it created. That is what makes a merge reversible.
+- ⚠️ `reversal_manifest` is **NULL for every merge recorded before feature 074**, and that NULL is
+  load-bearing: it is the "cannot be undone" signal. There is no backfill and no default, because
+  nothing can reconstruct which rows moved after the fact — a re-pointed email is indistinguishable
+  from one the survivor always had. Those merges are reconstructed by hand, accepting some loss of
+  history, and the UI says so rather than offering an action that would fail.
+- Still append-only. An undo writes `merge_reversals` and never touches this table: rewriting the record
+  of a merge would erase the event it exists to record.
+
+### `merge_reversals` (feature 074)
+
+One row per undo — who reversed a merge, when, and what it could and could not restore.
+
+| Column | Type | Notes |
+|---|---|---|
+| id | uuid PK | |
+| merge_audit_id | uuid NOT NULL **UNIQUE** → merge_audit(id) | the merge that was reversed |
+| actor | text NOT NULL | |
+| restored_counts | jsonb NOT NULL default `{}` | per table, how many manifest entries were applied |
+| skipped | jsonb NOT NULL default `[]` | every entry NOT applied, with its reason (`gone`, `occupied`, `not_authorized`) |
+| created_at | timestamptz | |
+
+- The **existence** of a row here is the "already undone" fact, which is why `merge_audit` needed no new
+  flag.
+- The UNIQUE on `merge_audit_id` is load-bearing rather than hygiene: "has this been undone?" followed
+  by undoing it is a check-then-act race, and the constraint settles it — two simultaneous undos mean one
+  INSERT wins and the other is reported as already undone.
+- A merge is reversible only while the survivor is still live and neither contact has been archived, so
+  merge chains unwind most-recent-first or not at all. There is **no time limit**: age is surfaced as
+  information, never enforced as a cut-off.
 
 ### `dedup_rejections` (feature 069)
 
